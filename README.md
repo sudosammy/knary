@@ -18,17 +18,13 @@ Because I wanted a project to help me learn Golang.
 
 ## Setup / Usage
 
-__Prerequisite:__ You need `Go >=1.7` to run knary. Ideally, use `Go 1.10.x`.
+1. Download the [applicable 64-bit knary binary](https://github.com/sudosammy/knary/releases) __OR__ build knary from source:
 
-1. Download the [applicable knary binary](https://github.com/sudosammy/knary/releases) __or__ build knary from source in your `GOPATH`:
-
+__Prerequisite:__ You need Go >=1.7 to build knary yourself. Ideally, use Go 1.10.x.
 ```
-git clone https://github.com/sudosammy/knary.git
-cd knary
-go get
+go get -u github.com/sudosammy/knary
 go build knary.go
 ```
-
 2. Create an `A` record matching a subdomain wildcard (`*.mycanary.com`) to your server's IP address
 3. Create an `NS` record matching `dns.mycanary.com` with `ns.mycanary.com` - knary will receive all DNS requests for `*.dns.mycanary.com` 
 4. You can self-sign the certificate for accepting TLS connections with something like `openssl req -x509 -newkey rsa:4096 -keyout server.key -out server.crt -days 365 -nodes`. However, some hosts might refuse to connect - so better you letsencrypt yourself a wildcard cert with something like `sudo certbot certonly --server https://acme-v02.api.letsencrypt.org/directory --manual --preferred-challenges dns -d *.<your.domain>`
