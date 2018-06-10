@@ -21,8 +21,9 @@ import (
 )
 
 const (
-	VERSION = "1.0.0"
+	VERSION = "1.0.1"
 	GITHUB = "https://github.com/sudosammy/knary"
+	GITHUB_VERSION = "https://raw.githubusercontent.com/sudosammy/knary/master/VERSION"
 )
 
 func main() {
@@ -76,7 +77,7 @@ func main() {
 		printy("Listening for http(s)://*." + os.Getenv("CANARY_DOMAIN") + " requests", 1)
 	}
 	if os.Getenv("DNS") == "true" {
-		printy("Listening for *." + os.Getenv("CANARY_DOMAIN") + " DNS requests", 1)
+		printy("Listening for *.dns." + os.Getenv("CANARY_DOMAIN") + " DNS requests", 1)
 	}
 	printy("Posting to webhook: " + os.Getenv("SLACK_WEBHOOK"), 1)
 
@@ -470,7 +471,7 @@ func checkUpdate() bool {
 		return false
 	}
 
-	response, err := http.Get(GITHUB + "/master/VERSION")
+	response, err := http.Get(GITHUB_VERSION)
 
 	if err != nil {
 		updFail := "Could not check for updates: " + err.Error()
@@ -481,22 +482,25 @@ func checkUpdate() bool {
 
 	defer response.Body.Close()
 	scanner := bufio.NewScanner(response.Body) // refusing to import ioutil
-	current, err := semver.Make(scanner.Text())
 
-	if err != nil {
-		updFail := "Could not check for updates. GitHub response !semver format"
-		printy(updFail, 2)
-		logger(updFail)
-		return false
+	for scanner.Scan() { // foreach line
+		current, err := semver.Make(scanner.Text())
+
+		if err != nil {
+			updFail := "Could not check for updates. GitHub response !semver format"
+			printy(updFail, 2)
+			logger(updFail)
+			return false
+		}
+
+		if running.Compare(current) != 0 {
+			updMsg := ":warning: Your version of knary is *" + VERSION + "* & the latest is *" + current.String() + "* - upgrade your binary here: " + GITHUB
+			printy(updMsg, 2)
+			logger(updMsg)
+			go sendMsg(updMsg)
+			return true
+		}
 	}
 	
-	if running.Compare(current) != 0 {
-		updMsg := ":warning: Your version of knary is *" + VERSION + "* & the latest is *" + current.String() + "* - upgrade your binary here: " + GITHUB
-		printy(updMsg, 2)
-		logger(updMsg)
-		go sendMsg(updMsg)
-		return true
-	}
-
 	return false
 }
