@@ -20,7 +20,7 @@ Because I wanted a project to help me learn Golang.
 
 1. Download the [applicable 64-bit knary binary](https://github.com/sudosammy/knary/releases) __OR__ build knary from source:
 
-__Prerequisite:__ You need Go >=1.7 to build knary yourself. Ideally, use Go 1.10.x.
+__Prerequisite:__ You need Go >=1.9 to build knary yourself. Ideally, use Go 1.10.x.
 ```
 go get -u github.com/sudosammy/knary
 go build knary.go
