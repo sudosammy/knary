@@ -309,8 +309,12 @@ func handleRequest(conn net.Conn) {
 	response := string(buf[:recBytes])
 	headers := strings.Split(response, "\n")
 
+	localPort := conn.LocalAddr().(*net.TCPAddr).Port
+
 	if os.Getenv("DEBUG") == "true" {
-		printy(conn.RemoteAddr().String(), 3)
+		printy("raddr " + conn.RemoteAddr().String(), 3)
+		printy("laddr " + conn.LocalAddr().String(), 3)
+
 		printy(response, 3)
 	}
 
@@ -324,7 +328,7 @@ func handleRequest(conn net.Conn) {
 
 			for _, header := range headers {
 				if stringContains(header, "Host") {
-					host = header
+					host = strings.TrimRight(header, "\r\n") + ":" + strconv.Itoa(localPort)
 				}
 				if stringContains(header, "OPTIONS") ||
 					stringContains(header, "GET") ||
