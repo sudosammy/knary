@@ -12,7 +12,7 @@ import (
 	"sync"
 
 	//"./libknary"
-	"github.com/sudosammy/libknary"
+	"github.com/sudosammy/knary/libknary"
 )
 
 const (
