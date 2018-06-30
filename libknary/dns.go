@@ -139,6 +139,10 @@ func PerformALookup(domain string) (string, error) {
 		return "", err
 	}
 
+	if len(answ.Answer) == 0 {
+		return "", nil
+	}
+
 	// https://stackoverflow.com/questions/38625233/what-does-key-ok-k-dns-a-mean-in-go
 	if t, ok := answ.Answer[0].(*dns.A); ok {
 		if os.Getenv("DEBUG") == "true" {

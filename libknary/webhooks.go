@@ -13,7 +13,7 @@ func sendMsg(msg string) {
 
 		if err != nil {
 			Printy(err.Error(), 2)
-		}		
+		}
 	}
 
 	// should be simple enough to add support for other webhooks here

@@ -76,6 +76,7 @@ func handleRequest(conn net.Conn) {
 
 	response := string(buf[:recBytes])
 	headers := strings.Split(response, "\n")
+	lPort := conn.LocalAddr().(*net.TCPAddr).Port
 
 	if os.Getenv("DEBUG") == "true" {
 		Printy(conn.RemoteAddr().String(), 3)
@@ -93,6 +94,7 @@ func handleRequest(conn net.Conn) {
 			for _, header := range headers {
 				if stringContains(header, "Host") {
 					host = header
+					host = strings.TrimRight(header, "\r\n") + ":" + strconv.Itoa(lPort)
 				}
 				if stringContains(header, "OPTIONS") ||
 					stringContains(header, "GET") ||
