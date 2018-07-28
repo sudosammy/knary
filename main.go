@@ -4,19 +4,19 @@ import (
 	"github.com/fatih/color"
 	"github.com/joho/godotenv"
 	"github.com/miekg/dns"
-	"github.com/robfig/cron"
 
 	"fmt"
 	"log"
 	"os"
 	"sync"
+	"time"
 
 	//"./libknary"
 	"github.com/sudosammy/knary/libknary"
 )
 
 const (
-	VERSION       = "1.1.0"
+	VERSION       = "1.1.1-dev"
 	GITHUB        = "https://github.com/sudosammy/knary"
 	GITHUBVERSION = "https://raw.githubusercontent.com/sudosammy/knary/master/VERSION"
 )
@@ -30,10 +30,22 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// set cron for update checks
-	cron := cron.New()
-	cron.AddFunc("@daily", func() { libknary.CheckUpdate(VERSION, GITHUBVERSION, GITHUB) })
-	defer cron.Stop()
+	// set ticker for update checks
+	ticker := time.NewTicker(24 * time.Hour)
+	quit := make(chan struct{})
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				libknary.CheckUpdate(VERSION, GITHUBVERSION, GITHUB)
+			case <-quit:
+				ticker.Stop()
+				return
+			}
+		}
+	}()
+	defer close(quit)
+
 	// check for updates on first run
 	libknary.CheckUpdate(VERSION, GITHUBVERSION, GITHUB)
 
