@@ -50,6 +50,22 @@ func main() {
 	// check for updates on first run
 	libknary.CheckUpdate(VERSION, GITHUBVERSION, GITHUB)
 
+	// verify that a slack or other webhook exists, surely there must be a better way
+	var webhook int
+	if os.Getenv("SLACK_WEBHOOK") == "" {
+		webhook++
+	}
+	if os.Getenv("PUSHOVER_TOKEN") == "" {
+		webhook++
+	}
+	if os.Getenv("DISCORD_WEBHOOK") == "" {
+		webhook++
+	}
+	if webhook != 0 {
+		libknary.GiveHead(2)
+		log.Fatal("Webhooks could not be found in the .env file, check your .env file.")
+	}
+
 	// get IP for knary.mycanary.com to use for DNS answers
 	var EXT_IP string
 	if os.Getenv("EXT_IP") == "" {
@@ -87,7 +103,15 @@ func main() {
 	if os.Getenv("DNS") == "true" {
 		libknary.Printy("Listening for *.dns."+os.Getenv("CANARY_DOMAIN")+" DNS requests", 1)
 	}
-	libknary.Printy("Posting to webhook: "+os.Getenv("SLACK_WEBHOOK"), 1)
+	if os.Getenv("SLACK_WEBHOOK") != "" {
+		libknary.Printy("Posting to slack webhook: "+os.Getenv("SLACK_WEBHOOK"), 1)
+	}
+	if os.Getenv("PUSHOVER_TOKEN") != "" {
+		libknary.Printy("Posting to pushover token: "+os.Getenv("PUSHOVER_TOKEN"), 1)
+	}
+	if os.Getenv("DISCORD_WEBHOOK") != "" {
+		libknary.Printy("Posting to discord webhook: "+os.Getenv("DISCORD_WEBHOOK"), 1)
+	}
 
 	// setup waitgroups for DNS/HTTP go routines
 	var wg sync.WaitGroup // there isn't actually any clean exit option, so we can just wait forever
