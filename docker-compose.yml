@@ -1,0 +1,9 @@
+version: "3.2"
+services:
+    knary:
+        build: .
+        restart: always
+        ports:
+            - "53:53"
+            - "80:80"
+            - "443:443"
