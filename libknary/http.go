@@ -11,8 +11,8 @@ import (
 	"time"
 )
 
+// PrepareRequest starts listening on ports
 func PrepareRequest() (net.Listener, net.Listener) {
-	// start listening on ports
 	ln80, err := net.Listen("tcp", os.Getenv("BIND_ADDR")+":80")
 
 	if err != nil {
@@ -39,6 +39,7 @@ func PrepareRequest() (net.Listener, net.Listener) {
 	return ln80, ln443 // return listeners
 }
 
+// AcceptRequest accepts requests for all http requests
 func AcceptRequest(ln net.Listener, wg *sync.WaitGroup) {
 	for {
 		conn, err := ln.Accept() // accept connections forever
@@ -49,7 +50,6 @@ func AcceptRequest(ln net.Listener, wg *sync.WaitGroup) {
 
 		go handleRequest(conn)
 	}
-	wg.Done()
 }
 
 func handleRequest(conn net.Conn) {

@@ -10,6 +10,7 @@ import (
 	"github.com/miekg/dns"
 )
 
+// AcceptDNS allows is to accept DNS connections for knary
 func AcceptDNS(wg *sync.WaitGroup) {
 	// start DNS server
 	server := &dns.Server{Addr: os.Getenv("BIND_ADDR") + ":53", Net: "udp"}
@@ -53,17 +54,18 @@ func AcceptDNS(wg *sync.WaitGroup) {
 //  |                    ARCOUNT                    |
 //  +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
 
-func HandleDNS(w dns.ResponseWriter, r *dns.Msg, EXT_IP string) {
+// HandleDNS is used to handle DNS replies
+func HandleDNS(w dns.ResponseWriter, r *dns.Msg, ExtIP string) {
 	// many thanks to the original author of this function
 	m := new(dns.Msg)
 	m.SetReply(r)
 	m.Compress = false
 	m.Authoritative = true
-	parseDNS(m, w.RemoteAddr().String(), EXT_IP)
+	parseDNS(m, w.RemoteAddr().String(), ExtIP)
 	w.WriteMsg(m)
 }
 
-func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
+func parseDNS(m *dns.Msg, ipaddr string, ExtIP string) {
 	// for each DNS question to our nameserver
 	// there can be multiple questions in the question section of a single request
 	for _, q := range m.Question {
@@ -99,29 +101,29 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 				}
 			}
 
-			// if EXT_IP is set, it overrules the A lookup
-			if os.Getenv("EXT_IP") == "" {
+			// if ExtIP is set, it overrules the A lookup
+			if os.Getenv("ExtIP") == "" {
 				if os.Getenv("DEBUG") == "true" {
-					Printy("Responding with: "+EXT_IP, 3)
+					Printy("Responding with: "+ExtIP, 3)
 				}
 
-				rr, _ := dns.NewRR(fmt.Sprintf("%s IN 60 A %s", q.Name, EXT_IP))
+				rr, _ := dns.NewRR(fmt.Sprintf("%s IN 60 A %s", q.Name, ExtIP))
 				m.Answer = append(m.Answer, rr)
 
 			} else {
 				if os.Getenv("DEBUG") == "true" {
-					Printy("Responding with: "+os.Getenv("EXT_IP"), 3)
+					Printy("Responding with: "+os.Getenv("ExtIP"), 3)
 				}
 
-				rr, _ := dns.NewRR(fmt.Sprintf("%s IN 60 A %s", q.Name, os.Getenv("EXT_IP")))
+				rr, _ := dns.NewRR(fmt.Sprintf("%s IN 60 A %s", q.Name, os.Getenv("ExtIP")))
 				m.Answer = append(m.Answer, rr)
 			}
 		}
 	}
 }
 
+// PerformALookup performs an A lookup on the canary domain and use that for our reply
 func PerformALookup(domain string) (string, error) {
-	// perform an A lookup on the canary domain and use that for our reply
 	kMsg := new(dns.Msg)
 	kMsg.SetQuestion(dns.Fqdn(domain), dns.TypeA)
 

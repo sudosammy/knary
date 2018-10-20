@@ -16,6 +16,7 @@ func stringContains(stringA string, stringB string) bool {
 	)
 }
 
+// CheckUpdate checks for a version update and informs the user if there is a new version update
 func CheckUpdate(version string, githubVersion string, githubURL string) bool {
 	running, err := semver.Make(version)
 

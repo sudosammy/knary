@@ -6,8 +6,8 @@ import (
 	"github.com/fatih/color"
 )
 
+// GiveHead makes pretty [+] things
 func GiveHead(colour int) {
-	// make pretty [+] things
 	green := color.New(color.FgGreen)
 	red := color.New(color.FgRed)
 	blue := color.New(color.FgBlue)
@@ -33,6 +33,7 @@ func GiveHead(colour int) {
 	}
 }
 
+// Printy makes things print cool
 func Printy(msg string, col int) {
 	GiveHead(col)
 	fmt.Println(msg)
