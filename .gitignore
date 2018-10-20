@@ -3,3 +3,5 @@ dev
 knary.log
 blacklist.txt
 knary.exe
+certs/*.crt
+certs/*.key
