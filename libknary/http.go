@@ -65,26 +65,21 @@ func PrepareRequest() (net.Listener, net.Listener) {
 			e := http.ListenAndServeTLS(os.Getenv("BIND_ADDR")+":443", os.Getenv("TLS_CRT"), os.Getenv("TLS_KEY"),
 				&httputil.ReverseProxy{Director: func(r *http.Request) {
 					r.URL.Scheme = "https"
-					r.URL.Host = p443
+					r.URL.Host = r.Host + ":8443"
 					//if the incoming request has the burp suffix send it to collab
 					if strings.HasSuffix(r.Host, os.Getenv("BURP_COLLAB")) {
-						r.URL.Host = r.Host + ":8443"
 					} else {
 						//otherwise send it raw to the knary port
 						r.Header.Set("X-Forwarded-For", r.RemoteAddr)
-						addr, err := net.ResolveTCPAddr("tcp", p80)
-						if err != nil {
-							Printy(err.Error(), 2)
-						}
 						rq, _ := httputil.DumpRequest(r, false) //knary doesn't care about the body, so we won't send it
-						conn, _ := net.DialTCP("tcp", nil, addr)
-						_, err = conn.Write(rq)
-						if err != nil {
-							Printy(err.Error(), 2)
+						conn, _ := tls.Dial("tcp", p443, &tls.Config{InsecureSkipVerify: true})
+						_, er := conn.Write(rq)
+						if er != nil {
+							Printy(er.Error(), 2)
 						}
-						err = conn.Close()
-						if err != nil {
-							Printy(err.Error(), 2)
+						er = conn.Close()
+						if er != nil {
+							Printy(er.Error(), 2)
 						}
 					}
 				},
