@@ -26,52 +26,73 @@ func PrepareRequest() (net.Listener, net.Listener) {
 		p80 = "127.0.0.1:8880"
 		p443 = "127.0.0.1:8843"
 		//start reverse proxy to direct requests appropriately
-		go http.ListenAndServe(os.Getenv("BIND_ADDR")+":80", &httputil.ReverseProxy{
-			Director: func(r *http.Request) {
-				r.URL.Scheme = "http"
-				r.URL.Host = p80
-				//if the incoming request has the burp suffix send it to collab
-				if strings.HasSuffix(r.Host, os.Getenv("BURP_COLLAB")) {
-					r.URL.Host = os.Getenv("BURP_HTTP")
-				} else {
-					//otherwise send it raw to the knary port
-					r.Header.Set("X-Forwarded-For", r.RemoteAddr)
-					addr, err := net.ResolveTCPAddr("tcp", p80)
-					if err != nil {
-						GiveHead(2)
-						log.Fatal(err)
+		go func() {
+			e := http.ListenAndServe(os.Getenv("BIND_ADDR")+":80", &httputil.ReverseProxy{
+				Director: func(r *http.Request) {
+					r.URL.Scheme = "http"
+					r.URL.Host = p80
+					//if the incoming request has the burp suffix send it to collab
+					if strings.HasSuffix(r.Host, os.Getenv("BURP_COLLAB")) {
+						r.URL.Host = os.Getenv("BURP_HTTP")
+					} else {
+						//otherwise send it raw to the knary port
+						r.Header.Set("X-Forwarded-For", r.RemoteAddr)
+						addr, err := net.ResolveTCPAddr("tcp", p80)
+						if err != nil {
+							GiveHead(2)
+							log.Fatal(err)
+						}
+						rq, _ := httputil.DumpRequest(r, false) //knary doesn't care about the body, so we won't send it
+						conn, _ := net.DialTCP("tcp", nil, addr)
+						_, err = conn.Write(rq)
+						if err != nil {
+							Printy(err.Error(), 2)
+						}
+						err = conn.Close()
+						if err != nil {
+							Printy(err.Error(), 2)
+						}
+						//this will result in the end server getting a 502 error
 					}
-					rq, _ := httputil.DumpRequest(r, false) //knary doesn't care about the body, so we won't send it
-					conn, _ := net.DialTCP("tcp", nil, addr)
-					conn.Write(rq)
-					conn.Close()
-					//this will result in the end server getting a 502 error
-				}
-			},
-		})
-
-		go http.ListenAndServeTLS(os.Getenv("BIND_ADDR")+":443", os.Getenv("TLS_CRT"), os.Getenv("TLS_KEY"),
-			&httputil.ReverseProxy{Director: func(r *http.Request) {
-				r.URL.Scheme = "https"
-				r.URL.Host = p443
-				//if the incoming request has the burp suffix send it to collab
-				if strings.HasSuffix(r.Host, os.Getenv("BURP_COLLAB")) {
-					r.URL.Host = r.Host + ":8443"
-				} else {
-					//otherwise send it raw to the knary port
-					r.Header.Set("X-Forwarded-For", r.RemoteAddr)
-					addr, err := net.ResolveTCPAddr("tcp", p80)
-					if err != nil {
-						GiveHead(2)
-						log.Fatal(err)
-					}
-					rq, _ := httputil.DumpRequest(r, false) //knary doesn't care about the body, so we won't send it
-					conn, _ := net.DialTCP("tcp", nil, addr)
-					conn.Write(rq)
-					conn.Close()
-				}
-			},
+				},
 			})
+			if e != nil {
+				Printy(e.Error(), 2)
+			}
+		}()
+
+		go func() {
+			e := http.ListenAndServeTLS(os.Getenv("BIND_ADDR")+":443", os.Getenv("TLS_CRT"), os.Getenv("TLS_KEY"),
+				&httputil.ReverseProxy{Director: func(r *http.Request) {
+					r.URL.Scheme = "https"
+					r.URL.Host = p443
+					//if the incoming request has the burp suffix send it to collab
+					if strings.HasSuffix(r.Host, os.Getenv("BURP_COLLAB")) {
+						r.URL.Host = r.Host + ":8443"
+					} else {
+						//otherwise send it raw to the knary port
+						r.Header.Set("X-Forwarded-For", r.RemoteAddr)
+						addr, err := net.ResolveTCPAddr("tcp", p80)
+						if err != nil {
+							Printy(err.Error(), 2)
+						}
+						rq, _ := httputil.DumpRequest(r, false) //knary doesn't care about the body, so we won't send it
+						conn, _ := net.DialTCP("tcp", nil, addr)
+						_, err = conn.Write(rq)
+						if err != nil {
+							Printy(err.Error(), 2)
+						}
+						err = conn.Close()
+						if err != nil {
+							Printy(err.Error(), 2)
+						}
+					}
+				},
+				})
+			if e != nil {
+				Printy(e.Error(), 2)
+			}
+		}()
 	}
 	ln80, err := net.Listen("tcp", p80)
 
@@ -102,11 +123,9 @@ func PrepareRequest() (net.Listener, net.Listener) {
 func AcceptRequest(ln net.Listener, wg *sync.WaitGroup) {
 	for {
 		conn, err := ln.Accept() // accept connections forever
-
 		if err != nil {
 			Printy(err.Error(), 2)
 		}
-
 		go handleRequest(conn)
 	}
 	wg.Done()
