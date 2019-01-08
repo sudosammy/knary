@@ -73,3 +73,8 @@ This would stop knary from alerting on `www.mycanary.com` but not `another.www.m
 * `LOG_FILE` __Optional__ Location for a file that knary will log timestamped matches and some errors. Example input: `/home/me/knary.log`
 * `BLACKLIST_FILE` __Optional__ Location for a file containing subdomains (separated by newlines) that should be ignored by knary and not logged or posted to Slack. Example input: `blacklist.txt` 
 * `TIMEOUT` __Optional__ The timeout for reading the HTTP(S) request. Default is 2 seconds. Example input: `1`
+* `BURP` Enable Burp Collaborator friendly mode
+* `BURP_COLLAB` Domain to mark as 'collab bro' (eg `burp.{CANARY_DOMAIN}`). This needs to be an NS record set in domain things much like `dns.{CANARY_DOMAIN}`.
+* `BURP_DNS` Local burp collaborator DNS port. This can't be 53, because knary listens on 53. Change collaborator config to be something like 8053, and set this to `127.0.0.1:8053`
+* `BURP_HTTP` Much like the above - set to `127.0.0.1:8080` (or whatever you set the burp HTTP port to be)
+* `BURP_HTTPS` Much like the above - set to `127.0.0.1:8443` (or whatever you set the burp HTTPS port to be)
