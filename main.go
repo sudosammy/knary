@@ -87,6 +87,9 @@ func main() {
 	if os.Getenv("DNS") == "true" {
 		libknary.Printy("Listening for *.dns."+os.Getenv("CANARY_DOMAIN")+" DNS requests", 1)
 	}
+	if os.Getenv("BURP") == "true" {
+		libknary.Printy("Working in collaborator compatibility mode on domain *."+os.Getenv("BURP_COLLAB"), 1)
+	}
 	libknary.Printy("Posting to webhook: "+os.Getenv("SLACK_WEBHOOK"), 1)
 
 	// setup waitgroups for DNS/HTTP go routines

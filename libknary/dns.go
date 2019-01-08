@@ -69,6 +69,22 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 	for _, q := range m.Question {
 		// we only care about A questions
 		if q.Qtype == dns.TypeA {
+			//if we're in burp mode, we don't care about requests to the burp domain (and want to send them to the burp collab listener)
+			if os.Getenv("BURP") == "true" {
+				if strings.HasSuffix(q.Name, os.Getenv("BURP_COLLAB")+".") {
+					c := dns.Client{}
+					newM := dns.Msg{}
+					newM.SetQuestion(q.Name, dns.TypeA)
+					r, _, err := c.Exchange(&newM, os.Getenv("BURP_DNS"))
+					if err != nil {
+						Printy(err.Error(), 2)
+						continue
+					}
+					m.Answer = r.Answer
+					//don't continue onto any other code paths if it's a collaborator message
+					continue
+				}
+			}
 			if os.Getenv("DEBUG") == "true" {
 				Printy("DNS question for: "+q.Name, 3)
 			}

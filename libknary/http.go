@@ -2,8 +2,11 @@ package libknary
 
 import (
 	"crypto/tls"
+	"fmt"
 	"log"
 	"net"
+	"net/http"
+	"net/http/httputil"
 	"os"
 	"strconv"
 	"strings"
@@ -12,8 +15,65 @@ import (
 )
 
 func PrepareRequest() (net.Listener, net.Listener) {
-	// start listening on ports
-	ln80, err := net.Listen("tcp", os.Getenv("BIND_ADDR")+":80")
+	//assign bind address and ports
+	p80 := os.Getenv("BIND_ADDR") + ":80"
+	p443 := os.Getenv("BIND_ADDR") + ":443"
+
+	//if burp collab compatible env vars are detected:
+	//-re-assign ports
+	//-set up a reverse proxy to direct as needed
+	if os.Getenv("BURP") == "true" && os.Getenv("BURP_HTTP") != "" {
+		p80 = "127.0.0.1:8880"
+		p443 = "127.0.0.1:8843"
+		//start reverse proxy to direct requests appropriately
+		go http.ListenAndServe(os.Getenv("BIND_ADDR")+":80", &httputil.ReverseProxy{
+			Director: func(r *http.Request) {
+				r.URL.Scheme = "http"
+				r.URL.Host = p80
+				//if the incoming request has the burp suffix send it to collab
+				if strings.HasSuffix(r.Host, os.Getenv("BURP_COLLAB")) {
+					r.URL.Host = os.Getenv("BURP_HTTP")
+				} else {
+					//otherwise send it raw to the knary port
+					r.Header.Set("X-Forwarded-For", r.RemoteAddr)
+					addr, err := net.ResolveTCPAddr("tcp", p80)
+					if err != nil {
+						GiveHead(2)
+						log.Fatal(err)
+					}
+					rq, _ := httputil.DumpRequest(r, false) //knary doesn't care about the body, so we won't send it
+					conn, _ := net.DialTCP("tcp", nil, addr)
+					conn.Write(rq)
+					conn.Close()
+					//this will result in the end server getting a 502 error
+				}
+			},
+		})
+
+		go http.ListenAndServeTLS(os.Getenv("BIND_ADDR")+":443", os.Getenv("TLS_CRT"), os.Getenv("TLS_KEY"),
+			&httputil.ReverseProxy{Director: func(r *http.Request) {
+				r.URL.Scheme = "https"
+				r.URL.Host = p443
+				//if the incoming request has the burp suffix send it to collab
+				if strings.HasSuffix(r.Host, os.Getenv("BURP_COLLAB")) {
+					r.URL.Host = r.Host + ":8443"
+				} else {
+					//otherwise send it raw to the knary port
+					r.Header.Set("X-Forwarded-For", r.RemoteAddr)
+					addr, err := net.ResolveTCPAddr("tcp", p80)
+					if err != nil {
+						GiveHead(2)
+						log.Fatal(err)
+					}
+					rq, _ := httputil.DumpRequest(r, false) //knary doesn't care about the body, so we won't send it
+					conn, _ := net.DialTCP("tcp", nil, addr)
+					conn.Write(rq)
+					conn.Close()
+				}
+			},
+			})
+	}
+	ln80, err := net.Listen("tcp", p80)
 
 	if err != nil {
 		GiveHead(2)
@@ -29,7 +89,7 @@ func PrepareRequest() (net.Listener, net.Listener) {
 	}
 
 	config := &tls.Config{Certificates: []tls.Certificate{cer}}
-	ln443, err := tls.Listen("tcp", os.Getenv("BIND_ADDR")+":443", config)
+	ln443, err := tls.Listen("tcp", p443, config)
 
 	if err != nil {
 		GiveHead(2)
@@ -90,6 +150,7 @@ func handleRequest(conn net.Conn) {
 			host := ""
 			query := ""
 			userAgent := ""
+			fwd := ""
 
 			for _, header := range headers {
 				if stringContains(header, "Host") {
@@ -107,15 +168,17 @@ func handleRequest(conn net.Conn) {
 				if stringContains(header, "User-Agent") {
 					userAgent = header
 				}
+				if stringContains(header, "X-Forwarded-For") {
+					fwd = header
+				}
 			}
 
 			if !inBlacklist(host) {
-				go sendMsg(host +
-					"\n```" +
-					"Query: " + query + "\n" +
-					userAgent + "\n" +
-					"From: " + conn.RemoteAddr().String() +
-					"```")
+				msg := fmt.Sprintf("%s\n```Query: %s\n%s\nFrom: %s", host, query, userAgent, conn.RemoteAddr().String())
+				if fwd != "" {
+					msg += "\n" + fwd
+				}
+				go sendMsg(msg + "```")
 
 				logger("[" + conn.RemoteAddr().String() + "]\n" + response)
 			}
