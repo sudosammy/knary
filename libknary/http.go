@@ -181,6 +181,8 @@ func handleRequest(conn net.Conn) {
 								srcAndPort = append(srcAndPort, srcaddr)
 							}
 						}
+					} else {
+						srcAndPort = mult
 					}
 					fwd = "X-Forwarded-For: " + strings.Join(srcAndPort, "")
 				}
