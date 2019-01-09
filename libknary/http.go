@@ -47,26 +47,20 @@ func PrepareRequest() (net.Listener, net.Listener) {
 
 		go func() {
 			e := http.ListenAndServeTLS(os.Getenv("BIND_ADDR")+":443", os.Getenv("TLS_CRT"), os.Getenv("TLS_KEY"),
-				&httputil.ReverseProxy{Director: func(r *http.Request) {
-					r.URL.Scheme = "https"
-					r.URL.Host = r.Host + ":" + strings.Split(os.Getenv("BURP_HTTPS"), ":")[1]
-					//if the incoming request has the burp suffix send it to collab
-					if strings.HasSuffix(r.Host, os.Getenv("BURP_COLLAB")) {
-					} else {
-						//otherwise send it raw to the knary port
-						r.Header.Set("X-Forwarded-For", r.RemoteAddr)
-						rq, _ := httputil.DumpRequest(r, false) //knary doesn't care about the body, so we won't send it
-						conn, _ := tls.Dial("tcp", p443, &tls.Config{InsecureSkipVerify: true})
-						_, er := conn.Write(rq)
-						if er != nil {
-							Printy(er.Error(), 2)
+				&httputil.ReverseProxy{
+					Transport: &http.Transport{
+						TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, //it's localhost, we don't need to verify
+					},
+					Director: func(r *http.Request) {
+						r.URL.Scheme = "https"
+						//if the incoming request has the burp suffix send it to collab
+						if strings.HasSuffix(r.Host, os.Getenv("BURP_COLLAB")) {
+							r.URL.Host = r.Host + ":" + strings.Split(os.Getenv("BURP_HTTPS"), ":")[1]
+						} else {
+							r.URL.Host = "127.0.0.1:" + strings.Split(p443, ":")[1]
+							r.Header.Set("X-Forwarded-For", r.RemoteAddr)
 						}
-						er = conn.Close()
-						if er != nil {
-							Printy(er.Error(), 2)
-						}
-					}
-				},
+					},
 				})
 			if e != nil {
 				Printy(e.Error(), 2)
