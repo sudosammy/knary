@@ -49,7 +49,7 @@ func PrepareRequest() (net.Listener, net.Listener) {
 			e := http.ListenAndServeTLS(os.Getenv("BIND_ADDR")+":443", os.Getenv("TLS_CRT"), os.Getenv("TLS_KEY"),
 				&httputil.ReverseProxy{Director: func(r *http.Request) {
 					r.URL.Scheme = "https"
-					r.URL.Host = r.Host + strings.Split(os.Getenv("BURP_HTTPS"), ":")[1]
+					r.URL.Host = r.Host + ":" + strings.Split(os.Getenv("BURP_HTTPS"), ":")[1]
 					//if the incoming request has the burp suffix send it to collab
 					if strings.HasSuffix(r.Host, os.Getenv("BURP_COLLAB")) {
 					} else {
