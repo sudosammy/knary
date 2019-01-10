@@ -147,7 +147,17 @@ func handleRequest(conn net.Conn) {
 			for _, header := range headers {
 				if stringContains(header, "Host") {
 					host = header
-					host = strings.TrimRight(header, "\r\n") + ":" + strconv.Itoa(lPort)
+					host = strings.TrimRight(header, "\r\n") + ":"
+					//using a reverse proxy, set ports back to the actual received ones
+					if os.Getenv("BURP") == "true" {
+						if lPort == 8880 {
+							host = host + "80"
+						} else if lPort == 8843 {
+							host = host + "443"
+						}
+					} else {
+						host = host + strconv.Itoa(lPort)
+					}
 				}
 				if stringContains(header, "OPTIONS") ||
 					stringContains(header, "GET") ||
