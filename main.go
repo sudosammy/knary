@@ -94,7 +94,15 @@ func main() {
 			libknary.Printy("Required Burp Collaborator settings are missing. This might cause errors.", 2)
 		}
 	}
-	libknary.Printy("Posting to webhook: "+os.Getenv("SLACK_WEBHOOK"), 1)
+	if os.Getenv("SLACK_WEBHOOK") != "" {
+		libknary.Printy("Posting to webhook: "+os.Getenv("SLACK_WEBHOOK"), 1)
+	}
+	if os.Getenv("DISCORD_WEBHOOK") != "" {
+		libknary.Printy("Posting to webhook: "+os.Getenv("DISCORD_WEBHOOK"), 1)
+	}
+	if os.Getenv("PUSHOVER_USER") != "" {
+		libknary.Printy("Posting to Pushover user: "+os.Getenv("PUSHOVER_USER"), 1)
+	}
 
 	// setup waitgroups for DNS/HTTP go routines
 	var wg sync.WaitGroup // there isn't actually any clean exit option, so we can just wait forever
