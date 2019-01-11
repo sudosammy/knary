@@ -20,7 +20,7 @@ Because I wanted a project to help me learn Golang.
 
 1. Download the [applicable 64-bit knary binary](https://github.com/sudosammy/knary/releases) __OR__ build knary from source:
 
-__Prerequisite:__ You need Go >=1.9 to build knary yourself. Ideally, use Go 1.10.x.
+__Prerequisite:__ You need Go >=1.9 to build knary yourself. Ideally, use Go 1.11.x.
 ```
 go get -u github.com/sudosammy/knary
 ```
@@ -68,6 +68,9 @@ This would stop knary from alerting on `www.mycanary.com` but not `another.www.m
 * `TLS_*` The location of your certificate and private key necessary for accepting TLS (https) requests
 * `DEBUG` Enable/Disable displaying incoming requests in the terminal and some additional info
 * `SLACK_WEBHOOK` The full URL of the [incoming webhook](https://api.slack.com/custom-integrations/incoming-webhooks) for the Slack channel you want knary to notify
+* `DISCORD_WEBHOOK` __Optional__ The full URL of the [discord webhook](https://discordapp.com/developers/docs/resources/webhook) for the Discord channel you want knary to notify
+* `PUSHOVER_TOKEN` __Optional__ The application token for the [Pushover Application](https://pushover.net/) you want knary to notify
+* `PUSHOVER_USER` __Optional__ The user token of the Pushover user you want knary to nofify
 * `EXT_IP` __Optional__ The IP address the DNS canary will answer `A` questions with. By default knary will use the answer to `knary.{CANARY_DOMAIN}.`. Setting this option will overrule that behaviour
 * `DNS_SERVER` __Optional__ The DNS server to use when asking `dns.{CANARY_DOMAIN}.`. This option is obsolete if `EXT_IP` is set. Default is Google's nameserver: `8.8.8.8`
 * `LOG_FILE` __Optional__ Location for a file that knary will log timestamped matches and some errors. Example input: `/home/me/knary.log`
