@@ -22,20 +22,27 @@ func PrepareRequest() (net.Listener, net.Listener) {
 	//if burp collab compatible env vars are detected:
 	//-re-assign ports
 	//-set up a reverse proxy to direct as needed
-	if os.Getenv("BURP") == "true" && os.Getenv("BURP_HTTP") != "" && os.Getenv("BURP_HTTPS") != "" {
-		p80 = "127.0.0.1:8880"
-		p443 = "127.0.0.1:8843"
+	if os.Getenv("BURP") == "true" && os.Getenv("BURP_HTTP_PORT") != "" && os.Getenv("BURP_HTTPS_PORT") != "" {
+		p80 = "127.0.0.1:8880"  // these are the local ports that knary
+		p443 = "127.0.0.1:8843" // will listen on as the client of the reverse proxy
+		// to support our container friends - let the player choose the IP Burp is bound to
+		if os.Getenv("BURP_INT_IP") != "" {
+			burpIP = os.Getenv("BURP_INT_IP")
+		} else {
+			burpIP = "127.0.0.1"
+		}
+
 		//start reverse proxy to direct requests appropriately
 		go func() {
 			e := http.ListenAndServe(os.Getenv("BIND_ADDR")+":80", &httputil.ReverseProxy{
 				Director: func(r *http.Request) {
 					r.URL.Scheme = "http"
-					r.URL.Host = p80
 					//if the incoming request has the burp suffix send it to collab
-					if strings.HasSuffix(r.Host, os.Getenv("BURP_COLLAB")) {
-						r.URL.Host = os.Getenv("BURP_HTTP")
+					if strings.HasSuffix(r.Host, os.Getenv("BURP_DOMAIN")) {
+						r.URL.Host = burpIP + os.Getenv("BURP_HTTP_PORT")
 					} else {
-						//otherwise send it raw to the knary port
+						//otherwise send it raw to the local knary port
+						r.URL.Host = p80
 						r.Header.Set("X-Forwarded-For", r.RemoteAddr) //add port version of x-fwded for
 					}
 				},
@@ -54,10 +61,11 @@ func PrepareRequest() (net.Listener, net.Listener) {
 					Director: func(r *http.Request) {
 						r.URL.Scheme = "https"
 						//if the incoming request has the burp suffix send it to collab
-						if strings.HasSuffix(r.Host, os.Getenv("BURP_COLLAB")) {
-							r.URL.Host = r.Host + ":" + strings.Split(os.Getenv("BURP_HTTPS"), ":")[1]
+						if strings.HasSuffix(r.Host, os.Getenv("BURP_DOMAIN")) {
+							r.URL.Host = burpIP + os.Getenv("BURP_HTTPS_PORT")
 						} else {
-							r.URL.Host = "127.0.0.1:" + strings.Split(p443, ":")[1]
+							//otherwise send it raw to the local knary port
+							r.URL.Host = p443
 							r.Header.Set("X-Forwarded-For", r.RemoteAddr)
 						}
 					},

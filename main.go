@@ -88,7 +88,11 @@ func main() {
 		libknary.Printy("Listening for *.dns."+os.Getenv("CANARY_DOMAIN")+" DNS requests", 1)
 	}
 	if os.Getenv("BURP") == "true" {
-		libknary.Printy("Working in collaborator compatibility mode on domain *."+os.Getenv("BURP_COLLAB"), 1)
+		libknary.Printy("Working in collaborator compatibility mode on domain *."+os.Getenv("BURP_DOMAIN"), 1)
+
+		if os.Getenv("BURP_DOMAIN") == "" || os.Getenv("BURP_DNS_PORT") == "" || os.Getenv("BURP_HTTP_PORT") == "" || os.Getenv("BURP_HTTPS_PORT") == "" {
+			libknary.Printy("Required Burp Collaborator settings are missing. This might cause errors.", 2)
+		}
 	}
 	libknary.Printy("Posting to webhook: "+os.Getenv("SLACK_WEBHOOK"), 1)
 
