@@ -71,7 +71,7 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 		if q.Qtype == dns.TypeA {
 			//if we're in burp mode, we don't care about requests to the burp domain (and want to send them to the burp collab listener)
 			if os.Getenv("BURP") == "true" {
-				if strings.HasSuffix(q.Name, os.Getenv("BURP_DOMAIN")+".") {
+				if strings.HasSuffix(strings.toLower(q.Name), strings.toLower(os.Getenv("BURP_DOMAIN"))+".") {
 					// to support our container friends - let the player choose the IP Burp is bound to
 					if os.Getenv("BURP_INT_IP") != "" {
 						burpIP = os.Getenv("BURP_INT_IP")

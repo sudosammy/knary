@@ -1,8 +1,8 @@
-# knary - A simple HTTP(S) and DNS Canary Slackbot
+# knary - A simple HTTP(S) and DNS Canary
 
 >Like "Canary" but more hipster, which means better 😎😎😎
 
-knary is a canary token server that notifies a Slack channel when incoming HTTP(S) or DNS requests match a given domain or any of its subdomains. It also supports functionality useful in offensive engagements including subdomain blacklisting.
+knary is a canary token server that notifies a Slack channel (or other webhook) when incoming HTTP(S) or DNS requests match a given domain or any of its subdomains. It also supports functionality useful in offensive engagements including subdomain blacklisting.
 
 ![knary canary-ing](https://github.com/sudosammy/knary/raw/master/screenshots/canary.gif "knary canary-ing")
 
@@ -11,10 +11,6 @@ knary is a canary token server that notifies a Slack channel when incoming HTTP(
 Redteamers use canaries to be notified when someone (or *something*) attempts to interact with a server they control. Canaries help provide visibility over processes that were previously unknown. They can help find areas to probe for RFI or SSRF vulnerabilities, disclose previously unknown servers, provide evidence of a MitM device, or just announce someone interacting with your server.
 
 Defenders also use canaries as tripwires that can alert them of an attacker within their network by having the attacker announce themselves. https://canarytokens.org offers a number of additional ways for defenders to use canaries.
-
-### Why actually?
-
-Because I wanted a project to help me learn Golang.
 
 ## Setup / Usage
 
@@ -79,10 +75,11 @@ This would stop knary from alerting on `www.mycanary.com` but not `another.www.m
 * `PUSHOVER_TOKEN` __Optional__ The application token for the [Pushover Application](https://pushover.net/) you want knary to notify
 * `PUSHOVER_USER` __Optional__ The user token of the Pushover user you want knary to nofify
 
-### Burp Collaborator Config (for running Burp Collaborator on the same server as knary)
-* `BURP` __Optional__ Enable Burp Collaborator friendly mode which requires the following configurations:
-* `BURP_DOMAIN` The domain + TLD to match Collaborator hits on (e.g. `burp.CANARY_DOMAIN`). This needs to be an `NS` record much like the knary DNS configuration. See step 3. Example input: `burp.mycanary.com`
-* `BURP_INT_IP` __Optional__ The internal IP address that Burp Collaborator is bound to. In most cases this will be `127.0.0.1` (which is the default); however, if you run knary in Docker you will need to set this to the Burp Collaborator IP address reachable from within the knary container
+### Burp Collaborator Config
+If you are running Burp Collaborator on the same server as knary, you will need to configure the following.
+* `BURP` __Optional__ Enable Burp Collaborator friendly mode
+* `BURP_DOMAIN` The domain + TLD to match Collaborator hits on (e.g. `burp.{CANARY_DOMAIN}`). This needs to be an `NS` record much like the knary DNS configuration. See step 3. Example input: `burp.mycanary.com`
 * `BURP_DNS_PORT` Local Burp Collaborator DNS port. This can't be 53, because knary listens on that one! Change Collaborator config to be something like 8053, and set this to `8053`
 * `BURP_HTTP_PORT` Much like the above - set to `8080` (or whatever you set the Burp HTTP port to be)
 * `BURP_HTTPS_PORT` Much like the above - set to `8443` (or whatever you set the Burp HTTPS port to be)
+* `BURP_INT_IP` __Optional__ The internal IP address that Burp Collaborator is bound to. In most cases this will be `127.0.0.1` (which is the default); however, if you run knary in Docker you will need to set this to the Burp Collaborator IP address reachable from within the knary container
