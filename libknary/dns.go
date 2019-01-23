@@ -71,8 +71,9 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 		if q.Qtype == dns.TypeA {
 			//if we're in burp mode, we don't care about requests to the burp domain (and want to send them to the burp collab listener)
 			if os.Getenv("BURP") == "true" {
-				if strings.HasSuffix(strings.toLower(q.Name), strings.toLower(os.Getenv("BURP_DOMAIN"))+".") {
+				if strings.HasSuffix(strings.ToLower(q.Name), strings.ToLower(os.Getenv("BURP_DOMAIN"))+".") {
 					// to support our container friends - let the player choose the IP Burp is bound to
+					burpIP := ""
 					if os.Getenv("BURP_INT_IP") != "" {
 						burpIP = os.Getenv("BURP_INT_IP")
 					} else {
@@ -82,7 +83,7 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 					c := dns.Client{}
 					newM := dns.Msg{}
 					newM.SetQuestion(q.Name, dns.TypeA)
-					r, _, err := c.Exchange(&newM, burpIP+os.Getenv("BURP_DNS_PORT"))
+					r, _, err := c.Exchange(&newM, burpIP+":"+os.Getenv("BURP_DNS_PORT"))
 					if err != nil {
 						Printy(err.Error(), 2)
 						continue
@@ -90,7 +91,7 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 					m.Answer = r.Answer
 					//don't continue onto any other code paths if it's a collaborator message
 					if os.Getenv("DEBUG") == "true" {
-						Printy("Sent DNS to Burp: "+burpIP+os.Getenv("BURP_DNS_PORT"), 3)
+						Printy("Sent DNS to Burp: "+burpIP+":"+os.Getenv("BURP_DNS_PORT"), 3)
 					}
 					continue
 				}
@@ -99,7 +100,7 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 				Printy("DNS question for: "+q.Name, 3)
 			}
 
-			if !inBlacklist(q.Name) {
+			if !inBlacklist(q.Name, ipaddr) {
 				// spit the IP address to remove the port
 				// be wary of IPv6
 				ipSlice := strings.Split(ipaddr, ":")

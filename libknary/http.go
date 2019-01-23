@@ -26,6 +26,7 @@ func PrepareRequest() (net.Listener, net.Listener) {
 		p80 = "127.0.0.1:8880"  // these are the local ports that knary
 		p443 = "127.0.0.1:8843" // will listen on as the client of the reverse proxy
 		// to support our container friends - let the player choose the IP Burp is bound to
+		burpIP := ""
 		if os.Getenv("BURP_INT_IP") != "" {
 			burpIP = os.Getenv("BURP_INT_IP")
 		} else {
@@ -39,7 +40,7 @@ func PrepareRequest() (net.Listener, net.Listener) {
 					r.URL.Scheme = "http"
 					//if the incoming request has the burp suffix send it to collab
 					if strings.HasSuffix(r.Host, os.Getenv("BURP_DOMAIN")) {
-						r.URL.Host = burpIP + os.Getenv("BURP_HTTP_PORT")
+						r.URL.Host = burpIP + ":" + os.Getenv("BURP_HTTP_PORT")
 					} else {
 						//otherwise send it raw to the local knary port
 						r.URL.Host = p80
@@ -62,7 +63,7 @@ func PrepareRequest() (net.Listener, net.Listener) {
 						r.URL.Scheme = "https"
 						//if the incoming request has the burp suffix send it to collab
 						if strings.HasSuffix(r.Host, os.Getenv("BURP_DOMAIN")) {
-							r.URL.Host = burpIP + os.Getenv("BURP_HTTPS_PORT")
+							r.URL.Host = burpIP + ":" + os.Getenv("BURP_HTTPS_PORT")
 						} else {
 							//otherwise send it raw to the local knary port
 							r.URL.Host = p443
@@ -178,7 +179,7 @@ func handleRequest(conn net.Conn) {
 				if stringContains(header, "User-Agent") {
 					userAgent = header
 				}
-				if stringContains(header, "X-Forwarded-For: ") {
+				if stringContains(header, "X-Forwarded-For") {
 					//this is pretty funny, and also very irritating.
 					//Golang reverse proxy automagically adds the source IP address, but not the port.
 					//We add the value we want in the prepareRequest function,
@@ -196,18 +197,22 @@ func handleRequest(conn net.Conn) {
 					} else {
 						srcAndPort = mult
 					}
-					fwd = "X-Forwarded-For: " + strings.Join(srcAndPort, "")
+					fwd = strings.Join(srcAndPort, "")
 				}
 			}
 
-			if !inBlacklist(host) {
+			if !inBlacklist(host, conn.RemoteAddr().String(), fwd) {
 				msg := fmt.Sprintf("%s\n```Query: %s\n%s\nFrom: %s", host, query, userAgent, conn.RemoteAddr().String())
 				if fwd != "" {
-					msg += "\n" + fwd
+					msg += "\nX-Forwarded-For: " + fwd
 				}
 				go sendMsg(msg + "```")
 
-				logger("[" + conn.RemoteAddr().String() + "]\n" + response)
+				if fwd != "" {
+					logger("[" + fwd + "]\n" + response)
+				} else {
+					logger("[" + conn.RemoteAddr().String() + "]\n" + response)
+				}
 			}
 		}
 	}
