@@ -49,10 +49,11 @@ SLACK_WEBHOOK=https://hooks.slack.com/services/...
 * DNS - `dig test.dns.mycanary.com`
 
 ## Blacklisting matches
-You might find systems that spam your knary even long after an engagement has ended. To stop these from cluttering your Slack channel knary supports a blacklist (location specified in `.env`). Add the offending subdomains separated by a newline:
+You might find systems that spam your knary even long after an engagement has ended. To stop these from cluttering your Slack channel knary supports a blacklist (location specified in `.env`). Add the offending subdomains or IP addresses separated by a newline:
 ```
 www.mycanary.com
 dns.mycanary.com
+171.244.140.247
 ```
 This would stop knary from alerting on `www.mycanary.com` but not `another.www.mycanary.com`. Changes to this file will come into effect immediately without requiring a knary restart.
 
