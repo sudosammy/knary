@@ -87,7 +87,7 @@ func inBlacklist(needles ...string) bool {
 				}
 				return true
 			}
-		}		
+		}
 	}
 	return false
 }
