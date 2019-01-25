@@ -11,12 +11,12 @@ import (
 	"sync"
 	"time"
 
-	"./libknary"
-	//"github.com/sudosammy/knary/libknary"
+	//"./libknary"
+	"github.com/sudosammy/knary/libknary"
 )
 
 const (
-	VERSION       = "2.0.0-beta"
+	VERSION       = "2.0.0"
 	GITHUB        = "https://github.com/sudosammy/knary"
 	GITHUBVERSION = "https://raw.githubusercontent.com/sudosammy/knary/master/VERSION"
 )
