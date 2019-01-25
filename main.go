@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	VERSION       = "1.1.1"
+	VERSION       = "2.0.0"
 	GITHUB        = "https://github.com/sudosammy/knary"
 	GITHUBVERSION = "https://raw.githubusercontent.com/sudosammy/knary/master/VERSION"
 )
@@ -87,7 +87,22 @@ func main() {
 	if os.Getenv("DNS") == "true" {
 		libknary.Printy("Listening for *.dns."+os.Getenv("CANARY_DOMAIN")+" DNS requests", 1)
 	}
-	libknary.Printy("Posting to webhook: "+os.Getenv("SLACK_WEBHOOK"), 1)
+	if os.Getenv("BURP") == "true" {
+		libknary.Printy("Working in collaborator compatibility mode on domain *."+os.Getenv("BURP_DOMAIN"), 1)
+
+		if os.Getenv("BURP_DOMAIN") == "" || os.Getenv("BURP_DNS_PORT") == "" || os.Getenv("BURP_HTTP_PORT") == "" || os.Getenv("BURP_HTTPS_PORT") == "" {
+			libknary.Printy("Required Burp Collaborator settings are missing. This might cause errors.", 2)
+		}
+	}
+	if os.Getenv("SLACK_WEBHOOK") != "" {
+		libknary.Printy("Posting to webhook: "+os.Getenv("SLACK_WEBHOOK"), 1)
+	}
+	if os.Getenv("DISCORD_WEBHOOK") != "" {
+		libknary.Printy("Posting to webhook: "+os.Getenv("DISCORD_WEBHOOK"), 1)
+	}
+	if os.Getenv("PUSHOVER_USER") != "" {
+		libknary.Printy("Posting to Pushover user: "+os.Getenv("PUSHOVER_USER"), 1)
+	}
 
 	// setup waitgroups for DNS/HTTP go routines
 	var wg sync.WaitGroup // there isn't actually any clean exit option, so we can just wait forever

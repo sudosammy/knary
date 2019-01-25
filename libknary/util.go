@@ -60,7 +60,7 @@ func CheckUpdate(version string, githubVersion string, githubURL string) bool {
 	return false
 }
 
-func inBlacklist(host string) bool {
+func inBlacklist(needles ...string) bool {
 	if _, err := os.Stat(os.Getenv("BLACKLIST_FILE")); os.IsNotExist(err) {
 		if os.Getenv("DEBUG") == "true" {
 			Printy("Blacklist file does not exist - ignoring", 3)
@@ -79,12 +79,14 @@ func inBlacklist(host string) bool {
 	scanner := bufio.NewScanner(blklist)
 
 	for scanner.Scan() { // foreach blacklist item
-		if strings.Contains(host, scanner.Text()) && !strings.Contains(host, "."+scanner.Text()) {
-			// matches blacklist.domain but not x.blacklist.domain
-			if os.Getenv("DEBUG") == "true" {
-				Printy(scanner.Text()+" found in blacklist", 3)
+		for _, needle := range needles { // foreach needle
+			if strings.Contains(needle, scanner.Text()) && !strings.Contains(needle, "."+scanner.Text()) {
+				// matches blacklist.domain or 1.1.1.1 but not x.blacklist.domain
+				if os.Getenv("DEBUG") == "true" {
+					Printy(scanner.Text()+" found in blacklist", 3)
+				}
+				return true
 			}
-			return true
 		}
 	}
 	return false
