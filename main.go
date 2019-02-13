@@ -11,12 +11,12 @@ import (
 	"sync"
 	"time"
 
-	//"./libknary"
-	"github.com/sudosammy/knary/libknary"
+	"./libknary"
+	//"github.com/sudosammy/knary/libknary"
 )
 
 const (
-	VERSION       = "2.0.0"
+	VERSION       = "2.1.0"
 	GITHUB        = "https://github.com/sudosammy/knary"
 	GITHUBVERSION = "https://raw.githubusercontent.com/sudosammy/knary/master/VERSION"
 )
@@ -38,7 +38,10 @@ func main() {
 		for {
 			select {
 			case <-ticker.C:
-				libknary.CheckUpdate(VERSION, GITHUBVERSION, GITHUB)
+				libknary.CheckUpdate(VERSION, GITHUBVERSION, GITHUB) // check for updates
+				if os.Getenv("BLACKLIST_ALERTING") == "" || os.Getenv("BLACKLIST_ALERTING") == "true" {
+					libknary.CheckLastHit() // flag any old blacklist items
+				}
 			case <-quit:
 				ticker.Stop()
 				return
@@ -80,6 +83,9 @@ func main() {
 	green.Printf(` @sudosammy     v` + VERSION + ` `)
 	red.Println(`|_____|`)
 	fmt.Println()
+
+	// load blacklist file
+	libknary.LoadBlacklist()
 
 	if os.Getenv("HTTP") == "true" {
 		libknary.Printy("Listening for http(s)://*."+os.Getenv("CANARY_DOMAIN")+" requests", 1)
