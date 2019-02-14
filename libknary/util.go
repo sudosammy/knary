@@ -25,7 +25,7 @@ func CheckUpdate(version string, githubVersion string, githubURL string) bool {
 		updFail := "Could not check for updates: " + err.Error()
 		Printy(updFail, 2)
 		logger(updFail)
-		go sendMsg(":warning: " + updMsg)
+		go sendMsg(":warning: " + updFail)
 		return false
 	}
 
@@ -35,7 +35,7 @@ func CheckUpdate(version string, githubVersion string, githubURL string) bool {
 		updFail := "Could not check for updates: " + err.Error()
 		Printy(updFail, 2)
 		logger(updFail)
-		go sendMsg(":warning: " + updMsg)
+		go sendMsg(":warning: " + updFail)
 		return false
 	}
 
