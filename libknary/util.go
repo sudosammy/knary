@@ -25,6 +25,7 @@ func CheckUpdate(version string, githubVersion string, githubURL string) bool {
 		updFail := "Could not check for updates: " + err.Error()
 		Printy(updFail, 2)
 		logger(updFail)
+		go sendMsg(":warning: " + updMsg)
 		return false
 	}
 
@@ -34,6 +35,7 @@ func CheckUpdate(version string, githubVersion string, githubURL string) bool {
 		updFail := "Could not check for updates: " + err.Error()
 		Printy(updFail, 2)
 		logger(updFail)
+		go sendMsg(":warning: " + updMsg)
 		return false
 	}
 
@@ -51,10 +53,10 @@ func CheckUpdate(version string, githubVersion string, githubURL string) bool {
 		}
 
 		if running.Compare(current) != 0 {
-			updMsg := ":warning: Your version of knary is *" + version + "* & the latest is *" + current.String() + "* - upgrade your binary here: " + githubURL
+			updMsg := "Your version of knary is *" + version + "* & the latest is *" + current.String() + "* - upgrade your binary here: " + githubURL
 			Printy(updMsg, 2)
 			logger(updMsg)
-			go sendMsg(updMsg)
+			go sendMsg(":warning: " + updMsg)
 			return true
 		}
 	}
@@ -106,7 +108,7 @@ func CheckLastHit() { // this runs once a day
 			expiryDate := blacklistMap[i].lastHit.AddDate(0, 0, 30)
 
 			if time.Now().After(expiryDate) { // let 'em know it's old
-				go sendMsg(":wrench: Blacklist item `" + blacklistMap[i].domain + "` hasn't had a hit in >30 days. Consider removing it. Configure BLACKLIST_ALERTING to supress.")
+				go sendMsg(":wrench: Blacklist item `" + blacklistMap[i].domain + "` hasn't had a hit in >30 days. Consider removing it. Configure `BLACKLIST_ALERTING` to supress.")
 				logger("Blacklist item: " + blacklistMap[i].domain + " hasn't had a hit in >30 days. Consider removing it.")
 				Printy("Blacklist item: "+blacklistMap[i].domain+" hasn't had a hit in >30 days. Consider removing it.", 1)
 			}
