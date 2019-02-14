@@ -4,12 +4,14 @@ import (
 	"bufio"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/blang/semver"
 )
 
-func stringContains(stringA string, stringB string) bool {
+func stringContains(stringA string, stringB string) bool { // this runs once a day
 	return strings.Contains(
 		strings.ToLower(stringA),
 		strings.ToLower(stringB),
@@ -23,6 +25,7 @@ func CheckUpdate(version string, githubVersion string, githubURL string) bool {
 		updFail := "Could not check for updates: " + err.Error()
 		Printy(updFail, 2)
 		logger(updFail)
+		go sendMsg(":warning: " + updMsg)
 		return false
 	}
 
@@ -32,6 +35,7 @@ func CheckUpdate(version string, githubVersion string, githubURL string) bool {
 		updFail := "Could not check for updates: " + err.Error()
 		Printy(updFail, 2)
 		logger(updFail)
+		go sendMsg(":warning: " + updMsg)
 		return false
 	}
 
@@ -49,10 +53,10 @@ func CheckUpdate(version string, githubVersion string, githubURL string) bool {
 		}
 
 		if running.Compare(current) != 0 {
-			updMsg := ":warning: Your version of knary is *" + version + "* & the latest is *" + current.String() + "* - upgrade your binary here: " + githubURL
+			updMsg := "Your version of knary is *" + version + "* & the latest is *" + current.String() + "* - upgrade your binary here: " + githubURL
 			Printy(updMsg, 2)
 			logger(updMsg)
-			go sendMsg(updMsg)
+			go sendMsg(":warning: " + updMsg)
 			return true
 		}
 	}
@@ -60,7 +64,16 @@ func CheckUpdate(version string, githubVersion string, githubURL string) bool {
 	return false
 }
 
-func inBlacklist(needles ...string) bool {
+// map for blacklist
+type blacklist struct {
+	domain  string
+	lastHit time.Time
+}
+
+var blacklistMap = map[int]blacklist{}
+
+func LoadBlacklist() bool {
+	// load blacklist file into struct on startup
 	if _, err := os.Stat(os.Getenv("BLACKLIST_FILE")); os.IsNotExist(err) {
 		if os.Getenv("DEBUG") == "true" {
 			Printy("Blacklist file does not exist - ignoring", 3)
@@ -77,13 +90,43 @@ func inBlacklist(needles ...string) bool {
 	}
 
 	scanner := bufio.NewScanner(blklist)
-
+	count := 0
 	for scanner.Scan() { // foreach blacklist item
-		for _, needle := range needles { // foreach needle
-			if strings.Contains(needle, scanner.Text()) && !strings.Contains(needle, "."+scanner.Text()) {
+		blacklistMap[count] = blacklist{scanner.Text(), time.Now()} // add to struct
+		count++
+	}
+
+	Printy("Monitoring "+strconv.Itoa(count)+" items in blacklist", 1)
+	logger("Monitoring " + strconv.Itoa(count) + " items in blacklist")
+	return true
+}
+
+func CheckLastHit() { // this runs once a day
+	if len(blacklistMap) != 0 {
+		// iterate through blacklist and look for items >30 days old
+		for i := range blacklistMap { // foreach blacklist item
+			expiryDate := blacklistMap[i].lastHit.AddDate(0, 0, 30)
+
+			if time.Now().After(expiryDate) { // let 'em know it's old
+				go sendMsg(":wrench: Blacklist item `" + blacklistMap[i].domain + "` hasn't had a hit in >30 days. Consider removing it. Configure `BLACKLIST_ALERTING` to supress.")
+				logger("Blacklist item: " + blacklistMap[i].domain + " hasn't had a hit in >30 days. Consider removing it.")
+				Printy("Blacklist item: "+blacklistMap[i].domain+" hasn't had a hit in >30 days. Consider removing it.", 1)
+			}
+		}
+	}
+}
+
+func inBlacklist(needles ...string) bool {
+	for _, needle := range needles {
+		for i := range blacklistMap { // foreach blacklist item
+			if strings.Contains(needle, blacklistMap[i].domain) && !strings.Contains(needle, "."+blacklistMap[i].domain) {
 				// matches blacklist.domain or 1.1.1.1 but not x.blacklist.domain
+				updBL := blacklistMap[i]
+				updBL.lastHit = time.Now() // update last hit
+				blacklistMap[i] = updBL
+
 				if os.Getenv("DEBUG") == "true" {
-					Printy(scanner.Text()+" found in blacklist", 3)
+					Printy(blacklistMap[i].domain+" found in blacklist", 3)
 				}
 				return true
 			}

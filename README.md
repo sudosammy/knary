@@ -30,19 +30,19 @@ go get -u github.com/sudosammy/knary
 ![knary go-ing](https://github.com/sudosammy/knary/raw/master/screenshots/run.png "knary go-ing")
 
 ## Testing
-* HTTP(S) - `curl http://test.mycanary.com` & `curl https://test.mycanary.com`
-* DNS - `dig test.dns.mycanary.com`
+See & run `test_knary.sh`
 
 ## Blacklisting matches
 You might find systems that spam your knary even long after an engagement has ended. To stop these from cluttering your Slack channel knary supports a blacklist (location specified in `.env`). Add the offending subdomains or IP addresses separated by a newline:
 ```
+mycanary.com
 www.mycanary.com
-dns.mycanary.com
 171.244.140.247
 ```
-This would stop knary from alerting on `www.mycanary.com` but not `another.www.mycanary.com`. Changes to this file will come into effect immediately without requiring a knary restart.
+This would stop knary from alerting on `www.mycanary.com` but not `another.www.mycanary.com`. Changes to this file will require a knary restart.
 
 ## Config Options
+Example config files can be found in `examples/`
 * `DNS` Enable/Disable the DNS canary
 * `HTTP` Enable/Disable the HTTP(S) canary
 * `BIND_ADDR` The IP address you want knary to listen on. Example input: `0.0.0.0` to bind to all addresses available
@@ -53,6 +53,7 @@ This would stop knary from alerting on `www.mycanary.com` but not `another.www.m
 * `DNS_SERVER` __Optional__ The DNS server to use when asking `dns.{CANARY_DOMAIN}.`. This option is obsolete if `EXT_IP` is set. Default is Google's nameserver: `8.8.8.8`
 * `LOG_FILE` __Optional__ Location for a file that knary will log timestamped matches and some errors. Example input: `/home/me/knary.log`
 * `BLACKLIST_FILE` __Optional__ Location for a file containing subdomains (separated by newlines) that should be ignored by knary and not logged or posted to Slack. Example input: `blacklist.txt` 
+* `BLACKLIST_ALERTING` __Optional__ Disable alerting on items in the blacklist that haven't triggered in over a month. Set to `false` to disable this behaviour
 * `TIMEOUT` __Optional__ The timeout for reading the HTTP(S) request. Default is 2 seconds. Example input: `1`
 
 ### Webhooks
