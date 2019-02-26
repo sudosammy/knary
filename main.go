@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	VERSION       = "2.1.0"
+	VERSION       = "2.1.1"
 	GITHUB        = "https://github.com/sudosammy/knary"
 	GITHUBVERSION = "https://raw.githubusercontent.com/sudosammy/knary/master/VERSION"
 )
@@ -108,6 +108,9 @@ func main() {
 	}
 	if os.Getenv("PUSHOVER_USER") != "" {
 		libknary.Printy("Posting to Pushover user: "+os.Getenv("PUSHOVER_USER"), 1)
+	}
+	if os.Getenv("TEAMS_WEBHOOK") != "" {
+		libknary.Printy("Posting to webhook: "+os.Getenv("TEAMS_WEBHOOK"), 1)
 	}
 
 	// setup waitgroups for DNS/HTTP go routines

@@ -57,8 +57,9 @@ Example config files can be found in `examples/`
 * `TIMEOUT` __Optional__ The timeout for reading the HTTP(S) request. Default is 2 seconds. Example input: `1`
 
 ### Webhooks
-* `SLACK_WEBHOOK` The full URL of the [incoming webhook](https://api.slack.com/custom-integrations/incoming-webhooks) for the Slack channel you want knary to notify
-* `DISCORD_WEBHOOK` __Optional__ The full URL of the [discord webhook](https://discordapp.com/developers/docs/resources/webhook) for the Discord channel you want knary to notify
+* `SLACK_WEBHOOK` __Optional__ The full URL of the [incoming webhook](https://api.slack.com/custom-integrations/incoming-webhooks) for the Slack channel you want knary to notify
+* `DISCORD_WEBHOOK` __Optional__ The full URL of the [Discord webhook](https://discordapp.com/developers/docs/resources/webhook) for the Discord channel you want knary to notify
+* `TEAMS_WEBHOOK` __Optional__ The full URL of the [Microsoft Teams webhook](https://docs.microsoft.com/en-us/microsoftteams/platform/concepts/connectors/connectors-using#setting-up-a-custom-incoming-webhook) for the Teams channel you want knary to notify
 * `PUSHOVER_TOKEN` __Optional__ The application token for the [Pushover Application](https://pushover.net/) you want knary to notify
 * `PUSHOVER_USER` __Optional__ The user token of the Pushover user you want knary to nofify
 
