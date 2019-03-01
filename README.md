@@ -2,7 +2,7 @@
 
 >Like "Canary" but more hipster, which means better 😎😎😎
 
-knary is a canary token server that notifies a Slack channel (or other webhook) when incoming HTTP(S) or DNS requests match a given domain or any of its subdomains. It also supports functionality useful in offensive engagements including subdomain blacklisting.
+knary is a canary token server that notifies a Slack/Discord/Teams channel (or other webhook) when incoming HTTP(S) or DNS requests match a given domain or any of its subdomains. It also supports functionality useful in offensive engagements including subdomain blacklisting.
 
 ![knary canary-ing](https://github.com/sudosammy/knary/raw/master/screenshots/canary.gif "knary canary-ing")
 
@@ -23,7 +23,7 @@ go get -u github.com/sudosammy/knary
 2. Create an `A` record matching a subdomain wildcard (`*.mycanary.com`) to your server's IP address
 3. Create an `NS` record matching `dns.mycanary.com` with `ns.mycanary.com` - knary will receive all DNS requests for `*.dns.mycanary.com` 
 4. You can self-sign the certificate for accepting TLS connections with something like `openssl req -x509 -newkey rsa:4096 -keyout server.key -out server.crt -days 365 -nodes`. However, some hosts might refuse to connect - so better you letsencrypt yourself a wildcard cert with something like `sudo certbot certonly --server https://acme-v02.api.letsencrypt.org/directory --manual --preferred-challenges dns -d *.mycanary.com`
-5. Setup your [slack webhook](https://slack.com/apps/A0F7XDUAZ-incoming-webhooks)
+5. Setup your [Slack webhook](https://slack.com/apps/A0F7XDUAZ-incoming-webhooks)
 6. Create a `.env` file in the same directory as the binary and [configure](https://github.com/sudosammy/knary#config-options) it as necessary. Examples can be found in `examples/`
 7. Run the binary (probably in `screen`, `tmux`, or similar because knary can't daemon _yet_) and hope for output that looks something like this: 
 
@@ -53,7 +53,7 @@ Example config files can be found in `examples/`
 * `DNS_SERVER` __Optional__ The DNS server to use when asking `dns.{CANARY_DOMAIN}.`. This option is obsolete if `EXT_IP` is set. Default is Google's nameserver: `8.8.8.8`
 * `LOG_FILE` __Optional__ Location for a file that knary will log timestamped matches and some errors. Example input: `/home/me/knary.log`
 * `BLACKLIST_FILE` __Optional__ Location for a file containing subdomains (separated by newlines) that should be ignored by knary and not logged or posted to Slack. Example input: `blacklist.txt` 
-* `BLACKLIST_ALERTING` __Optional__ Disable alerting on items in the blacklist that haven't triggered in over a month. Set to `false` to disable this behaviour
+* `BLACKLIST_ALERTING` __Optional__ Disable alerting on items in the blacklist that haven't triggered in >14 days. Set to `false` to disable this behaviour
 * `TIMEOUT` __Optional__ The timeout for reading the HTTP(S) request. Default is 2 seconds. Example input: `1`
 
 ### Webhooks

@@ -2,6 +2,10 @@ package libknary
 
 import (
 	"bufio"
+	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"net/http"
 	"os"
 	"strconv"
@@ -103,14 +107,14 @@ func LoadBlacklist() bool {
 
 func CheckLastHit() { // this runs once a day
 	if len(blacklistMap) != 0 {
-		// iterate through blacklist and look for items >30 days old
+		// iterate through blacklist and look for items >14 days old
 		for i := range blacklistMap { // foreach blacklist item
-			expiryDate := blacklistMap[i].lastHit.AddDate(0, 0, 30)
+			expiryDate := blacklistMap[i].lastHit.AddDate(0, 0, 14)
 
 			if time.Now().After(expiryDate) { // let 'em know it's old
-				go sendMsg(":wrench: Blacklist item `" + blacklistMap[i].domain + "` hasn't had a hit in >30 days. Consider removing it. Configure `BLACKLIST_ALERTING` to supress.")
-				logger("Blacklist item: " + blacklistMap[i].domain + " hasn't had a hit in >30 days. Consider removing it.")
-				Printy("Blacklist item: "+blacklistMap[i].domain+" hasn't had a hit in >30 days. Consider removing it.", 1)
+				go sendMsg(":wrench: Blacklist item `" + blacklistMap[i].domain + "` hasn't had a hit in >14 days. Consider removing it. Configure `BLACKLIST_ALERTING` to supress.")
+				logger("Blacklist item: " + blacklistMap[i].domain + " hasn't had a hit in >14 days. Consider removing it.")
+				Printy("Blacklist item: "+blacklistMap[i].domain+" hasn't had a hit in >14 days. Consider removing it.", 1)
 			}
 		}
 	}
@@ -133,4 +137,100 @@ func inBlacklist(needles ...string) bool {
 		}
 	}
 	return false
+}
+
+/*
+* This function collects very basic analytics to track knary usage.
+* If you have any thoughts about knary you can contact me on Twitter: @sudosammy
+ */
+type features struct {
+	DNS      bool `json:"dns"`
+	HTTP     bool `json:"http"`
+	BURP     bool `json:"burp"`
+	SLACK    bool `json:"slack"`
+	DISCORD  bool `json:"discord"`
+	PUSHOVER bool `json:"pushover"`
+	TEAMS    bool `json:"teams"`
+}
+
+type analy struct {
+	ID        string `json:"id"`
+	Version   string `json:"version"`
+	Status    int    `json:"day"`
+	Blacklist int    `json:"blacklist"`
+	Offset    int    `json:"offset"`
+	Timezone  string `json:"timezone"`
+	features  `json:"features"`
+}
+
+var day = 0
+
+func UsageStats(version string) bool {
+	trackingDomain := "" // make this an empty string to sinkhole analytics
+
+	if os.Getenv("CANARY_DOMAIN") == "" || trackingDomain == "" {
+		return false
+	}
+
+	// a unique & desensitised ID
+	knaryID := sha256.New()
+	knaryID.Write([]byte(os.Getenv("CANARY_DOMAIN")))
+	anonKnaryID := hex.EncodeToString(knaryID.Sum(nil))
+
+	zone, offset := time.Now().Zone() // timezone
+
+	day++ // track how long knary has been running for
+
+	// disgusting
+	dns, https, burp, slack, discord, pushover, teams := false, false, false, false, false, false, false
+	if os.Getenv("DNS") == "true" {
+		dns = true
+	}
+	if os.Getenv("HTTP") == "true" {
+		https = true
+	}
+	if os.Getenv("BURP") == "true" {
+		burp = true
+	}
+	if os.Getenv("SLACK_WEBHOOK") != "" {
+		slack = true
+	}
+	if os.Getenv("DISCORD_WEBHOOK") != "" {
+		discord = true
+	}
+	if os.Getenv("PUSHOVER_USER") != "" {
+		pushover = true
+	}
+	if os.Getenv("TEAMS_WEBHOOK") != "" {
+		teams = true
+	}
+
+	jsonValues, err := json.Marshal(&analy{
+		anonKnaryID,
+		version,
+		day,
+		len(blacklistMap),
+		(offset / 60 / 60),
+		zone,
+		features{
+			dns,
+			https,
+			burp,
+			slack,
+			discord,
+			pushover,
+			teams,
+		},
+	})
+
+	_, err = http.Post(trackingDomain, "application/json", bytes.NewBuffer(jsonValues))
+
+	if err != nil {
+		if os.Getenv("DEBUG") == "true" {
+			Printy(err.Error(), 3)
+		}
+		return false
+	}
+
+	return true
 }
