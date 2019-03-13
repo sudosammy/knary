@@ -79,9 +79,6 @@ var blacklistMap = map[int]blacklist{}
 func LoadBlacklist() bool {
 	// load blacklist file into struct on startup
 	if _, err := os.Stat(os.Getenv("BLACKLIST_FILE")); os.IsNotExist(err) {
-		if os.Getenv("DEBUG") == "true" {
-			Printy("Blacklist file does not exist - ignoring", 3)
-		}
 		return false
 	}
 

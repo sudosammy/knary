@@ -127,8 +127,8 @@ func handleRequest(conn net.Conn) {
 		conn.SetDeadline(time.Now().Add(time.Second * time.Duration(2))) // default 2 seconds
 	}
 
-	// read & store <=1kb of request
-	buf := make([]byte, 1024)
+	// read & store <=4kb of request
+	buf := make([]byte, 4096)
 	recBytes, err := conn.Read(buf)
 
 	if err != nil {
