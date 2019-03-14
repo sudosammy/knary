@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"net/http"
 	"os"
+	"strings"
 )
 
 func sendMsg(msg string) {
@@ -28,6 +29,19 @@ func sendMsg(msg string) {
 	if os.Getenv("DISCORD_WEBHOOK") != "" {
 		jsonMsg := []byte(`{"username":"knary","content":"` + msg + `"}`)
 		_, err := http.Post(os.Getenv("DISCORD_WEBHOOK"), "application/json", bytes.NewBuffer(jsonMsg))
+
+		if err != nil {
+			Printy(err.Error(), 2)
+		}
+	}
+
+	if os.Getenv("TEAMS_WEBHOOK") != "" {
+		// swap ``` with <pre> for MS teams :face-with-rolling-eyes:
+		msg = strings.Replace(msg, "```", "</pre>", 2)
+		msg = strings.Replace(msg, "</pre>", "<pre>", 1)
+
+		jsonMsg := []byte(`{"text":"` + msg + `"}`)
+		_, err := http.Post(os.Getenv("TEAMS_WEBHOOK"), "application/json", bytes.NewBuffer(jsonMsg))
 
 		if err != nil {
 			Printy(err.Error(), 2)

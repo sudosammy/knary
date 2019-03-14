@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	VERSION       = "2.1.0"
+	VERSION       = "2.2.0"
 	GITHUB        = "https://github.com/sudosammy/knary"
 	GITHUBVERSION = "https://raw.githubusercontent.com/sudosammy/knary/master/VERSION"
 )
@@ -42,6 +42,7 @@ func main() {
 				if os.Getenv("BLACKLIST_ALERTING") == "" || os.Getenv("BLACKLIST_ALERTING") == "true" {
 					libknary.CheckLastHit() // flag any old blacklist items
 				}
+				libknary.UsageStats(VERSION) // log usage
 			case <-quit:
 				ticker.Stop()
 				return
@@ -84,8 +85,9 @@ func main() {
 	red.Println(`|_____|`)
 	fmt.Println()
 
-	// load blacklist file
+	// load blacklist file & submit usage
 	libknary.LoadBlacklist()
+	libknary.UsageStats(VERSION)
 
 	if os.Getenv("HTTP") == "true" {
 		libknary.Printy("Listening for http(s)://*."+os.Getenv("CANARY_DOMAIN")+" requests", 1)
@@ -108,6 +110,9 @@ func main() {
 	}
 	if os.Getenv("PUSHOVER_USER") != "" {
 		libknary.Printy("Posting to Pushover user: "+os.Getenv("PUSHOVER_USER"), 1)
+	}
+	if os.Getenv("TEAMS_WEBHOOK") != "" {
+		libknary.Printy("Posting to webhook: "+os.Getenv("TEAMS_WEBHOOK"), 1)
 	}
 
 	// setup waitgroups for DNS/HTTP go routines

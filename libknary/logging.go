@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-func logger(message string) {
+func logger(status string, message string) {
 	if os.Getenv("LOG_FILE") != "" {
 		f, err := os.OpenFile(os.Getenv("LOG_FILE"), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
 
@@ -26,7 +26,7 @@ func logger(message string) {
 		}
 
 		// log with timestamp
-		if _, err = f.WriteString("[" + time.Now().Format(time.RFC850) + "]\n" + toLog); err != nil {
+		if _, err = f.WriteString(time.Now().Format(time.RFC3339) + " - " + status + " - " + toLog); err != nil {
 			Printy(err.Error(), 2)
 		}
 	}
