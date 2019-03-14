@@ -209,9 +209,9 @@ func handleRequest(conn net.Conn) {
 				go sendMsg(msg + "```")
 
 				if fwd != "" {
-					logger("[" + fwd + "]\n" + response)
+					logger("INFO", fwd + " - " + host)
 				} else {
-					logger("[" + conn.RemoteAddr().String() + "]\n" + response)
+					logger("INFO", conn.RemoteAddr().String() + " - " + host)
 				}
 			}
 		}
