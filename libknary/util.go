@@ -98,7 +98,7 @@ func LoadBlacklist() bool {
 	}
 
 	Printy("Monitoring "+strconv.Itoa(count)+" items in blacklist", 1)
-	logger("INFO", "Monitoring " + strconv.Itoa(count) + " items in blacklist")
+	logger("INFO", "Monitoring "+strconv.Itoa(count)+" items in blacklist")
 	return true
 }
 
@@ -110,7 +110,7 @@ func CheckLastHit() { // this runs once a day
 
 			if time.Now().After(expiryDate) { // let 'em know it's old
 				go sendMsg(":wrench: Blacklist item `" + blacklistMap[i].domain + "` hasn't had a hit in >14 days. Consider removing it. Configure `BLACKLIST_ALERTING` to supress.")
-				logger("INFO", "Blacklist item: " + blacklistMap[i].domain + " hasn't had a hit in >14 days. Consider removing it.")
+				logger("INFO", "Blacklist item: "+blacklistMap[i].domain+" hasn't had a hit in >14 days. Consider removing it.")
 				Printy("Blacklist item: "+blacklistMap[i].domain+" hasn't had a hit in >14 days. Consider removing it.", 1)
 			}
 		}

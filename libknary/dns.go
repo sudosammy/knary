@@ -114,7 +114,7 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 						"```" +
 						"From: " + ipaddr +
 						"```")
-					logger("INFO", ipaddr + " - " + q.Name)
+					logger("INFO", ipaddr+" - "+q.Name)
 
 				} else {
 					go sendMsg("DNS: " + q.Name +
@@ -122,7 +122,7 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 						"From: " + ipaddr + "\n" +
 						"PTR: " + reverse +
 						"```")
-					logger("INFO", ipaddr + " - " + reverse + " - " + q.Name)
+					logger("INFO", ipaddr+" - "+reverse+" - "+q.Name)
 				}
 			}
 
