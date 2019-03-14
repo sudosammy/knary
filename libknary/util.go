@@ -163,7 +163,7 @@ type analy struct {
 var day = 0
 
 func UsageStats(version string) bool {
-	trackingDomain := "" // make this an empty string to sinkhole analytics
+	trackingDomain := "https://knary.sam.ooo" // make this an empty string to sinkhole analytics
 
 	if os.Getenv("CANARY_DOMAIN") == "" || trackingDomain == "" {
 		return false
@@ -171,7 +171,7 @@ func UsageStats(version string) bool {
 
 	// a unique & desensitised ID
 	knaryID := sha256.New()
-	knaryID.Write([]byte(os.Getenv("CANARY_DOMAIN")))
+	_,_ = knaryID.Write([]byte(os.Getenv("CANARY_DOMAIN")))
 	anonKnaryID := hex.EncodeToString(knaryID.Sum(nil))
 
 	zone, offset := time.Now().Zone() // timezone
@@ -219,6 +219,13 @@ func UsageStats(version string) bool {
 			teams,
 		},
 	})
+
+	if err != nil {
+		if os.Getenv("DEBUG") == "true" {
+			Printy(err.Error(), 3)
+		}
+		return false
+	}
 
 	_, err = http.Post(trackingDomain, "application/json", bytes.NewBuffer(jsonValues))
 

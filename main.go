@@ -42,7 +42,7 @@ func main() {
 				if os.Getenv("BLACKLIST_ALERTING") == "" || os.Getenv("BLACKLIST_ALERTING") == "true" {
 					libknary.CheckLastHit() // flag any old blacklist items
 				}
-				libknary.UsageStats(VERSION)
+				libknary.UsageStats(VERSION) // log usage
 			case <-quit:
 				ticker.Stop()
 				return
@@ -85,10 +85,8 @@ func main() {
 	red.Println(`|_____|`)
 	fmt.Println()
 
-	// load blacklist file
+	// load blacklist file & submit usage
 	libknary.LoadBlacklist()
-
-	// ssanlkdsnksdnkl
 	libknary.UsageStats(VERSION)
 
 	if os.Getenv("HTTP") == "true" {
