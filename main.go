@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	VERSION       = "2.2.0"
+	VERSION       = "2.2.1"
 	GITHUB        = "https://github.com/sudosammy/knary"
 	GITHUBVERSION = "https://raw.githubusercontent.com/sudosammy/knary/master/VERSION"
 )
@@ -42,7 +42,7 @@ func main() {
 				if os.Getenv("BLACKLIST_ALERTING") == "" || os.Getenv("BLACKLIST_ALERTING") == "true" {
 					libknary.CheckLastHit() // flag any old blacklist items
 				}
-				libknary.UsageStats(VERSION) // log usage
+				go libknary.UsageStats(VERSION) // log usage
 			case <-quit:
 				ticker.Stop()
 				return
@@ -87,10 +87,15 @@ func main() {
 
 	// load blacklist file & submit usage
 	libknary.LoadBlacklist()
-	libknary.UsageStats(VERSION)
+	go libknary.UsageStats(VERSION)
 
 	if os.Getenv("HTTP") == "true" {
 		libknary.Printy("Listening for http(s)://*."+os.Getenv("CANARY_DOMAIN")+" requests", 1)
+
+		if os.Getenv("TLS_CRT") == "" || os.Getenv("TLS_KEY") == "" {
+			libknary.GiveHead(2)
+			log.Fatal("To use the HTTP canary you must specify the location of your domain's TLS certificates with TLS_CRT & TLS_KEY")
+		}
 	}
 	if os.Getenv("DNS") == "true" {
 		libknary.Printy("Listening for *.dns."+os.Getenv("CANARY_DOMAIN")+" DNS requests", 1)
