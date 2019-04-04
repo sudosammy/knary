@@ -23,7 +23,7 @@ go get -u github.com/sudosammy/knary
 2. Create an `A` record matching a subdomain wildcard (`*.mycanary.com`) to your server's IP address
 3. Create an `NS` record matching `dns.mycanary.com` with `ns.mycanary.com` - knary will receive all DNS requests for `*.dns.mycanary.com` 
 4. You can self-sign the certificate for accepting TLS connections with something like `openssl req -x509 -newkey rsa:4096 -keyout server.key -out server.crt -days 365 -nodes`. However, some hosts might refuse to connect - so better you letsencrypt yourself a wildcard cert with something like `sudo certbot certonly --server https://acme-v02.api.letsencrypt.org/directory --manual --preferred-challenges dns -d *.mycanary.com`
-5. Setup your [webook](https://github.com/sudosammy/knary#webhook-config)
+5. Setup your [webhook](https://github.com/sudosammy/knary#webhook-config)
 6. Create a `.env` file in the same directory as the binary and [configure](https://github.com/sudosammy/knary#config-options) it as necessary. Examples can be found in `examples/`
 7. Run the binary (probably in `screen`, `tmux`, or similar because knary can't daemon _yet_) and hope for output that looks something like this: 
 
