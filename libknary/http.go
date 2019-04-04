@@ -115,7 +115,7 @@ func AcceptRequest(ln net.Listener, wg *sync.WaitGroup) {
 
 func handleRequest(conn net.Conn) {
 	// set timeout for reading responses
-	conn.SetDeadline(time.Now().Add(time.Second * time.Duration(2))) // 2 seconds
+	_ = conn.SetDeadline(time.Now().Add(time.Second * time.Duration(2))) // 2 seconds
 
 	// read & store <=4kb of request
 	buf := make([]byte, 4096)

@@ -250,7 +250,7 @@ func CheckTLSExpiry(domain string) bool {
 	}
 
 	expiry := conn.ConnectionState().PeerCertificates[0].NotAfter
-	diff := expiry.Sub(time.Now())
+	diff := time.Until(expiry)
 
 	if int(diff.Hours()/24) <= 5 { // if cert expires in 5 days or less
 		days := int(diff.Hours() / 24)
