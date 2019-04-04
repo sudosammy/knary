@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"crypto/sha256"
+	"crypto/tls"
 	"encoding/hex"
 	"encoding/json"
 	"net/http"
@@ -171,7 +172,7 @@ func UsageStats(version string) bool {
 
 	// a unique & desensitised ID
 	knaryID := sha256.New()
-	_,_ = knaryID.Write([]byte(os.Getenv("CANARY_DOMAIN")))
+	_, _ = knaryID.Write([]byte(os.Getenv("CANARY_DOMAIN")))
 	anonKnaryID := hex.EncodeToString(knaryID.Sum(nil))
 
 	zone, offset := time.Now().Zone() // timezone
@@ -234,6 +235,29 @@ func UsageStats(version string) bool {
 			Printy(err.Error(), 3)
 		}
 		return false
+	}
+
+	return true
+}
+
+func CheckTLSExpiry(domain string) bool {
+	conn, err := tls.Dial("tcp", domain+":443", nil)
+
+	if err != nil {
+		logger("WARNING", err.Error())
+		Printy(err.Error(), 2)
+		return false
+	}
+
+	expiry := conn.ConnectionState().PeerCertificates[0].NotAfter
+	diff := expiry.Sub(time.Now())
+
+	if int(diff.Hours()/24) <= 5 { // if cert expires in 5 days or less
+		days := int(diff.Hours() / 24)
+		certMsg := "The TLS certificate for `" + domain + "` expires in " + strconv.Itoa(days) + " days."
+		Printy(certMsg, 2)
+		logger("WARNING", certMsg)
+		go sendMsg(":lock: " + certMsg)
 	}
 
 	return true
