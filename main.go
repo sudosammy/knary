@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	VERSION       = "2.2.0"
+	VERSION       = "2.2.1"
 	GITHUB        = "https://github.com/sudosammy/knary"
 	GITHUBVERSION = "https://raw.githubusercontent.com/sudosammy/knary/master/VERSION"
 )
@@ -30,7 +30,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// set ticker for update checks
+	// run maintenance tasks every day
 	// https://stackoverflow.com/questions/16466320/is-there-a-way-to-do-repetitive-tasks-at-intervals-in-golang
 	ticker := time.NewTicker(24 * time.Hour)
 	quit := make(chan struct{})
@@ -42,7 +42,10 @@ func main() {
 				if os.Getenv("BLACKLIST_ALERTING") == "" || os.Getenv("BLACKLIST_ALERTING") == "true" {
 					libknary.CheckLastHit() // flag any old blacklist items
 				}
-				libknary.UsageStats(VERSION) // log usage
+				if os.Getenv("HTTP") == "true" {
+					libknary.CheckTLSExpiry(os.Getenv("CANARY_DOMAIN")) // check certificate expiry
+				}
+				go libknary.UsageStats(VERSION) // log usage
 			case <-quit:
 				ticker.Stop()
 				return
@@ -50,9 +53,6 @@ func main() {
 		}
 	}()
 	defer close(quit)
-
-	// check for updates on first run
-	libknary.CheckUpdate(VERSION, GITHUBVERSION, GITHUB)
 
 	// get IP for knary.mycanary.com to use for DNS answers
 	var EXT_IP string
@@ -87,10 +87,15 @@ func main() {
 
 	// load blacklist file & submit usage
 	libknary.LoadBlacklist()
-	libknary.UsageStats(VERSION)
+	go libknary.UsageStats(VERSION)
 
 	if os.Getenv("HTTP") == "true" {
 		libknary.Printy("Listening for http(s)://*."+os.Getenv("CANARY_DOMAIN")+" requests", 1)
+
+		if os.Getenv("TLS_CRT") == "" || os.Getenv("TLS_KEY") == "" {
+			libknary.GiveHead(2)
+			log.Fatal("To use the HTTP canary you must specify the location of your domain's TLS certificates with TLS_CRT & TLS_KEY")
+		}
 	}
 	if os.Getenv("DNS") == "true" {
 		libknary.Printy("Listening for *.dns."+os.Getenv("CANARY_DOMAIN")+" DNS requests", 1)
@@ -114,6 +119,9 @@ func main() {
 	if os.Getenv("TEAMS_WEBHOOK") != "" {
 		libknary.Printy("Posting to webhook: "+os.Getenv("TEAMS_WEBHOOK"), 1)
 	}
+
+	// check for updates on first run
+	libknary.CheckUpdate(VERSION, GITHUBVERSION, GITHUB)
 
 	// setup waitgroups for DNS/HTTP go routines
 	var wg sync.WaitGroup // there isn't actually any clean exit option, so we can just wait forever
