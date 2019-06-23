@@ -16,14 +16,14 @@ import (
 	"github.com/blang/semver"
 )
 
-func stringContains(stringA string, stringB string) bool { // this runs once a day
+func stringContains(stringA string, stringB string) bool {
 	return strings.Contains(
 		strings.ToLower(stringA),
 		strings.ToLower(stringB),
 	)
 }
 
-func CheckUpdate(version string, githubVersion string, githubURL string) bool {
+func CheckUpdate(version string, githubVersion string, githubURL string) bool { // this runs once a day
 	running, err := semver.Make(version)
 
 	if err != nil {
@@ -252,7 +252,7 @@ func CheckTLSExpiry(domain string) bool {
 	expiry := conn.ConnectionState().PeerCertificates[0].NotAfter
 	diff := time.Until(expiry)
 
-	if int(diff.Hours()/24) <= 5 { // if cert expires in 5 days or less
+	if int(diff.Hours()/24) <= 10 { // if cert expires in 10 days or less
 		days := int(diff.Hours() / 24)
 		certMsg := "The TLS certificate for `" + domain + "` expires in " + strconv.Itoa(days) + " days."
 		Printy(certMsg, 2)
