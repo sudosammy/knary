@@ -158,12 +158,15 @@ func handleRequest(conn net.Conn) {
 						host = host + strconv.Itoa(lPort)
 					}
 				}
-				if stringContains(header, "OPTIONS") ||
-					stringContains(header, "GET") ||
-					stringContains(header, "POST") ||
-					stringContains(header, "PUT") ||
-					stringContains(header, "PATCH") ||
-					stringContains(header, "DELETE") {
+				// https://github.com/sudosammy/knary/issues/17
+				if stringContains(header, "OPTIONS" ) ||
+					stringContains(header, "GET ") ||
+					stringContains(header, "HEAD ") ||
+					stringContains(header, "POST ") ||
+					stringContains(header, "PUT ") ||
+					stringContains(header, "PATCH ") ||
+					stringContains(header, "DELETE ") ||
+					stringContains(header, "CONNECT ") {
 					query = header
 				}
 				if stringContains(header, "User-Agent") {
