@@ -5,9 +5,14 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"regexp"
 )
 
 func sendMsg(msg string) {
+	// closes https://github.com/sudosammy/knary/issues/20
+	re := regexp.MustCompile(`\r?\n`)
+	msg = re.ReplaceAllString(msg, "\\n")
+
 	if os.Getenv("SLACK_WEBHOOK") != "" {
 		jsonMsg := []byte(`{"username":"knary","icon_emoji":":bird:","text":"` + msg + `"}`)
 		_, err := http.Post(os.Getenv("SLACK_WEBHOOK"), "application/json", bytes.NewBuffer(jsonMsg))
@@ -27,8 +32,8 @@ func sendMsg(msg string) {
 	}
 
 	if os.Getenv("DISCORD_WEBHOOK") != "" {
-		jsonMsg := []byte(`{"username":"knary","content":"` + msg + `"}`)
-		_, err := http.Post(os.Getenv("DISCORD_WEBHOOK"), "application/json", bytes.NewBuffer(jsonMsg))
+		jsonMsg := []byte(`{"username":"knary","text":"` + msg + `"}`)
+		_, err := http.Post(os.Getenv("DISCORD_WEBHOOK") + "/slack", "application/json", bytes.NewBuffer(jsonMsg))
 
 		if err != nil {
 			Printy(err.Error(), 2)
