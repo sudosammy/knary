@@ -16,7 +16,6 @@ RUN mkdir /knary/certs
 COPY --from=build-env /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY --from=build-env /go/src/app/.env /knary/.env
 COPY --from=build-env /go/src/app/knary /knary/knary
-COPY --from=build-env /go/src/app/certs/* /knary/certs/
 
 WORKDIR /knary
 ENTRYPOINT ["/knary/knary"]
