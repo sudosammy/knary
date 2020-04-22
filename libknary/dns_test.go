@@ -4,27 +4,10 @@ import (
 	"net"
 	"sync"
 	"testing"
-	//"fmt"
 	"github.com/miekg/dns"
 	"os"
 	"time"
 )
-
-//func TestAcceptDns(t *testing.T) {
-//    var wg sync.WaitGroup
-//    wg.Add(1)
-//    go AcceptDNS(&wg)
-//
-//    _, err := net.Listen("udp", ":53")
-//    if err == nil {
-//        t.Errorf("DNS Server not running")
-//    } else {
-//        t.Log("Successfully started DNS server on port 53")
-//        fmt.Println("DONE")
-//    }
-//    wg.Wait()
-
-//}
 
 func GokuServer(w dns.ResponseWriter, req *dns.Msg) {
 	m := new(dns.Msg)
