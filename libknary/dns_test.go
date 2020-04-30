@@ -1,11 +1,11 @@
 package libknary
 
 import (
+	"github.com/miekg/dns"
 	"net"
+	"os"
 	"sync"
 	"testing"
-	"github.com/miekg/dns"
-	"os"
 	"time"
 )
 

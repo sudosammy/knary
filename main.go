@@ -11,8 +11,8 @@ import (
 	"sync"
 	"time"
 
-	//"./libknary"
-	"github.com/sudosammy/knary/libknary"
+	"./libknary"
+	//"github.com/sudosammy/knary/libknary"
 )
 
 const (
@@ -38,12 +38,12 @@ func main() {
 		for {
 			select {
 			case <-ticker.C:
-				libknary.CheckUpdate(VERSION, GITHUBVERSION, GITHUB) // check for updates
+				_, _ = libknary.CheckUpdate(VERSION, GITHUBVERSION, GITHUB) // check for updates
 				if os.Getenv("BLACKLIST_ALERTING") == "" || os.Getenv("BLACKLIST_ALERTING") == "true" {
 					libknary.CheckLastHit() // flag any old blacklist items
 				}
 				if os.Getenv("HTTP") == "true" {
-					libknary.CheckTLSExpiry(os.Getenv("CANARY_DOMAIN")) // check certificate expiry
+					libknary.CheckTLSExpiry(os.Getenv("CANARY_DOMAIN"), nil) // check certificate expiry
 				}
 				go libknary.UsageStats(VERSION) // log usage
 			case <-quit:
