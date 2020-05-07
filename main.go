@@ -11,8 +11,8 @@ import (
 	"sync"
 	"time"
 
-	"./libknary"
-	//"github.com/sudosammy/knary/libknary"
+	//"./libknary"
+	"github.com/goku-KaioKen/knary/libknary"
 )
 
 const (
