@@ -4,13 +4,12 @@ go:
     - 1.12.x
     - master
 
-sudo: required
 
 #only clone the latest commit
 git:
     depth: 1
 
 script:
-    - go test -v ./...
+    - sudo /usr/local/go/bin/go  test -v ./...
 
 
