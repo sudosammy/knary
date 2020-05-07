@@ -10,6 +10,6 @@ git:
     depth: 1
 
 script:
-    - sudo /usr/local/go/bin/go  test -v ./...
+    - sudo -E env "PATH=$PATH"  test -v ./...
 
 
