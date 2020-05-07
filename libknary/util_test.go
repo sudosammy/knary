@@ -25,7 +25,7 @@ const (
 )
 
 func generateTLSConfig(eTime int) *tls.Config {
-	//code taken from here: https://golang.org/src/crypto/tls/generate_cert.go
+	//code taken and modified from here: https://golang.org/src/crypto/tls/generate_cert.go
 	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
 	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
 	if err != nil {
@@ -65,6 +65,7 @@ func generateTLSConfig(eTime int) *tls.Config {
 
 func NewLocalHTTPSTestServer(handler http.Handler, eTime int) *httptest.Server {
 	ts := httptest.NewUnstartedServer(handler)
+	//get the tls config generated from the function
 	config := generateTLSConfig(eTime)
 	ts.TLS = config
 	ts.StartTLS()
@@ -72,12 +73,14 @@ func NewLocalHTTPSTestServer(handler http.Handler, eTime int) *httptest.Server {
 }
 
 func TestTLSExpiryCase1(t *testing.T) {
+	//first case is when certificate expires in less tha 8 days
 	dom := "127.0.0.1"
 	ts := NewLocalHTTPSTestServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}), 8)
 	port := strings.SplitAfter(ts.URL, ":")[2]
 	os.Setenv("TLS_PORT", port)
 	defer ts.Close()
 
+	// its self signed so need to skip any checks
 	conf := &tls.Config{
 		InsecureSkipVerify: true,
 	}
@@ -95,12 +98,14 @@ func TestTLSExpiryCase1(t *testing.T) {
 }
 
 func TestTLSExpiryCase2(t *testing.T) {
+	//second case is when certificate is all well and good with expiry > 10 days
 	dom := "127.0.0.1"
 	ts := NewLocalHTTPSTestServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}), 12)
 	port := strings.SplitAfter(ts.URL, ":")[2]
 	os.Setenv("TLS_PORT", port)
 	defer ts.Close()
 
+	// its self signed so need to skip any checks
 	conf := &tls.Config{
 		InsecureSkipVerify: true,
 	}
@@ -117,12 +122,14 @@ func TestTLSExpiryCase2(t *testing.T) {
 }
 
 func TestTLSExpiryCase3(t *testing.T) {
+	//third case when expiry is negative !(jeez come on)
 	dom := "127.0.0.1"
 	ts := NewLocalHTTPSTestServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}), -1)
 	port := strings.SplitAfter(ts.URL, ":")[2]
 	os.Setenv("TLS_PORT", port)
 	defer ts.Close()
 
+	// its self signed so need to skip any checks
 	conf := &tls.Config{
 		InsecureSkipVerify: true,
 	}
@@ -141,8 +148,15 @@ func TestStringContains(t *testing.T) {
 	string1 := "gokuKaioKen"
 	string2 := "goku"
 
+	string3 := "Naruto"
+	string4 := "zzz"
+
 	if val := stringContains(string1, string2); val != true {
 		//cant think of another meaningful error message, its just broken!
+		t.Errorf("String contains is broken")
+	}
+
+	if val := stringContains(string3, string4); val == true {
 		t.Errorf("String contains is broken")
 	}
 }
@@ -155,11 +169,13 @@ func TestCheckUpdate(t *testing.T) {
 }
 
 func TestLoadBlackList(t *testing.T) {
+	//case 1 when env variable is not even set
 	val, err := LoadBlacklist()
 	if val == true && err == nil {
 		t.Errorf("Expected to error out since BLACKLIST_FILE env variable not set")
 	}
 
+	//second case env variable set but file not there
 	os.Setenv("BLACKLIST_FILE", "somerandomshit.txt")
 	val, err = LoadBlacklist()
 
@@ -167,6 +183,7 @@ func TestLoadBlackList(t *testing.T) {
 		t.Errorf("Expected a file error as filename is not present")
 	}
 
+	//third case, everything in place including env var and blacklist filename
 	os.Setenv("BLACKLIST_FILE", "blacklist_test.txt")
 	val, err = LoadBlacklist()
 
@@ -176,6 +193,8 @@ func TestLoadBlackList(t *testing.T) {
 
 }
 
+//simply clear the contents of a particular file
+// in this case blacklist_test.txt
 func clearFileContent(file string) {
 	testFile, err := os.OpenFile(file, os.O_RDWR, 0666)
 	if err != nil {
@@ -187,6 +206,7 @@ func clearFileContent(file string) {
 	testFile.Seek(0, 0)
 }
 
+//write some specific data to some specific file !
 func writeDataToFile(data string, file string) {
 	entry := []byte(data)
 	err := ioutil.WriteFile(file, entry, 0644)

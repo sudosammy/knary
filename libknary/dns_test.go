@@ -9,6 +9,8 @@ import (
 	"time"
 )
 
+//code for 3 functions below here is taken and modified from
+//here: https://github.com/miekg/dns/blob/67373879ce327b5fd112d9301d0a4d62bad6b904/server_test.go
 func GokuServer(w dns.ResponseWriter, req *dns.Msg) {
 	m := new(dns.Msg)
 	m.SetReply(req)
@@ -59,6 +61,8 @@ func TestPerformALookup(t *testing.T) {
 	dns.HandleFunc("goku.lab.sec.", GokuServer)
 	defer dns.HandleRemove("goku.lab.sec.")
 
+	//here we probably catch errors like bind permission denied
+	// when run without using sudo
 	s, _, err := RunLocalUDPServer(":53")
 	if err != nil {
 		t.Fatalf("unable to run test server: %v", err)
