@@ -11,6 +11,6 @@ git:
     depth: 1
 
 script:
-    - sudo go test -v ./...
+    - go test -v ./...
 
 
