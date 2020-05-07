@@ -1,12 +1,14 @@
 language: go
 
 go:
-    - 1.14.x
+    - 1.12.x
     - master
 
-sudo: true
+#only clone the latest commit
+git:
+    depth: 1
 
 script:
-    go test -v ./...
+    - go test -v ./...
 
 
