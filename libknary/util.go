@@ -242,6 +242,7 @@ func UsageStats(version string) bool {
 
 func CheckTLSExpiry(domain string, config *tls.Config) (bool, error) {
 	port := "443"
+    //needed this to make testing possible
 	if os.Getenv("TLS_PORT") != "" {
 		port = os.Getenv("TLS_PORT")
 	}
