@@ -1,5 +1,5 @@
 # knary - A simple HTTP(S) and DNS Canary
-[![Build Status](https://travis-ci.org/goku-KaioKen/knary.svg?branch=master)](https://travis-ci.org/goku-KaioKen/knary)
+[![Build Status](https://travis-ci.org/goku-KaioKen/knary.svg?branch=master)](https://travis-ci.org/goku-KaioKen/knary)  [![Coverage Status](https://coveralls.io/repos/github/goku-KaioKen/knary/badge.svg)](https://coveralls.io/github/goku-KaioKen/knary)
 
 >Like "Canary" but more hipster, which means better 😎😎😎
 
