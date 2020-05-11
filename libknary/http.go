@@ -110,7 +110,6 @@ func AcceptRequest(ln net.Listener, wg *sync.WaitGroup) {
 		}
 		go handleRequest(conn)
 	}
-	wg.Done()
 }
 
 func handleRequest(conn net.Conn) {
