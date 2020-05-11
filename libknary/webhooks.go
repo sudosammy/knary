@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"net/http"
 	"os"
-	"strings"
 	"regexp"
+	"strings"
 )
 
 func sendMsg(msg string) {
@@ -33,7 +33,7 @@ func sendMsg(msg string) {
 
 	if os.Getenv("DISCORD_WEBHOOK") != "" {
 		jsonMsg := []byte(`{"username":"knary","text":"` + msg + `"}`)
-		_, err := http.Post(os.Getenv("DISCORD_WEBHOOK") + "/slack", "application/json", bytes.NewBuffer(jsonMsg))
+		_, err := http.Post(os.Getenv("DISCORD_WEBHOOK")+"/slack", "application/json", bytes.NewBuffer(jsonMsg))
 
 		if err != nil {
 			Printy(err.Error(), 2)

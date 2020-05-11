@@ -38,7 +38,7 @@ func main() {
 		for {
 			select {
 			case <-ticker.C:
-			    libknary.CheckUpdate(VERSION, GITHUBVERSION, GITHUB) // check for updates
+				libknary.CheckUpdate(VERSION, GITHUBVERSION, GITHUB) // check for updates
 				if os.Getenv("BLACKLIST_ALERTING") == "" || os.Getenv("BLACKLIST_ALERTING") == "true" {
 					libknary.CheckLastHit() // flag any old blacklist items
 				}

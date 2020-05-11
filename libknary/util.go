@@ -242,7 +242,7 @@ func UsageStats(version string) bool {
 
 func CheckTLSExpiry(domain string, config *tls.Config) (bool, error) {
 	port := "443"
-    //needed this to make testing possible
+	//needed this to make testing possible
 	if os.Getenv("TLS_PORT") != "" {
 		port = os.Getenv("TLS_PORT")
 	}
@@ -263,7 +263,7 @@ func CheckTLSExpiry(domain string, config *tls.Config) (bool, error) {
 		Printy(certMsg, 2)
 		logger("WARNING", certMsg)
 		go sendMsg(":lock: " + certMsg)
-        //while returning false here is a bit weird we need to differentiate this code path for the tests
+		//while returning false here is a bit weird we need to differentiate this code path for the tests
 		return false, nil
 	}
 
