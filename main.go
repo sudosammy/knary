@@ -11,7 +11,6 @@ import (
 	"sync"
 	"time"
 
-	//"./libknary"
 	"github.com/sudosammy/knary/libknary"
 )
 
