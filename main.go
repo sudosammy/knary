@@ -43,7 +43,7 @@ func main() {
 					libknary.CheckLastHit() // flag any old blacklist items
 				}
 				if os.Getenv("HTTP") == "true" {
-					libknary.CheckTLSExpiry(os.Getenv("CANARY_DOMAIN")) // check certificate expiry
+					libknary.CheckTLSExpiry(os.Getenv("CANARY_DOMAIN"), nil) // check certificate expiry
 				}
 				go libknary.UsageStats(VERSION) // log usage
 			case <-quit:

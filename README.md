@@ -1,5 +1,4 @@
 # knary - A simple HTTP(S) and DNS Canary
-
 >Like "Canary" but more hipster, which means better 😎😎😎
 
 knary is a canary token server that notifies a Slack/Discord/Teams channel (or other webhook) when incoming HTTP(S) or DNS requests match a given domain or any of its subdomains. It also supports functionality useful in offensive engagements including subdomain blacklisting.
@@ -16,7 +15,7 @@ Defenders also use canaries as tripwires that can alert them of an attacker with
 
 1. Download the [applicable 64-bit knary binary](https://github.com/sudosammy/knary/releases) __OR__ build knary from source:
 
-__Prerequisite:__ You need Go >=1.9 to build knary yourself. Ideally, use Go 1.12.x.
+__Prerequisite:__ You need Go >=1.9 to build knary yourself. Ideally, use Go 1.14.x.
 ```
 go get -u github.com/sudosammy/knary
 ```
