@@ -1,0 +1,25 @@
+language: go
+
+go:
+    - 1.14.x
+    - 1.13.x
+    - 1.12.x
+    - 1.11.x
+    - 1.10.x
+
+
+# only clone the latest commit
+git:
+    depth: 1
+
+
+before_install:
+    - go get github.com/mattn/goveralls
+
+# to prevent sudo using the secure_path we using -E option
+# and letting it use the users env variables, not doing this results in
+# a PATH bug and go command not found
+script:
+    - sudo -E env "PATH=$PATH" go test -v ./...
+    - sudo -E env "PATH=$PATH" $GOPATH/bin/goveralls -service=travis-ci
+
