@@ -1,4 +1,5 @@
 # knary - A simple HTTP(S) and DNS Canary
+
 [![Build Status](https://travis-ci.org/sudosammu/knary.svg?branch=dev)](https://travis-ci.org/sudosammy/knary)  [![Coverage Status](https://coveralls.io/repos/github/sudosammy/knary/badge.svg?branch=dev)](https://coveralls.io/github/sudosammy/knary?branch=dev)
 
 >Like "Canary" but more hipster, which means better 😎😎😎
