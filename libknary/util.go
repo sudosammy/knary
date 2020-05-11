@@ -262,6 +262,7 @@ func CheckTLSExpiry(domain string, config *tls.Config) (bool, error) {
 		Printy(certMsg, 2)
 		logger("WARNING", certMsg)
 		go sendMsg(":lock: " + certMsg)
+        //while returning false here is a bit weird we need to differentiate this code path for the tests
 		return false, nil
 	}
 

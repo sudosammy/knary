@@ -1,6 +1,4 @@
 # knary - A simple HTTP(S) and DNS Canary
-[![Build Status](https://travis-ci.org/goku-KaioKen/knary.svg?branch=master)](https://travis-ci.org/goku-KaioKen/knary)  [![Coverage Status](https://coveralls.io/repos/github/goku-KaioKen/knary/badge.svg)](https://coveralls.io/github/goku-KaioKen/knary)
-
 >Like "Canary" but more hipster, which means better 😎😎😎
 
 knary is a canary token server that notifies a Slack/Discord/Teams channel (or other webhook) when incoming HTTP(S) or DNS requests match a given domain or any of its subdomains. It also supports functionality useful in offensive engagements including subdomain blacklisting.
