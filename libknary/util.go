@@ -23,7 +23,7 @@ func stringContains(stringA string, stringB string) bool {
 	)
 }
 
-func CheckUpdate(version string, githubVersion string, githubURL string) bool { // this runs once a day
+func CheckUpdate(version string, githubVersion string, githubURL string) (bool, error) { // this runs once a day
 	running, err := semver.Make(version)
 
 	if err != nil {
@@ -31,7 +31,7 @@ func CheckUpdate(version string, githubVersion string, githubURL string) bool { 
 		Printy(updFail, 2)
 		logger("WARNING", updFail)
 		go sendMsg(":warning: " + updFail)
-		return false
+		return false, err
 	}
 
 	response, err := http.Get(githubVersion)
@@ -41,7 +41,7 @@ func CheckUpdate(version string, githubVersion string, githubURL string) bool { 
 		Printy(updFail, 2)
 		logger("WARNING", updFail)
 		go sendMsg(":warning: " + updFail)
-		return false
+		return false, err
 	}
 
 	defer response.Body.Close()
@@ -54,7 +54,7 @@ func CheckUpdate(version string, githubVersion string, githubURL string) bool { 
 			updFail := "Could not check for updates. GitHub response !semver format"
 			Printy(updFail, 2)
 			logger("WARNING", updFail)
-			return false
+			return false, err
 		}
 
 		if running.Compare(current) != 0 {
@@ -62,11 +62,11 @@ func CheckUpdate(version string, githubVersion string, githubURL string) bool { 
 			Printy(updMsg, 2)
 			logger("WARNING", updMsg)
 			go sendMsg(":warning: " + updMsg)
-			return true
+			return true, nil
 		}
 	}
 
-	return false
+	return false, nil
 }
 
 // map for blacklist
@@ -77,10 +77,10 @@ type blacklist struct {
 
 var blacklistMap = map[int]blacklist{}
 
-func LoadBlacklist() bool {
+func LoadBlacklist() (bool, error) {
 	// load blacklist file into struct on startup
 	if _, err := os.Stat(os.Getenv("BLACKLIST_FILE")); os.IsNotExist(err) {
-		return false
+		return false, err
 	}
 
 	blklist, err := os.Open(os.Getenv("BLACKLIST_FILE"))
@@ -88,7 +88,7 @@ func LoadBlacklist() bool {
 
 	if err != nil {
 		Printy(err.Error()+" - ignoring", 3)
-		return false
+		return false, err
 	}
 
 	scanner := bufio.NewScanner(blklist)
@@ -100,7 +100,7 @@ func LoadBlacklist() bool {
 
 	Printy("Monitoring "+strconv.Itoa(count)+" items in blacklist", 1)
 	logger("INFO", "Monitoring "+strconv.Itoa(count)+" items in blacklist")
-	return true
+	return true, nil
 }
 
 func CheckLastHit() { // this runs once a day
@@ -240,13 +240,18 @@ func UsageStats(version string) bool {
 	return true
 }
 
-func CheckTLSExpiry(domain string) bool {
-	conn, err := tls.Dial("tcp", domain+":443", nil)
+func CheckTLSExpiry(domain string, config *tls.Config) (bool, error) {
+	port := "443"
+	//needed this to make testing possible
+	if os.Getenv("TLS_PORT") != "" {
+		port = os.Getenv("TLS_PORT")
+	}
+	conn, err := tls.Dial("tcp", domain+":"+port, config)
 
 	if err != nil {
 		logger("WARNING", err.Error())
 		Printy(err.Error(), 2)
-		return false
+		return false, err
 	}
 
 	expiry := conn.ConnectionState().PeerCertificates[0].NotAfter
@@ -258,7 +263,9 @@ func CheckTLSExpiry(domain string) bool {
 		Printy(certMsg, 2)
 		logger("WARNING", certMsg)
 		go sendMsg(":lock: " + certMsg)
+		//while returning false here is a bit weird we need to differentiate this code path for the tests
+		return false, nil
 	}
 
-	return true
+	return true, nil
 }

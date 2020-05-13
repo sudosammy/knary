@@ -110,7 +110,6 @@ func AcceptRequest(ln net.Listener, wg *sync.WaitGroup) {
 		}
 		go handleRequest(conn)
 	}
-	wg.Done()
 }
 
 func handleRequest(conn net.Conn) {
@@ -159,7 +158,7 @@ func handleRequest(conn net.Conn) {
 					}
 				}
 				// https://github.com/sudosammy/knary/issues/17
-				if stringContains(header, "OPTIONS " ) ||
+				if stringContains(header, "OPTIONS ") ||
 					stringContains(header, "GET ") ||
 					stringContains(header, "HEAD ") ||
 					stringContains(header, "POST ") ||
