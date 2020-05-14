@@ -22,4 +22,8 @@ before_install:
 script:
     - sudo -E env "PATH=$PATH" go test -v ./...
     - sudo -E env "PATH=$PATH" $GOPATH/bin/goveralls -service=travis-ci
+<<<<<<< HEAD
     - sudo -E env "PATH=$PATH" go vet ./...
+=======
+
+>>>>>>> 608c5a3ac369c58a73c14431ff19a9723f36de4d
