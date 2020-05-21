@@ -283,7 +283,7 @@ func HeartBeat(version string, firstrun bool) (bool, error) {
 		beatMsg += `|_____|`
 		beatMsg += "\n\n"
 	} else {
-		beatMsg += "Version: " + version + "\n"
+		beatMsg += "❤️ Heartbeat (v" + version + ") ❤️\n"
 	}
 
 	// print uptime
