@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	VERSION       = "2.2.4"
+	VERSION       = "2.3.0"
 	GITHUB        = "https://github.com/sudosammy/knary"
 	GITHUBVERSION = "https://raw.githubusercontent.com/sudosammy/knary/master/VERSION"
 )
@@ -29,14 +29,15 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// run maintenance tasks every day
+	// run maintenance tasks
 	// https://stackoverflow.com/questions/16466320/is-there-a-way-to-do-repetitive-tasks-at-intervals-in-golang
-	ticker := time.NewTicker(24 * time.Hour)
+	dailyTicker := time.NewTicker(24 * time.Hour)
+	weeklyTicker := time.NewTicker(24 * 7 * time.Hour)
 	quit := make(chan struct{})
 	go func() {
 		for {
 			select {
-			case <-ticker.C:
+			case <-dailyTicker.C:
 				libknary.CheckUpdate(VERSION, GITHUBVERSION, GITHUB) // check for updates
 				if os.Getenv("BLACKLIST_ALERTING") == "" || os.Getenv("BLACKLIST_ALERTING") == "true" {
 					libknary.CheckLastHit() // flag any old blacklist items
@@ -45,8 +46,11 @@ func main() {
 					libknary.CheckTLSExpiry(os.Getenv("CANARY_DOMAIN"), nil) // check certificate expiry
 				}
 				go libknary.UsageStats(VERSION) // log usage
+			case <-weeklyTicker.C:
+				libknary.HeartBeat(VERSION, false)
 			case <-quit:
-				ticker.Stop()
+				dailyTicker.Stop()
+				weeklyTicker.Stop()
 				return
 			}
 		}
@@ -121,6 +125,8 @@ func main() {
 
 	// check for updates on first run
 	libknary.CheckUpdate(VERSION, GITHUBVERSION, GITHUB)
+	// submit heartbeat
+	libknary.HeartBeat(VERSION, true)
 
 	// setup waitgroups for DNS/HTTP go routines
 	var wg sync.WaitGroup // there isn't actually any clean exit option, so we can just wait forever

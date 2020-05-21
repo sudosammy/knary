@@ -76,6 +76,7 @@ type blacklist struct {
 }
 
 var blacklistMap = map[int]blacklist{}
+var blacklistCount = 0
 
 func LoadBlacklist() (bool, error) {
 	// load blacklist file into struct on startup
@@ -92,14 +93,14 @@ func LoadBlacklist() (bool, error) {
 	}
 
 	scanner := bufio.NewScanner(blklist)
-	count := 0
+	//count := 0
 	for scanner.Scan() { // foreach blacklist item
-		blacklistMap[count] = blacklist{scanner.Text(), time.Now()} // add to struct
-		count++
+		blacklistMap[blacklistCount] = blacklist{scanner.Text(), time.Now()} // add to struct
+		blacklistCount++
 	}
 
-	Printy("Monitoring "+strconv.Itoa(count)+" items in blacklist", 1)
-	logger("INFO", "Monitoring "+strconv.Itoa(count)+" items in blacklist")
+	Printy("Monitoring "+strconv.Itoa(blacklistCount)+" items in blacklist", 1)
+	logger("INFO", "Monitoring "+strconv.Itoa(blacklistCount)+" items in blacklist")
 	return true, nil
 }
 
@@ -267,5 +268,51 @@ func CheckTLSExpiry(domain string, config *tls.Config) (bool, error) {
 		return false, nil
 	}
 
+	return true, nil
+}
+
+func HeartBeat(version string, firstrun bool) (bool, error) {
+	// runs weekly (and on launch) to let people know we're alive (and show them the blacklist)
+	beatMsg := "```"
+	if firstrun {
+		beatMsg += ` __                           
+|  |--.-----.---.-.----.--.--.
+|    <|     |  _  |   _|  |  |
+|__|__|__|__|___._|__| |___  |` + "\n"
+		beatMsg += ` @sudosammy     v` + version + ` `
+		beatMsg += `|_____|`
+		beatMsg += "\n\n"
+	} else {
+		beatMsg += "Version: " + version + "\n"
+	}
+
+	// print uptime
+	if day == 1 {
+		beatMsg += "Uptime: " + strconv.Itoa(day) + " day\n\n"
+	} else {
+		beatMsg += "Uptime: " + strconv.Itoa(day) + " days\n\n"
+	}
+
+	// print blacklisted items
+	beatMsg += strconv.Itoa(blacklistCount) + " blacklisted domains: \n"
+	beatMsg += "------------------------\n"
+	for i := range blacklistMap { // foreach blacklist item
+		beatMsg += strings.ToLower(blacklistMap[i].domain) + "\n"
+	}
+	beatMsg += "------------------------\n\n"
+
+	// print usage domains
+	if os.Getenv("HTTP") == "true" {
+		beatMsg += "Listening for http(s)://*." + os.Getenv("CANARY_DOMAIN") + " requests\n"
+	}
+	if os.Getenv("DNS") == "true" {
+		beatMsg += "Listening for *.dns." + os.Getenv("CANARY_DOMAIN") + " DNS requests\n"
+	}
+	if os.Getenv("BURP") == "true" {
+		beatMsg += "Working in collaborator compatibility mode on domain *." + os.Getenv("BURP_DOMAIN") + "\n"
+	}
+	beatMsg += "```"
+
+	go sendMsg(beatMsg)
 	return true, nil
 }
