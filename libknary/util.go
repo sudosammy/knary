@@ -121,7 +121,7 @@ func CheckLastHit() { // this runs once a day
 func inBlacklist(needles ...string) bool {
 	for _, needle := range needles {
 		for i := range blacklistMap { // foreach blacklist item
-			if strings.Contains(needle, blacklistMap[i].domain) && !strings.Contains(needle, "."+blacklistMap[i].domain) {
+			if stringContains(needle, blacklistMap[i].domain) && !stringContains(needle, "."+blacklistMap[i].domain) {
 				// matches blacklist.domain or 1.1.1.1 but not x.blacklist.domain
 				updBL := blacklistMap[i]
 				updBL.lastHit = time.Now() // update last hit

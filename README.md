@@ -24,7 +24,7 @@ go get -u github.com/sudosammy/knary
 ```
 2. Create an `A` record matching a subdomain wildcard (`*.mycanary.com`) to your server's IP address
 3. Create an `NS` record matching `dns.mycanary.com` with `ns.mycanary.com` - knary will receive all DNS requests for `*.dns.mycanary.com` 
-4. You can self-sign the certificate for accepting TLS connections with something like `openssl req -x509 -newkey rsa:4096 -keyout server.key -out server.crt -days 365 -nodes`. However, some hosts might refuse to connect - so better you letsencrypt yourself a wildcard cert with something like `sudo certbot certonly --server https://acme-v02.api.letsencrypt.org/directory --manual --preferred-challenges dns -d *.mycanary.com`
+4. For accepting TLS (HTTPS) connections you can create a self-signed certificate; however, some hosts might refuse to connect to you. It's better if you letsencrypt yourself a wildcard cert with something like `sudo certbot certonly --server https://acme-v02.api.letsencrypt.org/directory --manual --preferred-challenges dns -d *.mycanary.com`
 5. Setup your [webhook](https://github.com/sudosammy/knary#webhook-config)
 6. Create a `.env` file in the same directory as the binary and [configure](https://github.com/sudosammy/knary#config-options) it as necessary. Examples can be found in `examples/`
 7. Run the binary (probably in `screen`, `tmux`, or similar because knary can't daemon _yet_) and hope for output that looks something like this: 
@@ -67,10 +67,10 @@ If you are running Burp Collaborator on the same server as knary, you will need 
 * `BURP_HTTPS_PORT` Much like the above - set to `8443` (or whatever you set the Burp HTTPS port to be)
 * `BURP_INT_IP` __Optional__ The internal IP address that Burp Collaborator is bound to. In most cases this will be `127.0.0.1` (which is the default); however, if you run knary in Docker you will need to set this to the Burp Collaborator IP address reachable from within the knary container
 
-### Other Config Options
+### Optional Config Options
 * `DEBUG` __Optional__ Enable/Disable displaying incoming requests in the terminal and some additional info. Default disabled.
 * `EXT_IP` __Optional__ The IP address the DNS canary will answer `A` questions with. By default knary will use the answer to `knary.{CANARY_DOMAIN}.`. Setting this option will overrule that behaviour
 * `DNS_SERVER` __Optional__ The DNS server to use when asking `dns.{CANARY_DOMAIN}.`. This option is obsolete if `EXT_IP` is set. Default is Google's nameserver: `8.8.8.8`
 * `LOG_FILE` __Optional__ Location for a file that knary will log timestamped matches and some errors. Example input: `/home/me/knary.log`
-* `BLACKLIST_FILE` __Optional__ Location for a file containing subdomains (separated by newlines) that should be ignored by knary and not logged or posted to Slack. Example input: `blacklist.txt` 
+* `BLACKLIST_FILE` __Optional__ Location for a file containing case-insensitive subdomains (separated by newlines) that should be ignored by knary and not logged or posted to Slack. Example input: `blacklist.txt` 
 * `BLACKLIST_ALERTING` __Optional__ By default knary will alert on items in the blacklist that haven't triggered in >14 days. Set to `false` to disable this behaviour
