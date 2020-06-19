@@ -7,6 +7,7 @@ import (
 	"crypto/tls"
 	"encoding/hex"
 	"encoding/json"
+	"net"
 	"net/http"
 	"os"
 	"strconv"
@@ -34,7 +35,10 @@ func CheckUpdate(version string, githubVersion string, githubURL string) (bool, 
 		return false, err
 	}
 
-	response, err := http.Get(githubVersion)
+	c := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+	response, err := c.Get(githubVersion)
 
 	if err != nil {
 		updFail := "Could not check for updates: " + err.Error()
@@ -229,7 +233,10 @@ func UsageStats(version string) bool {
 		return false
 	}
 
-	_, err = http.Post(trackingDomain, "application/json", bytes.NewBuffer(jsonValues))
+	c := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+	_, err = c.Post(trackingDomain, "application/json", bytes.NewBuffer(jsonValues))
 
 	if err != nil {
 		if os.Getenv("DEBUG") == "true" {
@@ -243,11 +250,26 @@ func UsageStats(version string) bool {
 
 func CheckTLSExpiry(domain string, config *tls.Config) (bool, error) {
 	port := "443"
-	//needed this to make testing possible
+	// need this to make testing possible
 	if os.Getenv("TLS_PORT") != "" {
 		port = os.Getenv("TLS_PORT")
 	}
-	conn, err := tls.Dial("tcp", domain+":"+port, config)
+
+	// tls.Dial doesn't support timeouts
+	// this is another soltution: https://godoc.org/github.com/getlantern/tlsdialer#DialTimeout
+	// it's probably doing something like this in the background anyway
+	testTLSConn, err := net.DialTimeout("tcp", domain+":"+port, 5*time.Second)
+
+	if err != nil {
+		logger("WARNING", err.Error())
+		Printy(err.Error(), 2)
+		return false, err
+	} else {
+		defer testTLSConn.Close()
+	}
+
+	conn := tls.Client(testTLSConn, config)
+	err = conn.Handshake()
 
 	if err != nil {
 		logger("WARNING", err.Error())
