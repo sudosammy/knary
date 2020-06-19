@@ -7,6 +7,7 @@ import (
 	"crypto/tls"
 	"encoding/hex"
 	"encoding/json"
+	"net"
 	"net/http"
 	"os"
 	"strconv"
@@ -34,7 +35,10 @@ func CheckUpdate(version string, githubVersion string, githubURL string) (bool, 
 		return false, err
 	}
 
-	response, err := http.Get(githubVersion)
+	c := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+	response, err := c.Get(githubVersion)
 
 	if err != nil {
 		updFail := "Could not check for updates: " + err.Error()
@@ -76,6 +80,7 @@ type blacklist struct {
 }
 
 var blacklistMap = map[int]blacklist{}
+var blacklistCount = 0
 
 func LoadBlacklist() (bool, error) {
 	// load blacklist file into struct on startup
@@ -92,14 +97,14 @@ func LoadBlacklist() (bool, error) {
 	}
 
 	scanner := bufio.NewScanner(blklist)
-	count := 0
+	//count := 0
 	for scanner.Scan() { // foreach blacklist item
-		blacklistMap[count] = blacklist{scanner.Text(), time.Now()} // add to struct
-		count++
+		blacklistMap[blacklistCount] = blacklist{scanner.Text(), time.Now()} // add to struct
+		blacklistCount++
 	}
 
-	Printy("Monitoring "+strconv.Itoa(count)+" items in blacklist", 1)
-	logger("INFO", "Monitoring "+strconv.Itoa(count)+" items in blacklist")
+	Printy("Monitoring "+strconv.Itoa(blacklistCount)+" items in blacklist", 1)
+	logger("INFO", "Monitoring "+strconv.Itoa(blacklistCount)+" items in blacklist")
 	return true, nil
 }
 
@@ -228,7 +233,10 @@ func UsageStats(version string) bool {
 		return false
 	}
 
-	_, err = http.Post(trackingDomain, "application/json", bytes.NewBuffer(jsonValues))
+	c := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+	_, err = c.Post(trackingDomain, "application/json", bytes.NewBuffer(jsonValues))
 
 	if err != nil {
 		if os.Getenv("DEBUG") == "true" {
@@ -242,11 +250,26 @@ func UsageStats(version string) bool {
 
 func CheckTLSExpiry(domain string, config *tls.Config) (bool, error) {
 	port := "443"
-	//needed this to make testing possible
+	// need this to make testing possible
 	if os.Getenv("TLS_PORT") != "" {
 		port = os.Getenv("TLS_PORT")
 	}
-	conn, err := tls.Dial("tcp", domain+":"+port, config)
+
+	// tls.Dial doesn't support timeouts
+	// this is another soltution: https://godoc.org/github.com/getlantern/tlsdialer#DialTimeout
+	// it's probably doing something like this in the background anyway
+	testTLSConn, err := net.DialTimeout("tcp", domain+":"+port, 5*time.Second)
+
+	if err != nil {
+		logger("WARNING", err.Error())
+		Printy(err.Error(), 2)
+		return false, err
+	} else {
+		defer testTLSConn.Close()
+	}
+
+	conn := tls.Client(testTLSConn, config)
+	err = conn.Handshake()
 
 	if err != nil {
 		logger("WARNING", err.Error())
@@ -267,5 +290,51 @@ func CheckTLSExpiry(domain string, config *tls.Config) (bool, error) {
 		return false, nil
 	}
 
+	return true, nil
+}
+
+func HeartBeat(version string, firstrun bool) (bool, error) {
+	// runs weekly (and on launch) to let people know we're alive (and show them the blacklist)
+	beatMsg := "```"
+	if firstrun {
+		beatMsg += ` __                           
+|  |--.-----.---.-.----.--.--.
+|    <|     |  _  |   _|  |  |
+|__|__|__|__|___._|__| |___  |` + "\n"
+		beatMsg += ` @sudosammy     v` + version + ` `
+		beatMsg += `|_____|`
+		beatMsg += "\n\n"
+	} else {
+		beatMsg += "❤️ Heartbeat (v" + version + ") ❤️\n"
+	}
+
+	// print uptime
+	if day == 1 {
+		beatMsg += "Uptime: " + strconv.Itoa(day) + " day\n\n"
+	} else {
+		beatMsg += "Uptime: " + strconv.Itoa(day) + " days\n\n"
+	}
+
+	// print blacklisted items
+	beatMsg += strconv.Itoa(blacklistCount) + " blacklisted domains: \n"
+	beatMsg += "------------------------\n"
+	for i := range blacklistMap { // foreach blacklist item
+		beatMsg += strings.ToLower(blacklistMap[i].domain) + "\n"
+	}
+	beatMsg += "------------------------\n\n"
+
+	// print usage domains
+	if os.Getenv("HTTP") == "true" {
+		beatMsg += "Listening for http(s)://*." + os.Getenv("CANARY_DOMAIN") + " requests\n"
+	}
+	if os.Getenv("DNS") == "true" {
+		beatMsg += "Listening for *.dns." + os.Getenv("CANARY_DOMAIN") + " DNS requests\n"
+	}
+	if os.Getenv("BURP") == "true" {
+		beatMsg += "Working in collaborator compatibility mode on domain *." + os.Getenv("BURP_DOMAIN") + "\n"
+	}
+	beatMsg += "```"
+
+	go sendMsg(beatMsg)
 	return true, nil
 }
