@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	VERSION       = "2.3.0"
+	VERSION       = "2.3.1"
 	GITHUB        = "https://github.com/sudosammy/knary"
 	GITHUBVERSION = "https://raw.githubusercontent.com/sudosammy/knary/master/VERSION"
 )
@@ -29,7 +29,7 @@ func main() {
 	}
 
 	// start maintenance timers
-	libknary.StartMaintenance(VERSION, GITHUB, GITHUBVERSION)
+	libknary.StartMaintenance(VERSION, GITHUBVERSION, GITHUB)
 
 	// get IP for knary.mycanary.com to use for DNS answers
 	var EXT_IP string
