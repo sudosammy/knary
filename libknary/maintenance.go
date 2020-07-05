@@ -20,7 +20,7 @@ func dailyTasks(version string, githubVersion string, githubURL string) bool {
 	}
 
 	// log knary usage
-	go UsageStats(version)
+	UsageStats(version)
 
 	return true
 }
@@ -44,5 +44,4 @@ func StartMaintenance(version string, githubVersion string, githubURL string) {
 			}
 		}
 	}()
-	defer close(quit)
 }

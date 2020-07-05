@@ -70,6 +70,10 @@ func CheckUpdate(version string, githubVersion string, githubURL string) (bool, 
 		}
 	}
 
+	logger("INFO", "Checked for updates...")
+	if os.Getenv("DEBUG") == "true" {
+		Printy("Checked for updates", 3)
+	}
 	return false, nil
 }
 
@@ -108,7 +112,7 @@ func LoadBlacklist() (bool, error) {
 	return true, nil
 }
 
-func CheckLastHit() { // this runs once a day
+func CheckLastHit() bool { // this runs once a day
 	if len(blacklistMap) != 0 {
 		// iterate through blacklist and look for items >14 days old
 		for i := range blacklistMap { // foreach blacklist item
@@ -118,9 +122,16 @@ func CheckLastHit() { // this runs once a day
 				go sendMsg(":wrench: Blacklist item `" + blacklistMap[i].domain + "` hasn't had a hit in >14 days. Consider removing it. Configure `BLACKLIST_ALERTING` to supress.")
 				logger("INFO", "Blacklist item: "+blacklistMap[i].domain+" hasn't had a hit in >14 days. Consider removing it.")
 				Printy("Blacklist item: "+blacklistMap[i].domain+" hasn't had a hit in >14 days. Consider removing it.", 1)
+				return false
 			}
 		}
+
+		logger("INFO", "Checked blacklist...")
+		if os.Getenv("DEBUG") == "true" {
+			Printy("Checked for old blacklist items", 3)
+		}
 	}
+	return true
 }
 
 func inBlacklist(needles ...string) bool {
@@ -290,6 +301,11 @@ func CheckTLSExpiry(domain string, config *tls.Config) (bool, error) {
 		return false, nil
 	}
 
+	logger("INFO", "Checked TLS expiry...")
+	if os.Getenv("DEBUG") == "true" {
+		Printy("Checked TLS expiry", 3)
+	}
+
 	return true, nil
 }
 
@@ -336,5 +352,11 @@ func HeartBeat(version string, firstrun bool) (bool, error) {
 	beatMsg += "```"
 
 	go sendMsg(beatMsg)
+
+	logger("INFO", "Sent heartbeat...")
+	if os.Getenv("DEBUG") == "true" {
+		Printy("Sent heartbeat message", 3)
+	}
+
 	return true, nil
 }
