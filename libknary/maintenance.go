@@ -3,6 +3,7 @@ package libknary
 import (
 	"os"
 	"time"
+	"crypto/tls"
 )
 
 func dailyTasks(version string, githubVersion string, githubURL string) bool {
@@ -16,7 +17,12 @@ func dailyTasks(version string, githubVersion string, githubURL string) bool {
 
 	// if HTTP knary is operating, check certificate expiry
 	if os.Getenv("HTTP") == "true" {
-		CheckTLSExpiry(os.Getenv("CANARY_DOMAIN"), nil)
+		// this could be done better
+		// there's probably not a situation where we want to enforce certificate verification
+		conf := &tls.Config {
+			InsecureSkipVerify: true,
+		}
+		CheckTLSExpiry(os.Getenv("CANARY_DOMAIN"), conf)
 	}
 
 	// log knary usage

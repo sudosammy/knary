@@ -112,7 +112,7 @@ func AcceptRequest(ln net.Listener, wg *sync.WaitGroup) {
 	}
 }
 
-func handleRequest(conn net.Conn) {
+func handleRequest(conn net.Conn) bool {
 	// set timeout for reading responses
 	_ = conn.SetDeadline(time.Now().Add(time.Second * time.Duration(2))) // 2 seconds
 
@@ -122,6 +122,7 @@ func handleRequest(conn net.Conn) {
 
 	if err != nil {
 		Printy(err.Error(), 2)
+		return false
 	}
 
 	response := string(buf[:recBytes])
@@ -211,4 +212,5 @@ func handleRequest(conn net.Conn) {
 
 	conn.Write([]byte(" ")) // necessary as a 0 byte response triggers some clients to resend the request
 	conn.Close()            // v. important lol
+	return true
 }
