@@ -109,19 +109,29 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 
 				reverse, _ := dns.ReverseAddr(ipaddrNoPort)
 
+				var msg string
+				if os.Getenv("LARK_WEBHOOK") == "" {
+					msg += "```"
+				}
+
+				msg += fmt.Sprintf("DNS: %s\nFrom: %s", q.Name, ipaddr)
+
 				if reverse == "" {
-					go sendMsg("DNS: " + q.Name +
-						"```" +
-						"From: " + ipaddr +
-						"```")
+					if os.Getenv("LARK_WEBHOOK") == "" {
+						msg += "```"
+					}
+
+					go sendMsg(msg)
 					logger("INFO", ipaddr+" - "+q.Name)
 
 				} else {
-					go sendMsg("DNS: " + q.Name +
-						"```" +
-						"From: " + ipaddr + "\n" +
-						"PTR: " + reverse +
-						"```")
+					msg += fmt.Sprintf("\nPTR: %s", reverse)
+
+					if os.Getenv("LARK_WEBHOOK") == "" {
+						msg += "```"
+					}
+
+					go sendMsg(msg)
 					logger("INFO", ipaddr+" - "+reverse+" - "+q.Name)
 				}
 			}
