@@ -196,11 +196,12 @@ func handleRequest(conn net.Conn) bool {
 
 			if !inBlacklist(host, conn.RemoteAddr().String(), fwd) {
 				var msg string
+				msg = fmt.Sprintf("%s\n", host)
 
 				if os.Getenv("LARK_WEBHOOK") == "" {
 					msg = "```"
 				}
-				msg += fmt.Sprintf("%s\nQuery: %s\n%s\nFrom: %s", host, query, userAgent, conn.RemoteAddr().String())
+				msg += fmt.Sprintf("Query: %s\n%s\nFrom: %s", host, query, userAgent, conn.RemoteAddr().String())
 
 				if fwd != "" {
 					msg += "\nX-Forwarded-For: " + fwd
