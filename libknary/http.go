@@ -201,7 +201,7 @@ func handleRequest(conn net.Conn) bool {
 				if os.Getenv("LARK_WEBHOOK") == "" {
 					msg = "```"
 				}
-				msg += fmt.Sprintf("Query: %s\n%s\nFrom: %s", host, query, userAgent, conn.RemoteAddr().String())
+				msg += fmt.Sprintf("Query: %s\n%s\nFrom: %s", query, userAgent, conn.RemoteAddr().String())
 
 				if fwd != "" {
 					msg += "\nX-Forwarded-For: " + fwd
