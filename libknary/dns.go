@@ -110,11 +110,13 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 				reverse, _ := dns.ReverseAddr(ipaddrNoPort)
 
 				var msg string
+				msg = fmt.Sprintf("DNS: %s\n", q.Name)
+
 				if os.Getenv("LARK_WEBHOOK") == "" {
 					msg += "```"
 				}
 
-				msg += fmt.Sprintf("DNS: %s\nFrom: %s", q.Name, ipaddr)
+				msg += fmt.Sprintf("From: %s", ipaddr)
 
 				if reverse == "" {
 					if os.Getenv("LARK_WEBHOOK") == "" {
