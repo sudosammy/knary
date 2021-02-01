@@ -14,8 +14,6 @@ func sendMsg(msg string) {
 	// closes https://github.com/sudosammy/knary/issues/20
 	re := regexp.MustCompile(`\r?\n`)
 	msg = re.ReplaceAllString(msg, "\\n")
-	re = regexp.MustCompile("```\\n?")
-	msg = re.ReplaceAllString(msg, "")
 
 	if os.Getenv("SLACK_WEBHOOK") != "" {
 		jsonMsg := []byte(`{"username":"knary","icon_emoji":":bird:","text":"` + msg + `"}`)
@@ -36,6 +34,9 @@ func sendMsg(msg string) {
 	}
 
 	if os.Getenv("LARK_WEBHOOK") != "" {
+		re = regexp.MustCompile("```\\n?")
+		msg = re.ReplaceAllString(msg, "")
+
 		jsonMsg := []byte("{\n")
 
 		if larkSecret := os.Getenv("LARK_SECRET"); larkSecret != "" {
