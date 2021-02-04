@@ -4,7 +4,7 @@
 
 >Like "Canary" but more hipster, which means better 😎😎😎
 
-knary is a canary token server that notifies a Slack/Discord/Teams channel (or other webhook) when incoming HTTP(S) or DNS requests match a given domain or any of its subdomains. It also supports functionality useful in offensive engagements including subdomain blacklisting.
+knary is a canary token server that notifies a Slack/Discord/Teams/Lark channel (or other webhook) when incoming HTTP(S) or DNS requests match a given domain or any of its subdomains. It also supports functionality useful in offensive engagements including subdomain blacklisting.
 
 ![knary canary-ing](https://github.com/sudosammy/knary/raw/master/screenshots/canary.gif "knary canary-ing")
 
@@ -52,6 +52,8 @@ Example config files can be found in `examples/`
 * `TLS_*` (CRT/KEY) The location of your certificate and private key necessary for accepting TLS (https) requests
 
 ### Webhook Config
+* `LARK_WEBHOOK` __Optional__ The full URL of the [webhook](https://www.feishu.cn/hc/en-US/articles/360024984973-Bot-Use-bots-in-groups) for the Lark/Feishu bot you want knary to notify
+* `LARK_SECRET` __Optional__ The [secret token](https://www.feishu.cn/hc/en-US/articles/360024984973-Bot-Use-bots-in-groups) used to sign messages to your Lark/Feishu bot
 * `SLACK_WEBHOOK` __Optional__ The full URL of the [incoming webhook](https://api.slack.com/custom-integrations/incoming-webhooks) for the Slack channel you want knary to notify
 * `DISCORD_WEBHOOK` __Optional__ The full URL of the [Discord webhook](https://discordapp.com/developers/docs/resources/webhook) for the Discord channel you want knary to notify
 * `TEAMS_WEBHOOK` __Optional__ The full URL of the [Microsoft Teams webhook](https://docs.microsoft.com/en-us/microsoftteams/platform/concepts/connectors/connectors-using#setting-up-a-custom-incoming-webhook) for the Teams channel you want knary to notify
