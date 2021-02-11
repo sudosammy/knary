@@ -3,10 +3,13 @@ package libknary
 import (
 	"bufio"
 	"bytes"
+	"crypto/hmac"
 	"crypto/sha256"
 	"crypto/tls"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"net"
 	"net/http"
 	"os"
@@ -359,4 +362,20 @@ func HeartBeat(version string, firstrun bool) (bool, error) {
 	}
 
 	return true, nil
+}
+
+// https://www.feishu.cn/hc/en-US/articles/360024984973-Bot-Use-bots-in-groups
+func SignLark(secret string, timestamp int64) (string, error) {
+	//timestamp + key as sha256, then base64 encode
+	stringToSign := fmt.Sprintf("%v", timestamp) + "\n" + secret
+
+	var data []byte
+	h := hmac.New(sha256.New, []byte(stringToSign))
+	_, err := h.Write(data)
+	if err != nil {
+		return "", err
+	}
+
+	signature := base64.StdEncoding.EncodeToString(h.Sum(nil))
+	return signature, nil
 }
