@@ -4,7 +4,7 @@
 
 >Like "Canary" but more hipster, which means better 😎😎😎
 
-knary is a canary token server that notifies a Slack/Discord/Teams channel (or other webhook) when incoming HTTP(S) or DNS requests match a given domain or any of its subdomains. It also supports functionality useful in offensive engagements including subdomain blacklisting.
+knary is a canary token server that notifies a Slack/Discord/Teams/Lark channel (or other webhook) when incoming HTTP(S) or DNS requests match a given domain or any of its subdomains. It also supports functionality useful in offensive engagements including subdomain blacklisting.
 
 ![knary canary-ing](https://github.com/sudosammy/knary/raw/master/screenshots/canary.gif "knary canary-ing")
 
@@ -57,6 +57,8 @@ Example config files can be found in `examples/`
 * `TEAMS_WEBHOOK` __Optional__ The full URL of the [Microsoft Teams webhook](https://docs.microsoft.com/en-us/microsoftteams/platform/concepts/connectors/connectors-using#setting-up-a-custom-incoming-webhook) for the Teams channel you want knary to notify
 * `PUSHOVER_TOKEN` __Optional__ The application token for the [Pushover Application](https://pushover.net/) you want knary to notify
 * `PUSHOVER_USER` __Optional__ The user token of the Pushover user you want knary to nofify
+* `LARK_WEBHOOK` __Optional__ The full URL of the [webhook](https://www.feishu.cn/hc/en-US/articles/360024984973-Bot-Use-bots-in-groups) for the Lark/Feishu bot you want knary to notify
+* `LARK_SECRET` __Optional__ The [secret token](https://www.feishu.cn/hc/en-US/articles/360024984973-Bot-Use-bots-in-groups) used to sign messages to your Lark/Feishu bot
 
 ### Burp Collaborator Config
 If you are running Burp Collaborator on the same server as knary, you will need to configure the following.
