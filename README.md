@@ -52,13 +52,13 @@ Example config files can be found in `examples/`
 * `TLS_*` (CRT/KEY) The location of your certificate and private key necessary for accepting TLS (https) requests
 
 ### Webhook Config
-* `LARK_WEBHOOK` __Optional__ The full URL of the [webhook](https://www.feishu.cn/hc/en-US/articles/360024984973-Bot-Use-bots-in-groups) for the Lark/Feishu bot you want knary to notify
-* `LARK_SECRET` __Optional__ The [secret token](https://www.feishu.cn/hc/en-US/articles/360024984973-Bot-Use-bots-in-groups) used to sign messages to your Lark/Feishu bot
 * `SLACK_WEBHOOK` __Optional__ The full URL of the [incoming webhook](https://api.slack.com/custom-integrations/incoming-webhooks) for the Slack channel you want knary to notify
 * `DISCORD_WEBHOOK` __Optional__ The full URL of the [Discord webhook](https://discordapp.com/developers/docs/resources/webhook) for the Discord channel you want knary to notify
 * `TEAMS_WEBHOOK` __Optional__ The full URL of the [Microsoft Teams webhook](https://docs.microsoft.com/en-us/microsoftteams/platform/concepts/connectors/connectors-using#setting-up-a-custom-incoming-webhook) for the Teams channel you want knary to notify
 * `PUSHOVER_TOKEN` __Optional__ The application token for the [Pushover Application](https://pushover.net/) you want knary to notify
 * `PUSHOVER_USER` __Optional__ The user token of the Pushover user you want knary to nofify
+* `LARK_WEBHOOK` __Optional__ The full URL of the [webhook](https://www.feishu.cn/hc/en-US/articles/360024984973-Bot-Use-bots-in-groups) for the Lark/Feishu bot you want knary to notify
+* `LARK_SECRET` __Optional__ The [secret token](https://www.feishu.cn/hc/en-US/articles/360024984973-Bot-Use-bots-in-groups) used to sign messages to your Lark/Feishu bot
 
 ### Burp Collaborator Config
 If you are running Burp Collaborator on the same server as knary, you will need to configure the following.
