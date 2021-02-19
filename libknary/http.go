@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -195,11 +196,19 @@ func handleRequest(conn net.Conn) bool {
 			}
 
 			if !inBlacklist(host, conn.RemoteAddr().String(), fwd) {
-				msg := fmt.Sprintf("%s\n```Query: %s\n%s\nFrom: %s", host, query, userAgent, conn.RemoteAddr().String())
+
+				msg := fmt.Sprintf("Query: %s\n%s\nFrom: %s", query, userAgent, conn.RemoteAddr().String())
+
+				re := regexp.MustCompile("```")
+				msg = re.ReplaceAllString(msg, "")
+
 				if fwd != "" {
 					msg += "\nX-Forwarded-For: " + fwd
 				}
-				go sendMsg(msg + "```")
+
+				host = re.ReplaceAllString(host, "")
+
+				go sendMsg(fmt.Sprintf("%s\n```", host) + msg + "```")
 
 				if fwd != "" {
 					logger("INFO", fwd+" - "+host)

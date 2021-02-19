@@ -2,6 +2,7 @@ package libknary
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -10,14 +11,24 @@ import (
 	"time"
 )
 
+type slackRequest struct {
+	Username  string `json:"username"`
+	IconEmoji string `json:"icon_emoji"`
+	Message   string `json:"text"`
+}
+
 func sendMsg(msg string) {
 	// closes https://github.com/sudosammy/knary/issues/20
 	re := regexp.MustCompile(`\r?\n`)
 	msg = re.ReplaceAllString(msg, "\\n")
 
 	if os.Getenv("SLACK_WEBHOOK") != "" {
-		jsonMsg := []byte(`{"username":"knary","icon_emoji":":bird:","text":"` + msg + `"}`)
-		_, err := http.Post(os.Getenv("SLACK_WEBHOOK"), "application/json", bytes.NewBuffer(jsonMsg))
+		jsonMsg, err := json.Marshal(&slackRequest{Username: "knary", IconEmoji: ":bird:", Message: msg})
+
+		re = regexp.MustCompile(`\\\\n`)
+		jsonMsg = []byte(re.ReplaceAllString(string(jsonMsg), `\n`))
+
+		_, err = http.Post(os.Getenv("SLACK_WEBHOOK"), "application/json", bytes.NewBuffer(jsonMsg))
 
 		if err != nil {
 			Printy(err.Error(), 2)
