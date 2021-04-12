@@ -31,7 +31,7 @@ func main() {
 	// start maintenance timers
 	libknary.StartMaintenance(VERSION, GITHUBVERSION, GITHUB)
 
-	// get IP for knary.mycanary.com to use for DNS answers
+	// get IP for knary.knary.tld to use for DNS answers
 	var EXT_IP string
 	if os.Getenv("EXT_IP") == "" {
 		res, err := libknary.PerformALookup("knary." + os.Getenv("CANARY_DOMAIN"))
@@ -48,6 +48,8 @@ func main() {
 		}
 
 		EXT_IP = res
+	} else {
+		EXT_IP = os.Getenv("EXT_IP")
 	}
 
 	// yo yo yo we doing a thing bb

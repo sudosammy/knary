@@ -189,7 +189,7 @@ func LoadZone() (bool, error) {
 func inZone(needle string) string {
 	//needleNoDot := needle[:len(needle)-1]
 	for i := range zoneMap { // foreach zone item
-		if strings.HasPrefix(zoneMap[i], needle) && !strings.HasPrefix(zoneMap[i], "."+needle) {
+		if stringContains(zoneMap[i], needle) && !stringContains(zoneMap[i], "."+needle) {
 			// matches
 			if os.Getenv("DEBUG") == "true" {
 				Printy(needle+" found in zone file", 3)

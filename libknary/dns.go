@@ -96,6 +96,19 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 					continue
 				}
 			}
+
+			/*
+			As of version 2.4.0 we are always the authorative nameserver for our knary.
+			Therefore, at this part of the code, all *.knary.tld "A" questions are here.
+			To avoid changing the way knary alerts webhooks <2.4.0 we will respond with our IP address.
+			This results in a wildcard DNS record for *.knary.tld but to only alert on *.dns.knary.tld.
+			*/
+			if !strings.HasSuffix(strings.ToLower(q.Name), strings.ToLower(".dns."+os.Getenv("CANARY_DOMAIN")+".")) {
+				rr, _ := dns.NewRR(fmt.Sprintf("%s IN 60 A %s", q.Name, EXT_IP))
+				m.Answer = append(m.Answer, rr)
+				return
+			}
+
 			if os.Getenv("DEBUG") == "true" {
 				Printy("DNS question for: "+q.Name, 3)
 			}
@@ -126,23 +139,12 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 				}
 			}
 
-			// if EXT_IP is set, it overrules the A lookup
-			if os.Getenv("EXT_IP") == "" {
-				if os.Getenv("DEBUG") == "true" {
-					Printy("Responding with: "+EXT_IP, 3)
-				}
-
-				rr, _ := dns.NewRR(fmt.Sprintf("%s IN 60 A %s", q.Name, EXT_IP))
-				m.Answer = append(m.Answer, rr)
-
-			} else {
-				if os.Getenv("DEBUG") == "true" {
-					Printy("Responding with: "+os.Getenv("EXT_IP"), 3)
-				}
-
-				rr, _ := dns.NewRR(fmt.Sprintf("%s IN 60 A %s", q.Name, os.Getenv("EXT_IP")))
-				m.Answer = append(m.Answer, rr)
+			if os.Getenv("DEBUG") == "true" {
+				Printy("Responding with: "+EXT_IP, 3)
 			}
+
+			rr, _ := dns.NewRR(fmt.Sprintf("%s IN 60 A %s", q.Name, EXT_IP))
+			m.Answer = append(m.Answer, rr)
 		}
 
 		// catch TXT lookups because this might be certbot
