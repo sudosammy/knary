@@ -3,6 +3,7 @@
 dev
 knary.log
 blacklist.txt
+zone.txt
 knary.exe
 certs/*.crt
 certs/*.key

@@ -104,7 +104,7 @@ func LoadBlacklist() (bool, error) {
 	}
 
 	scanner := bufio.NewScanner(blklist)
-	//count := 0
+
 	for scanner.Scan() { // foreach blacklist item
 		blacklistMap[blacklistCount] = blacklist{scanner.Text(), time.Now()} // add to struct
 		blacklistCount++
@@ -154,6 +154,50 @@ func inBlacklist(needles ...string) bool {
 		}
 	}
 	return false
+}
+
+// map for zone
+var zoneMap = map[int]string{}
+var zoneCount = 0
+
+func LoadZone() (bool, error) {
+	// load zone file into struct on startup
+	if _, err := os.Stat(os.Getenv("ZONE_FILE")); os.IsNotExist(err) {
+		return false, err
+	}
+
+	zlist, err := os.Open(os.Getenv("ZONE_FILE"))
+	defer zlist.Close()
+
+	if err != nil {
+		Printy(err.Error()+" - ignoring", 3)
+		return false, err
+	}
+
+	scanner := bufio.NewScanner(zlist)
+
+	for scanner.Scan() { // foreach zone item
+		zoneMap[zoneCount] = scanner.Text() // add to struct
+		zoneCount++
+	}
+
+	Printy("Monitoring "+strconv.Itoa(zoneCount)+" items in zone", 1)
+	logger("INFO", "Monitoring "+strconv.Itoa(zoneCount)+" items in zone")
+	return true, nil
+}
+
+func inZone(needle string) string {
+	//needleNoDot := needle[:len(needle)-1]
+	for i := range zoneMap { // foreach zone item
+		if strings.HasPrefix(zoneMap[i], needle) && !strings.HasPrefix(zoneMap[i], "."+needle) {
+			// matches
+			if os.Getenv("DEBUG") == "true" {
+				Printy(needle+" found in zone file", 3)
+			}
+			return zoneMap[i]
+		}
+	}
+	return ""
 }
 
 /*

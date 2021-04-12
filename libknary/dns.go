@@ -144,6 +144,29 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 				m.Answer = append(m.Answer, rr)
 			}
 		}
+
+		// catch TXT lookups because this might be certbot
+		if q.Qtype == dns.TypeTXT {
+			if os.Getenv("DEBUG") == "true" {
+				Printy("TXT DNS question for: "+q.Name, 3)
+			}
+
+			// search our zone file for a response
+			zoneResponse := inZone(q.Name[:len(q.Name)-1])
+
+			if (zoneResponse != "") {
+				// respond
+				rr, _ := dns.NewRR(fmt.Sprintf("%s", zoneResponse))
+				m.Answer = append(m.Answer, rr)
+
+			} else {
+				if os.Getenv("DEBUG") == "true" {
+					Printy("No response for that TXT question", 3)
+				}
+			}
+			// assuming it was certbot
+			//logger("INFO", "A TXT request was made a for: "+q.Name+". We responded with: "+m.Answer)
+		}
 	}
 }
 

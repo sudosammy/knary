@@ -62,8 +62,9 @@ func main() {
 	red.Println(`|_____|`)
 	fmt.Println()
 
-	// load blacklist file & submit usage
+	// load blacklist file, zone file & submit usage
 	libknary.LoadBlacklist()
+	libknary.LoadZone()
 	go libknary.UsageStats(VERSION)
 
 	if os.Getenv("HTTP") == "true" {
