@@ -1,6 +1,7 @@
 package libknary
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -86,8 +87,6 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 
 			rr, _ := dns.NewRR(fmt.Sprintf("%s IN NS %s", q.Name, "ns."+os.Getenv("CANARY_DOMAIN")))
 			m.Answer = append(m.Answer, rr)
-			rr2, _ := dns.NewRR(fmt.Sprintf("%s IN SOA %s %s (%s)", q.Name, "ns."+os.Getenv("CANARY_DOMAIN"), "admin."+os.Getenv("CANARY_DOMAIN"), "2020080302 7200 3600 604800 300"))
-			m.Answer = append(m.Answer, rr2)
 		}
 
 		// we only care about A questions
@@ -121,10 +120,10 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 			}
 
 			/*
-			As of version 3.2.0 we are always the authorative nameserver for our knary.
-			Therefore, at this part of the code, all *.knary.tld "A" questions are here.
-			To avoid changing the way knary alerts webhooks <2.4.0 we will respond with our IP address.
-			This results in a wildcard DNS record for *.knary.tld but to only alert on *.dns.knary.tld.
+				As of version 3.2.0 we are the authorative nameserver for our knary.
+				Therefore, at this part of the code, all *.knary.tld "A" questions are here.
+				To avoid changing the way knary alerts webhooks <3.2.0 we will respond with our IP address.
+				This results in a wildcard DNS record for *.knary.tld but to only alert on *.dns.knary.tld.
 			*/
 			if !strings.HasSuffix(strings.ToLower(q.Name), strings.ToLower(".dns."+os.Getenv("CANARY_DOMAIN")+".")) {
 				rr, _ := dns.NewRR(fmt.Sprintf("%s IN 60 A %s", q.Name, EXT_IP))
@@ -179,7 +178,7 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 			// search our zone file for a response
 			zoneResponse := inZone(q.Name[:len(q.Name)-1])
 
-			if (zoneResponse != "") {
+			if zoneResponse != "" {
 				// respond
 				rr, _ := dns.NewRR(fmt.Sprintf("%s", zoneResponse))
 				m.Answer = append(m.Answer, rr)
@@ -195,36 +194,67 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 	}
 }
 
-func PerformALookup(domain string) (string, error) {
-	// perform an A lookup on the canary domain and use that for our reply
+func queryDNS(domain string, reqtype string, ns string) (string, error) {
+	// Only supports A and NS records for now
 	kMsg := new(dns.Msg)
-	kMsg.SetQuestion(dns.Fqdn(domain), dns.TypeA)
 
-	// query dns server for dns.mycanary.com.
-	var nameServ string
-	if os.Getenv("DNS_SERVER") == "" {
-		nameServ = "8.8.8.8"
-	} else {
-		nameServ = os.Getenv("DNS_SERVER")
+	switch reqtype {
+	case "A":
+		kMsg.SetQuestion(dns.Fqdn(domain), dns.TypeA)
+
+	case "NS":
+		kMsg.SetQuestion(dns.Fqdn(domain), dns.TypeNS)
 	}
 
-	answ, _, err := new(dns.Client).Exchange(kMsg, nameServ+":53")
+	answ, _, err := new(dns.Client).Exchange(kMsg, ns+":53")
 
 	if err != nil {
 		return "", err
 	}
 
-	if len(answ.Answer) == 0 {
-		return "", nil
+	switch reqtype {
+	case "A":
+		if len(answ.Answer) == 0 {
+			return "", errors.New("No response for A query: " + domain)
+		}
+
+		if t, ok := answ.Answer[0].(*dns.A); ok {
+			return t.A.String(), nil
+		}
+
+	case "NS":
+		if len(answ.Ns) == 0 {
+			return "", errors.New("No response for NS query: " + domain)
+		}
+
+		if t, ok := answ.Ns[0].(*dns.NS); ok {
+			return t.Ns, nil
+		}
 	}
 
-	// https://stackoverflow.com/questions/38625233/what-does-key-ok-k-dns-a-mean-in-go
-	if t, ok := answ.Answer[0].(*dns.A); ok {
-		if os.Getenv("DEBUG") == "true" {
-			Printy("Answering DNS requests with: "+t.A.String(), 3)
-		}
+	return "", errors.New("Not an A or NS lookup")
+}
+
+func GuessIP(domain string) (string, error) {
+	// query a root name server for the nameserver for our tld
+	tldDNS, err := queryDNS(domain, "NS", "198.41.0.4")
+
+	if err != nil {
+		return "", err
+	}
+
+	// query the tld's nameserver for our knary domain and extract the glue record from additional information
+	kMsg := new(dns.Msg)
+	kMsg.SetQuestion(dns.Fqdn(domain), dns.TypeNS)
+	answ, _, err := new(dns.Client).Exchange(kMsg, tldDNS+":53")
+
+	if len(answ.Extra) == 0 {
+		return "", errors.New("No 'Additional' section in NS lookup for: " + domain + " with nameserver: " + tldDNS + " Have you configured a glue record for your domain? You can set EXT_IP to bypass this but... do you know what you're doing?")
+	}
+
+	if t, ok := answ.Extra[0].(*dns.A); ok {
 		return t.A.String(), nil
 	}
 
-	return "", nil
+	return "", errors.New("Couldn't find glue record for " + os.Getenv("CANARY_DOMAIN") + ". You can set EXT_IP to bypass this but... do you know what you're doing?")
 }

@@ -22,8 +22,8 @@ const (
 func main() {
 	// load enviro variables
 	err := godotenv.Load()
-
-	if err != nil {
+	if os.Getenv("CANARY_DOMAIN") == "" {
+		libknary.Printy("Required environment variables not found. Check location of .env file and/or running user's environment", 2)
 		libknary.GiveHead(2)
 		log.Fatal(err)
 	}
@@ -31,10 +31,11 @@ func main() {
 	// start maintenance timers
 	libknary.StartMaintenance(VERSION, GITHUBVERSION, GITHUB)
 
-	// get IP for knary.knary.tld to use for DNS answers
+	// get the glue record of knary to use in our responses
 	var EXT_IP string
 	if os.Getenv("EXT_IP") == "" {
-		res, err := libknary.PerformALookup("knary." + os.Getenv("CANARY_DOMAIN"))
+		// try to guess the glue record
+		res, err := libknary.GuessIP(os.Getenv("CANARY_DOMAIN"))
 
 		if err != nil {
 			libknary.Printy("Are you sure your DNS is configured correctly?", 2)
@@ -42,9 +43,8 @@ func main() {
 			log.Fatal(err)
 		}
 
-		if res == "" {
-			libknary.GiveHead(2)
-			log.Fatal("Couldn't find IP address for knary." + os.Getenv("CANARY_DOMAIN") + ". Consider setting EXT_IP")
+		if os.Getenv("DEBUG") == "true" {
+			libknary.Printy("Found glue record! We will answer DNS requests with: "+res, 3)
 		}
 
 		EXT_IP = res
