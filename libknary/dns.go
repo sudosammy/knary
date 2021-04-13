@@ -67,6 +67,27 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 	// for each DNS question to our nameserver
 	// there can be multiple questions in the question section of a single request
 	for _, q := range m.Question {
+
+		switch q.Qtype {
+		case dns.TypeA:
+			Printy("Got A question", 3)
+
+		case dns.TypeTXT:
+			Printy("Got TXT question", 3)
+
+		case dns.TypeSOA:
+			Printy("Got SOA question", 3)
+
+			rr, _ := dns.NewRR(fmt.Sprintf("%s IN SOA %s %s (%s)", q.Name, "ns."+q.Name, q.Name, "2021012001 86400 7200 604800 300"))
+			m.Answer = append(m.Answer, rr)
+
+		case dns.TypeNS:
+			Printy("Got NS question", 3)
+
+			rr, _ := dns.NewRR(fmt.Sprintf("%s IN NS %s", q.Name, "ns."+q.Name))
+			m.Answer = append(m.Answer, rr)
+		}
+
 		// we only care about A questions
 		if q.Qtype == dns.TypeA {
 			//if we're in burp mode, we don't care about requests to the burp domain (and want to send them to the burp collab listener)
