@@ -84,8 +84,10 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 		case dns.TypeNS:
 			Printy("Got NS question", 3)
 
-			rr, _ := dns.NewRR(fmt.Sprintf("%s IN NS %s", q.Name, "ns."+q.Name))
+			rr, _ := dns.NewRR(fmt.Sprintf("%s IN NS %s", q.Name, "ns."+os.Getenv("CANARY_DOMAIN")))
 			m.Answer = append(m.Answer, rr)
+			rr2, _ := dns.NewRR(fmt.Sprintf("%s IN SOA %s %s (%s)", q.Name, "ns."+os.Getenv("CANARY_DOMAIN"), "admin."+os.Getenv("CANARY_DOMAIN"), "2020080302 7200 3600 604800 300"))
+			m.Answer = append(m.Answer, rr2)
 		}
 
 		// we only care about A questions
