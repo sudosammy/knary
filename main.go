@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	VERSION       = "2.3.3"
+	VERSION       = "3.3.0"
 	GITHUB        = "https://github.com/sudosammy/knary"
 	GITHUBVERSION = "https://raw.githubusercontent.com/sudosammy/knary/master/VERSION"
 )
@@ -98,6 +98,9 @@ func main() {
 	}
 	if os.Getenv("TEAMS_WEBHOOK") != "" {
 		libknary.Printy("Posting to webhook: "+os.Getenv("TEAMS_WEBHOOK"), 1)
+	}
+	if os.Getenv("LARK_WEBHOOK") != "" {
+		libknary.Printy("Posting to webhook: "+os.Getenv("LARK_WEBHOOK"), 1)
 	}
 
 	// these go after all the screen prining for neatness

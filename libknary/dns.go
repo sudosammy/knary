@@ -98,7 +98,7 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 			}
 
 			/*
-			As of version 2.4.0 we are always the authorative nameserver for our knary.
+			As of version 3.2.0 we are always the authorative nameserver for our knary.
 			Therefore, at this part of the code, all *.knary.tld "A" questions are here.
 			To avoid changing the way knary alerts webhooks <2.4.0 we will respond with our IP address.
 			This results in a wildcard DNS record for *.knary.tld but to only alert on *.dns.knary.tld.

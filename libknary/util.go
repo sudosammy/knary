@@ -17,7 +17,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 )
 
 func stringContains(stringA string, stringB string) bool {
