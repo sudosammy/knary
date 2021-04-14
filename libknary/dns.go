@@ -63,90 +63,196 @@ func HandleDNS(w dns.ResponseWriter, r *dns.Msg, EXT_IP string) {
 	parseDNS(m, w.RemoteAddr().String(), EXT_IP)
 	w.WriteMsg(m)
 }
-
+/*
+	This code changed dramatically in 3.3.0 when we scraped Burp Collab support:
+	a) Burp collab is a shitty java app which frequently crashes and we gave up trying to support it,
+	b) knary's new nameserver design would have required changes to the code in these functions,
+	c) It wasn't a widely used feature for now. knary will probably support it again in the future.
+*/
 func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 	// for each DNS question to our nameserver
 	// there can be multiple questions in the question section of a single request
 	for _, q := range m.Question {
+		// search our zone file for a response
 
 		switch q.Qtype {
 		case dns.TypeA:
-			Printy("Got A question", 3)
+			if os.Getenv("DEBUG") == "true" {
+				Printy("Got A question for: "+q.Name, 3)
+			}
+			/*
+				As of version 3.3.0 we are the authorative nameserver for our knary.
+				Therefore, at this part of the code, all *.knary.tld "A" questions are here.
+				To avoid changing the way knary alerts webhooks <3.2.0 we will respond with our IP address and exit the function.
+				This results in a wildcard DNS record for *.knary.tld but only webhook alerts on *.dns.knary.tld.
+			*/
+			if !strings.HasSuffix(strings.ToLower(q.Name), strings.ToLower(".dns."+os.Getenv("CANARY_DOMAIN")+".")) {
+				// if we are an IPv6 host, to be a "compliant" nameserver, we return an empty response to A questions
+				// https://tools.ietf.org/html/rfc4074
+				if IsIPv6(EXT_IP) {
+					return
+				}
+				rr, _ := dns.NewRR(fmt.Sprintf("%s IN 3600 A %s", q.Name, EXT_IP)) // we also return an extended TTL
+				m.Answer = append(m.Answer, rr)
+				return		
+			}
 
+			if inBlacklist(q.Name, ipaddr) {
+				return
+			}
+
+			// spit the IP address to remove the port
+			// be wary of IPv6
+			ipSlice := strings.Split(ipaddr, ":")
+			ipSlice = ipSlice[:len(ipSlice)-1]
+			ipaddrNoPort := strings.Join(ipSlice[:], ",")
+
+			reverse, _ := dns.ReverseAddr(ipaddrNoPort)
+
+			if reverse == "" {
+				go sendMsg("DNS (A): " + q.Name +
+					"```" +
+					"From: " + ipaddr +
+					"```")
+				logger("INFO", ipaddr+" - "+q.Name)
+
+			} else {
+				go sendMsg("DNS (A): " + q.Name +
+					"```" +
+					"From: " + ipaddr + "\n" +
+					"PTR: " + reverse +
+					"```")
+				logger("INFO", ipaddr+" - "+reverse+" - "+q.Name)
+			}
+
+			if IsIPv6(EXT_IP) {
+				return
+			}
+
+			rr, _ := dns.NewRR(fmt.Sprintf("%s IN 60 A %s", q.Name, EXT_IP))
+			m.Answer = append(m.Answer, rr)
+
+
+		case dns.TypeAAAA:
+			if os.Getenv("DEBUG") == "true" {
+				Printy("Got AAAA question for: "+q.Name, 3)
+			}
+
+			if !strings.HasSuffix(strings.ToLower(q.Name), strings.ToLower(".dns."+os.Getenv("CANARY_DOMAIN")+".")) {
+				// if we are an IPv4 host, to be a "compliant" nameserver, we return an empty response to AAAA questions
+				// https://tools.ietf.org/html/rfc4074
+				if IsIPv4(EXT_IP) {
+					return
+				}
+				rr, _ := dns.NewRR(fmt.Sprintf("%s IN 3600 AAAA %s", q.Name, EXT_IP)) // we also return an extended TTL
+				m.Answer = append(m.Answer, rr)
+				return
+			}
+
+			if inBlacklist(q.Name, ipaddr) {
+				return
+			}
+
+			// spit the IP address to remove the port
+			// be wary of IPv6
+			ipSlice := strings.Split(ipaddr, ":")
+			ipSlice = ipSlice[:len(ipSlice)-1]
+			ipaddrNoPort := strings.Join(ipSlice[:], ",")
+
+			reverse, _ := dns.ReverseAddr(ipaddrNoPort)
+
+			if reverse == "" {
+				go sendMsg("DNS (AAAA): " + q.Name +
+					"```" +
+					"From: " + ipaddr +
+					"```")
+				logger("INFO", ipaddr+" - "+q.Name)
+
+			} else {
+				go sendMsg("DNS (AAAA): " + q.Name +
+					"```" +
+					"From: " + ipaddr + "\n" +
+					"PTR: " + reverse +
+					"```")
+				logger("INFO", ipaddr+" - "+reverse+" - "+q.Name)
+			}
+
+			if IsIPv4(EXT_IP) {
+				return
+			}
+
+			rr, _ := dns.NewRR(fmt.Sprintf("%s IN 60 AAAA %s", q.Name, EXT_IP))
+			m.Answer = append(m.Answer, rr)
+
+		case dns.TypeCNAME:
+			if !strings.HasSuffix(strings.ToLower(q.Name), strings.ToLower(".dns."+os.Getenv("CANARY_DOMAIN")+".")) {
+				// CNAME records cannot be returned for the root domain anyway.
+				return
+			}
+
+			if os.Getenv("DEBUG") == "true" {
+				Printy("Got CNAME question for: "+q.Name, 3)
+			}
+
+			if inBlacklist(q.Name, ipaddr) {
+				return
+			}
+
+			// spit the IP address to remove the port
+			// be wary of IPv6
+			ipSlice := strings.Split(ipaddr, ":")
+			ipSlice = ipSlice[:len(ipSlice)-1]
+			ipaddrNoPort := strings.Join(ipSlice[:], ",")
+
+			reverse, _ := dns.ReverseAddr(ipaddrNoPort)
+
+			if reverse == "" {
+				go sendMsg("DNS (CNAME): " + q.Name +
+					"```" +
+					"From: " + ipaddr +
+					"```")
+				logger("INFO", ipaddr+" - "+q.Name)
+
+			} else {
+				go sendMsg("DNS (CNAME): " + q.Name +
+					"```" +
+					"From: " + ipaddr + "\n" +
+					"PTR: " + reverse +
+					"```")
+				logger("INFO", ipaddr+" - "+reverse+" - "+q.Name)
+			}
+
+			rr, _ := dns.NewRR(fmt.Sprintf("%s IN 60 CNAME %s", q.Name, q.Name))
+			m.Answer = append(m.Answer, rr)
+
+		// for letsencrypt
 		case dns.TypeTXT:
-			Printy("Got TXT question", 3)
+			if os.Getenv("DEBUG") == "true" {
+				Printy("Got TXT question for: "+q.Name, 3)
+			}
 
+			/*
+				Lets Encrypt Here
+			*/
+
+		// for other nameserver functions
 		case dns.TypeSOA:
-			Printy("Got SOA question", 3)
+			if os.Getenv("DEBUG") == "true" {
+				Printy("Got SOA question for: "+q.Name, 3)
+			}
 
-			rr, _ := dns.NewRR(fmt.Sprintf("%s IN SOA %s %s (%s)", os.Getenv("CANARY_DOMAIN"), "ns."+os.Getenv("CANARY_DOMAIN"), "admin."+os.Getenv("CANARY_DOMAIN"), "2020080302 7200 3600 604800 300"))
+			rr, _ := dns.NewRR(fmt.Sprintf("%s IN SOA %s %s (%s)", os.Getenv("CANARY_DOMAIN"), "ns."+os.Getenv("CANARY_DOMAIN"), "admin."+os.Getenv("CANARY_DOMAIN"), "2021041401 7200 3600 604800 300"))
 			m.Answer = append(m.Answer, rr)
 
 		case dns.TypeNS:
-			Printy("Got NS question", 3)
+			if os.Getenv("DEBUG") == "true" {
+				Printy("Got NS question for: "+q.Name, 3)
+			}
 
 			rr, _ := dns.NewRR(fmt.Sprintf("%s IN NS %s", q.Name, "ns."+os.Getenv("CANARY_DOMAIN")))
 			m.Answer = append(m.Answer, rr)
 		}
 
-		/*
-			This code changed dramatically in 3.3.0 when we scraped Burp Collab support:
-			a) Burp collab is a shitty java app which frequently crashes and we gave up trying to support it,
-			b) knary's new nameserver design would have required changes to the code in these functions,
-			c) It wasn't a widely used feature for now. knary will probably support it again in the future.
-		*/
-
-		// we only care about A questions
-		if q.Qtype == dns.TypeA {
-			/*
-				As of version 3.3.0 we are the authorative nameserver for our knary.
-				Therefore, at this part of the code, all *.knary.tld "A" questions are here.
-				To avoid changing the way knary alerts webhooks <3.2.0 we will respond with our IP address.
-				This results in a wildcard DNS record for *.knary.tld but to only alert on *.dns.knary.tld.
-			*/
-			if !strings.HasSuffix(strings.ToLower(q.Name), strings.ToLower(".dns."+os.Getenv("CANARY_DOMAIN")+".")) {
-				rr, _ := dns.NewRR(fmt.Sprintf("%s IN 60 A %s", q.Name, EXT_IP))
-				m.Answer = append(m.Answer, rr)
-				return
-			}
-
-			if os.Getenv("DEBUG") == "true" {
-				Printy("DNS question for: "+q.Name, 3)
-			}
-
-			if !inBlacklist(q.Name, ipaddr) {
-				// spit the IP address to remove the port
-				// be wary of IPv6
-				ipSlice := strings.Split(ipaddr, ":")
-				ipSlice = ipSlice[:len(ipSlice)-1]
-				ipaddrNoPort := strings.Join(ipSlice[:], ",")
-
-				reverse, _ := dns.ReverseAddr(ipaddrNoPort)
-
-				if reverse == "" {
-					go sendMsg("DNS: " + q.Name +
-						"```" +
-						"From: " + ipaddr +
-						"```")
-					logger("INFO", ipaddr+" - "+q.Name)
-
-				} else {
-					go sendMsg("DNS: " + q.Name +
-						"```" +
-						"From: " + ipaddr + "\n" +
-						"PTR: " + reverse +
-						"```")
-					logger("INFO", ipaddr+" - "+reverse+" - "+q.Name)
-				}
-			}
-
-			if os.Getenv("DEBUG") == "true" {
-				Printy("Responding with: "+EXT_IP, 3)
-			}
-
-			rr, _ := dns.NewRR(fmt.Sprintf("%s IN 60 A %s", q.Name, EXT_IP))
-			m.Answer = append(m.Answer, rr)
-		}
 
 		// catch TXT lookups because this might be certbot
 		if q.Qtype == dns.TypeTXT {
@@ -198,7 +304,11 @@ func queryDNS(domain string, reqtype string, ns string) (string, error) {
 		}
 
 		if t, ok := answ.Answer[0].(*dns.A); ok {
-			return t.A.String(), nil
+			if IsIP(t.A.String()) {
+				return t.A.String(), nil
+			} else {
+				return "", errors.New("Malformed response from A question");
+			}
 		}
 
 	case "NS":

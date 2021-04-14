@@ -43,12 +43,23 @@ func main() {
 			log.Fatal(err)
 		}
 
+		if !libknary.IsIP(res) {
+			libknary.Printy("Couldn't parse response from glue record. You should set EXT_IP", 2)
+			return
+		}
+
 		if os.Getenv("DEBUG") == "true" {
 			libknary.Printy("Found glue record! We will answer DNS requests with: "+res, 3)
 		}
 
 		EXT_IP = res
 	} else {
+		// test that user inputed a valid IP addr.
+		if !libknary.IsIP(os.Getenv("EXT_IP")) {
+			libknary.Printy("Couldn't parse EXT_IP. Are you sure it's a valid IP address?", 2)
+			return
+		}
+
 		EXT_IP = os.Getenv("EXT_IP")
 	}
 

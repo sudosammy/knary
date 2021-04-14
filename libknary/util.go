@@ -2,13 +2,10 @@ package libknary
 
 import (
 	"bufio"
-	"bytes"
 	"crypto/hmac"
 	"crypto/sha256"
 	"crypto/tls"
 	"encoding/base64"
-	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"net"
 	"net/http"
@@ -19,6 +16,24 @@ import (
 
 	"github.com/blang/semver/v4"
 )
+
+// https://github.com/dsanader/govalidator/blob/master/validator.go
+// IsIP checks if a string is either IP version 4 or 6.
+func IsIP(str string) bool {
+	return net.ParseIP(str) != nil
+}
+
+// IsIPv4 check if the string is an IP version 4.
+func IsIPv4(str string) bool {
+	ip := net.ParseIP(str)
+	return ip != nil && strings.Contains(str, ".")
+}
+
+// IsIPv6 check if the string is an IP version 6.
+func IsIPv6(str string) bool {
+	ip := net.ParseIP(str)
+	return ip != nil && strings.Contains(str, ":")
+}
 
 func stringContains(stringA string, stringB string) bool {
 	return strings.Contains(
@@ -200,112 +215,6 @@ func inZone(needle string) string {
 	return ""
 }
 
-/*
-* This function collects very basic analytics to track knary usage.
-* If you have any thoughts about knary you can contact me on Twitter: @sudosammy
- */
-type features struct {
-	DNS      bool `json:"dns"`
-	HTTP     bool `json:"http"`
-	BURP     bool `json:"burp"`
-	SLACK    bool `json:"slack"`
-	DISCORD  bool `json:"discord"`
-	PUSHOVER bool `json:"pushover"`
-	TEAMS    bool `json:"teams"`
-}
-
-type analy struct {
-	ID        string `json:"id"`
-	Version   string `json:"version"`
-	Status    int    `json:"day"`
-	Blacklist int    `json:"blacklist"`
-	Offset    int    `json:"offset"`
-	Timezone  string `json:"timezone"`
-	features  `json:"features"`
-}
-
-var day = 0
-
-func UsageStats(version string) bool {
-	trackingDomain := "https://knary.sam.ooo" // make this an empty string to sinkhole analytics
-
-	if os.Getenv("CANARY_DOMAIN") == "" || trackingDomain == "" {
-		return false
-	}
-
-	// a unique & desensitised ID
-	knaryID := sha256.New()
-	_, _ = knaryID.Write([]byte(os.Getenv("CANARY_DOMAIN")))
-	anonKnaryID := hex.EncodeToString(knaryID.Sum(nil))
-
-	zone, offset := time.Now().Zone() // timezone
-
-	day++ // track how long knary has been running for
-
-	// disgusting
-	dns, https, burp, slack, discord, pushover, teams := false, false, false, false, false, false, false
-	if os.Getenv("DNS") == "true" {
-		dns = true
-	}
-	if os.Getenv("HTTP") == "true" {
-		https = true
-	}
-	if os.Getenv("BURP") == "true" {
-		burp = true
-	}
-	if os.Getenv("SLACK_WEBHOOK") != "" {
-		slack = true
-	}
-	if os.Getenv("DISCORD_WEBHOOK") != "" {
-		discord = true
-	}
-	if os.Getenv("PUSHOVER_USER") != "" {
-		pushover = true
-	}
-	if os.Getenv("TEAMS_WEBHOOK") != "" {
-		teams = true
-	}
-
-	jsonValues, err := json.Marshal(&analy{
-		anonKnaryID,
-		version,
-		day,
-		len(blacklistMap),
-		(offset / 60 / 60),
-		zone,
-		features{
-			dns,
-			https,
-			burp,
-			slack,
-			discord,
-			pushover,
-			teams,
-		},
-	})
-
-	if err != nil {
-		if os.Getenv("DEBUG") == "true" {
-			Printy(err.Error(), 3)
-		}
-		return false
-	}
-
-	c := &http.Client{
-		Timeout: 10 * time.Second,
-	}
-	_, err = c.Post(trackingDomain, "application/json", bytes.NewBuffer(jsonValues))
-
-	if err != nil {
-		if os.Getenv("DEBUG") == "true" {
-			Printy(err.Error(), 3)
-		}
-		return false
-	}
-
-	return true
-}
-
 func CheckTLSExpiry(domain string, config *tls.Config) (bool, error) {
 	port := "443"
 	// need this to make testing possible
@@ -314,7 +223,7 @@ func CheckTLSExpiry(domain string, config *tls.Config) (bool, error) {
 	}
 
 	// tls.Dial doesn't support timeouts
-	// this is another soltution: https://godoc.org/github.com/getlantern/tlsdialer#DialTimeout
+	// this is another solution: https://godoc.org/github.com/getlantern/tlsdialer#DialTimeout
 	// it's probably doing something like this in the background anyway
 	testTLSConn, err := net.DialTimeout("tcp", domain+":"+port, 5*time.Second)
 
