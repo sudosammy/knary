@@ -79,7 +79,7 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 		case dns.TypeSOA:
 			Printy("Got SOA question", 3)
 
-			rr, _ := dns.NewRR(fmt.Sprintf("%s IN SOA %s %s (%s)", q.Name, "ns."+os.Getenv("CANARY_DOMAIN"), "admin."+os.Getenv("CANARY_DOMAIN"), "2020080302 7200 3600 604800 300"))
+			rr, _ := dns.NewRR(fmt.Sprintf("%s IN SOA %s %s (%s)", os.Getenv("CANARY_DOMAIN"), "ns."+os.Getenv("CANARY_DOMAIN"), "admin."+os.Getenv("CANARY_DOMAIN"), "2020080302 7200 3600 604800 300"))
 			m.Answer = append(m.Answer, rr)
 
 		case dns.TypeNS:
@@ -89,38 +89,17 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 			m.Answer = append(m.Answer, rr)
 		}
 
+		/*
+			This code changed dramatically in 3.3.0 when we scraped Burp Collab support:
+			a) Burp collab is a shitty java app which frequently crashes and we gave up trying to support it,
+			b) knary's new nameserver design would have required changes to the code in these functions,
+			c) It wasn't a widely used feature for now. knary will probably support it again in the future.
+		*/
+
 		// we only care about A questions
 		if q.Qtype == dns.TypeA {
-			//if we're in burp mode, we don't care about requests to the burp domain (and want to send them to the burp collab listener)
-			if os.Getenv("BURP") == "true" {
-				if strings.HasSuffix(strings.ToLower(q.Name), strings.ToLower(os.Getenv("BURP_DOMAIN"))+".") {
-					// to support our container friends - let the player choose the IP Burp is bound to
-					burpIP := ""
-					if os.Getenv("BURP_INT_IP") != "" {
-						burpIP = os.Getenv("BURP_INT_IP")
-					} else {
-						burpIP = "127.0.0.1"
-					}
-
-					c := dns.Client{}
-					newM := dns.Msg{}
-					newM.SetQuestion(q.Name, dns.TypeA)
-					r, _, err := c.Exchange(&newM, burpIP+":"+os.Getenv("BURP_DNS_PORT"))
-					if err != nil {
-						Printy(err.Error(), 2)
-						continue
-					}
-					m.Answer = r.Answer
-					//don't continue onto any other code paths if it's a collaborator message
-					if os.Getenv("DEBUG") == "true" {
-						Printy("Sent DNS to Burp: "+burpIP+":"+os.Getenv("BURP_DNS_PORT"), 3)
-					}
-					continue
-				}
-			}
-
 			/*
-				As of version 3.2.0 we are the authorative nameserver for our knary.
+				As of version 3.3.0 we are the authorative nameserver for our knary.
 				Therefore, at this part of the code, all *.knary.tld "A" questions are here.
 				To avoid changing the way knary alerts webhooks <3.2.0 we will respond with our IP address.
 				This results in a wildcard DNS record for *.knary.tld but to only alert on *.dns.knary.tld.
@@ -249,7 +228,7 @@ func GuessIP(domain string) (string, error) {
 	answ, _, err := new(dns.Client).Exchange(kMsg, tldDNS+":53")
 
 	if len(answ.Extra) == 0 {
-		return "", errors.New("No 'Additional' section in NS lookup for: " + domain + " with nameserver: " + tldDNS + " Have you configured a glue record for your domain? You can set EXT_IP to bypass this but... do you know what you're doing?")
+		return "", errors.New("No 'Additional' section in NS lookup for: " + domain + " with nameserver: " + tldDNS + " Have you configured a glue record for your domain? Has it propagated? You can set EXT_IP to bypass this but... do you know what you're doing?")
 	}
 
 	if t, ok := answ.Extra[0].(*dns.A); ok {

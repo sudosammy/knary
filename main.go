@@ -73,8 +73,7 @@ func main() {
 		libknary.Printy("Listening for http(s)://*."+os.Getenv("CANARY_DOMAIN")+" requests", 1)
 
 		if os.Getenv("TLS_CRT") == "" || os.Getenv("TLS_KEY") == "" {
-			libknary.GiveHead(2)
-			log.Fatal("To use the HTTP canary you must specify the location of your domain's TLS certificates with TLS_CRT & TLS_KEY")
+			libknary.Printy("Without TLS_CRT & TLS_KEY set you will only be able to make HTTP (port 80) requests to knary", 3)
 		}
 	}
 	if os.Getenv("DNS") == "true" {
@@ -119,11 +118,17 @@ func main() {
 	}
 
 	if os.Getenv("HTTP") == "true" {
-		ln80, ln443 := libknary.PrepareRequest()
-		wg.Add(1)
-		go libknary.AcceptRequest(ln443, &wg)
+		ln80 := libknary.PrepareRequest80()
+		// HTTP
 		wg.Add(1)
 		go libknary.AcceptRequest(ln80, &wg)
+
+		if os.Getenv("TLS_CRT") != "" && os.Getenv("TLS_KEY") != "" {
+			// HTTPS
+			ln443 := libknary.PrepareRequest443()
+			wg.Add(1)
+			go libknary.AcceptRequest(ln443, &wg)
+		}
 	}
 
 	wg.Wait()

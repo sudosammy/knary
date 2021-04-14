@@ -5,87 +5,34 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"net/http"
-	"net/http/httputil"
+	//"net/http"
+	//"net/http/httputil"
 	"os"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 )
-
-func PrepareRequest() (net.Listener, net.Listener) {
-	//assign bind address and ports
-	p80 := os.Getenv("BIND_ADDR") + ":80"
-	p443 := os.Getenv("BIND_ADDR") + ":443"
-
-	//if burp collab compatible env vars are detected:
-	//-re-assign ports
-	//-set up a reverse proxy to direct as needed
-	if os.Getenv("BURP") == "true" && os.Getenv("BURP_HTTP_PORT") != "" && os.Getenv("BURP_HTTPS_PORT") != "" {
-		p80 = "127.0.0.1:8880"  // these are the local ports that knary
-		p443 = "127.0.0.1:8843" // will listen on as the client of the reverse proxy
-		// to support our container friends - let the player choose the IP Burp is bound to
-		burpIP := ""
-		if os.Getenv("BURP_INT_IP") != "" {
-			burpIP = os.Getenv("BURP_INT_IP")
-		} else {
-			burpIP = "127.0.0.1"
-		}
-
-		//start reverse proxy to direct requests appropriately
-		go func() {
-			e := http.ListenAndServe(os.Getenv("BIND_ADDR")+":80", &httputil.ReverseProxy{
-				Director: func(r *http.Request) {
-					r.URL.Scheme = "http"
-					//if the incoming request has the burp suffix send it to collab
-					if strings.HasSuffix(r.Host, os.Getenv("BURP_DOMAIN")) {
-						r.URL.Host = burpIP + ":" + os.Getenv("BURP_HTTP_PORT")
-					} else {
-						//otherwise send it raw to the local knary port
-						r.URL.Host = p80
-						r.Header.Set("X-Forwarded-For", r.RemoteAddr) //add port version of x-fwded for
-					}
-				},
-			})
-			if e != nil {
-				Printy(e.Error(), 2)
-			}
-		}()
-
-		go func() {
-			e := http.ListenAndServeTLS(os.Getenv("BIND_ADDR")+":443", os.Getenv("TLS_CRT"), os.Getenv("TLS_KEY"),
-				&httputil.ReverseProxy{
-					Transport: &http.Transport{
-						TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, //it's localhost, we don't need to verify
-					},
-					Director: func(r *http.Request) {
-						r.URL.Scheme = "https"
-						//if the incoming request has the burp suffix send it to collab
-						if strings.HasSuffix(r.Host, os.Getenv("BURP_DOMAIN")) {
-							r.URL.Host = burpIP + ":" + os.Getenv("BURP_HTTPS_PORT")
-						} else {
-							//otherwise send it raw to the local knary port
-							r.URL.Host = p443
-							r.Header.Set("X-Forwarded-For", r.RemoteAddr)
-						}
-					},
-				})
-			if e != nil {
-				Printy(e.Error(), 2)
-			}
-		}()
-	}
+/*
+	PrepareRequest80/443 changed dramatically in 3.3.0 when we scraped Burp Collab support:
+	a) Burp collab is a shitty java app which frequently crashes and we gave up trying to support it,
+	b) knary's new nameserver design would have required changes to the code in these functions,
+	c) It wasn't a widely used feature for now. knary will probably support it again in the future.
+*/
+func PrepareRequest80() (net.Listener) {
+	p80 := os.Getenv("BIND_ADDR") + ":80"	
 	ln80, err := net.Listen("tcp", p80)
-
 	if err != nil {
 		GiveHead(2)
 		log.Fatal(err)
 	}
 
-	// open certificates
-	cer, err := tls.LoadX509KeyPair(os.Getenv("TLS_CRT"), os.Getenv("TLS_KEY"))
+	return ln80
+}
 
+func PrepareRequest443() (net.Listener) {
+	p443 := os.Getenv("BIND_ADDR") + ":443"
+	cer, err := tls.LoadX509KeyPair(os.Getenv("TLS_CRT"), os.Getenv("TLS_KEY"))
 	if err != nil {
 		GiveHead(2)
 		log.Fatal(err)
@@ -93,13 +40,12 @@ func PrepareRequest() (net.Listener, net.Listener) {
 
 	config := &tls.Config{Certificates: []tls.Certificate{cer}}
 	ln443, err := tls.Listen("tcp", p443, config)
-
 	if err != nil {
 		GiveHead(2)
 		log.Fatal(err)
 	}
 
-	return ln80, ln443 // return listeners
+	return ln443
 }
 
 func AcceptRequest(ln net.Listener, wg *sync.WaitGroup) {
