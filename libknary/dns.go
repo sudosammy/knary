@@ -87,8 +87,12 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 				This results in a wildcard DNS record for *.knary.tld but only webhook alerts on *.dns.knary.tld.
 			*/
 			if !strings.HasSuffix(strings.ToLower(q.Name), strings.ToLower(".dns."+os.Getenv("CANARY_DOMAIN")+".")) {
-				// if we are an IPv6 host, to be a "compliant" nameserver, we return an empty response to A questions
-				// https://tools.ietf.org/html/rfc4074
+				/*
+					If we are an IPv6 host, to be a "compliant" nameserver (https://tools.ietf.org/html/rfc4074), we should:
+					a) Return an empty response to A questions
+					b) Return our SOA in the AUTHORITY section
+					Let me know if you can do "b"
+				*/
 				if IsIPv6(EXT_IP) {
 					return
 				}
@@ -139,8 +143,12 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 			}
 
 			if !strings.HasSuffix(strings.ToLower(q.Name), strings.ToLower(".dns."+os.Getenv("CANARY_DOMAIN")+".")) {
-				// if we are an IPv4 host, to be a "compliant" nameserver, we return an empty response to AAAA questions
-				// https://tools.ietf.org/html/rfc4074
+				/*
+					If we are an IPv4 host, to be a "compliant" nameserver (https://tools.ietf.org/html/rfc4074), we should:
+					a) Return an empty response to AAAA questions
+					b) Return our SOA in the AUTHORITY section
+					Let me know if you can do "b"
+				*/
 				if IsIPv4(EXT_IP) {
 					return
 				}
