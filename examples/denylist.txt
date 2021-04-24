@@ -1,0 +1,10 @@
+knary.tld
+ns.knary.tld
+www.knary.tld
+webdisk.knary.tld
+webmail.knary.tld
+_dmark.knary.tld
+cpcalendars.knary.tld
+cpanel.knary.tld
+mail.knary.tld
+cpcontacts.knary.tld

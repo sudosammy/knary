@@ -1,22 +1,19 @@
-FROM golang:1.11.0-alpine3.7 as build-env
-
+# We know knary works well in Golang 1.16
+FROM golang:1.16-alpine as builder
 RUN apk add --no-cache --upgrade git ca-certificates
-
 WORKDIR /go/src/app
-
 COPY . /go/src/app
+# Build knary
+RUN go get .
+RUN CGO_ENABLED=0 go install -tags timetzdata
 
-RUN go get ./
-RUN go build -o knary main.go
+# Use a scratch container for production
+FROM scratch
 
-FROM alpine:3.7
-ENV GOPATH /knary
-RUN mkdir /knary
-RUN mkdir /knary/certs
-COPY --from=build-env /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
-COPY --from=build-env /go/src/app/.env /knary/.env
-COPY --from=build-env /go/src/app/knary /knary/knary
-COPY --from=build-env /go/src/app/certs/* /knary/certs/
+# Move compiled knary from builder image to production image
+COPY --from=builder /go/bin/knary /knary
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
-WORKDIR /knary
-ENTRYPOINT ["/knary/knary"]
+# Production container should be ~10MB :D
+WORKDIR /
+ENTRYPOINT ["/knary"]

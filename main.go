@@ -80,21 +80,20 @@ func main() {
 	libknary.LoadZone()
 	go libknary.UsageStats(VERSION)
 
-	if os.Getenv("HTTP") == "true" {
+	if os.Getenv("HTTP") == "true" && (os.Getenv("TLS_CRT") == "" || os.Getenv("TLS_KEY") == "") {
+		libknary.Printy("Listening for http://*."+os.Getenv("CANARY_DOMAIN")+" requests", 1)
+		libknary.Printy("Without TLS_CRT & TLS_KEY set you will only be able to make HTTP (port 80) requests to knary", 2)
+	} else {
 		libknary.Printy("Listening for http(s)://*."+os.Getenv("CANARY_DOMAIN")+" requests", 1)
-
-		if os.Getenv("TLS_CRT") == "" || os.Getenv("TLS_KEY") == "" {
-			libknary.Printy("Without TLS_CRT & TLS_KEY set you will only be able to make HTTP (port 80) requests to knary", 3)
-		}
 	}
 	if os.Getenv("DNS") == "true" {
-		libknary.Printy("Listening for *.dns."+os.Getenv("CANARY_DOMAIN")+" DNS requests", 1)
+		libknary.Printy("Listening for *."+os.Getenv("CANARY_DOMAIN")+" DNS requests", 1)
 	}
-	if os.Getenv("BURP") == "true" {
-		libknary.Printy("Working in collaborator compatibility mode on domain *."+os.Getenv("BURP_DOMAIN"), 1)
+	if os.Getenv("BURP_DOMAIN") != "" {
+		libknary.Printy("Working in collaborator compatibility mode on subdomain *."+os.Getenv("BURP_DOMAIN"), 1)
 
-		if os.Getenv("BURP_DOMAIN") == "" || os.Getenv("BURP_DNS_PORT") == "" || os.Getenv("BURP_HTTP_PORT") == "" || os.Getenv("BURP_HTTPS_PORT") == "" {
-			libknary.Printy("Required Burp Collaborator settings are missing. This might cause errors.", 2)
+		if os.Getenv("BURP_DNS_PORT") == "" || os.Getenv("BURP_HTTP_PORT") == "" || os.Getenv("BURP_HTTPS_PORT") == "" {
+			libknary.Printy("Not all Burp Collaborator settings are set. This might cause errors.", 2)
 		}
 	}
 	if os.Getenv("SLACK_WEBHOOK") != "" {

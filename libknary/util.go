@@ -18,18 +18,13 @@ import (
 )
 
 // https://github.com/dsanader/govalidator/blob/master/validator.go
-// IsIP checks if a string is either IP version 4 or 6.
 func IsIP(str string) bool {
 	return net.ParseIP(str) != nil
 }
-
-// IsIPv4 check if the string is an IP version 4.
 func IsIPv4(str string) bool {
 	ip := net.ParseIP(str)
 	return ip != nil && strings.Contains(str, ".")
 }
-
-// IsIPv6 check if the string is an IP version 6.
 func IsIPv6(str string) bool {
 	ip := net.ParseIP(str)
 	return ip != nil && strings.Contains(str, ":")
@@ -40,6 +35,50 @@ func stringContains(stringA string, stringB string) bool {
 		strings.ToLower(stringA),
 		strings.ToLower(stringB),
 	)
+}
+
+func splitPort(ipaddr string) (string, int) {
+	// spit the IP address to remove the port
+	// this is almost certainly badly broken
+	ipSlice := strings.Split(ipaddr, ":")
+	ipSlice = ipSlice[:len(ipSlice)-1]
+	ipaddrNoPort := strings.Join(ipSlice[:], ",")
+	
+	portSlice := strings.Split(ipaddr, ":")
+	portSlice = portSlice[len(portSlice)-1:]
+
+	onlyPortSlice := strings.Join(portSlice[:], ",")
+	onlyPort, _ := strconv.Atoi(onlyPortSlice)
+
+	if IsIP(ipaddrNoPort) {
+		return ipaddrNoPort, onlyPort
+	} else {
+		return "", 0
+	}
+}
+
+func specialMessage(version string) {
+	// check for any special messages to include
+	// running, err := semver.Make(version)
+
+	// if err != nil {
+	// 	Printy("Could not check for messages: " + err.Error(), 2)
+	// 	return false, err
+	// }
+
+	// c := &http.Client{
+	// 	Timeout: 10 * time.Second,
+	// }
+	// response, err := c.Get("https://raw.githubusercontent.com/sudosammy/knary/master/MESSAGES")
+
+	// if err != nil {
+	// 	Printy("Could not check for messages: " + err.Error(), 2)
+	// 	return false, err
+	// }
+	// we want to check github for a file which includes a semver and a message
+	// something like <3.3.0 "thi is the message"
+	// this function will run daily and if any messages match our version number
+	// we print to the webhook
 }
 
 func CheckUpdate(version string, githubVersion string, githubURL string) (bool, error) { // this runs once a day
@@ -79,7 +118,7 @@ func CheckUpdate(version string, githubVersion string, githubURL string) (bool, 
 			return false, err
 		}
 
-		if running.Compare(current) != 0 {
+		if running.LT(current) == true {
 			updMsg := "Your version of knary is *" + version + "* & the latest is *" + current.String() + "* - upgrade your binary here: " + githubURL
 			Printy(updMsg, 2)
 			logger("WARNING", updMsg)
@@ -130,7 +169,7 @@ func LoadBlacklist() (bool, error) {
 	return true, nil
 }
 
-func CheckLastHit() bool { // this runs once a day
+func checkLastHit() bool { // this runs once a day
 	if len(blacklistMap) != 0 {
 		// iterate through blacklist and look for items >14 days old
 		for i := range blacklistMap { // foreach blacklist item
@@ -169,50 +208,6 @@ func inBlacklist(needles ...string) bool {
 		}
 	}
 	return false
-}
-
-// map for zone
-var zoneMap = map[int]string{}
-var zoneCount = 0
-
-func LoadZone() (bool, error) {
-	// load zone file into struct on startup
-	if _, err := os.Stat(os.Getenv("ZONE_FILE")); os.IsNotExist(err) {
-		return false, err
-	}
-
-	zlist, err := os.Open(os.Getenv("ZONE_FILE"))
-	defer zlist.Close()
-
-	if err != nil {
-		Printy(err.Error()+" - ignoring", 3)
-		return false, err
-	}
-
-	scanner := bufio.NewScanner(zlist)
-
-	for scanner.Scan() { // foreach zone item
-		zoneMap[zoneCount] = scanner.Text() // add to struct
-		zoneCount++
-	}
-
-	Printy("Monitoring "+strconv.Itoa(zoneCount)+" items in zone", 1)
-	logger("INFO", "Monitoring "+strconv.Itoa(zoneCount)+" items in zone")
-	return true, nil
-}
-
-func inZone(needle string) string {
-	//needleNoDot := needle[:len(needle)-1]
-	for i := range zoneMap { // foreach zone item
-		if stringContains(zoneMap[i], needle) && !stringContains(zoneMap[i], "."+needle) {
-			// matches
-			if os.Getenv("DEBUG") == "true" {
-				Printy(needle+" found in zone file", 3)
-			}
-			return zoneMap[i]
-		}
-	}
-	return ""
 }
 
 func CheckTLSExpiry(domain string, config *tls.Config) (bool, error) {
@@ -296,14 +291,16 @@ func HeartBeat(version string, firstrun bool) (bool, error) {
 	beatMsg += "------------------------\n\n"
 
 	// print usage domains
-	if os.Getenv("HTTP") == "true" {
+	if os.Getenv("HTTP") == "true" && (os.Getenv("TLS_CRT") == "" || os.Getenv("TLS_KEY") == "") {
+		beatMsg += "Listening for http://*." + os.Getenv("CANARY_DOMAIN") + " requests\n"
+	} else {
 		beatMsg += "Listening for http(s)://*." + os.Getenv("CANARY_DOMAIN") + " requests\n"
 	}
 	if os.Getenv("DNS") == "true" {
-		beatMsg += "Listening for *.dns." + os.Getenv("CANARY_DOMAIN") + " DNS requests\n"
+		beatMsg += "Listening for *." + os.Getenv("CANARY_DOMAIN") + " DNS requests\n"
 	}
-	if os.Getenv("BURP") == "true" {
-		beatMsg += "Working in collaborator compatibility mode on domain *." + os.Getenv("BURP_DOMAIN") + "\n"
+	if os.Getenv("BURP_DOMAIN") != "" {
+		beatMsg += "Working in collaborator compatibility mode on subdomain *." + os.Getenv("BURP_DOMAIN") + "\n"
 	}
 	beatMsg += "```"
 

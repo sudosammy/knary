@@ -4,7 +4,7 @@
 
 >Like "Canary" but more hipster, which means better 😎😎😎
 
-knary is a canary token server that notifies a Slack/Discord/Teams/Lark channel (or other webhook) when incoming HTTP(S) or DNS requests match a given domain or any of its subdomains. It also supports functionality useful in offensive engagements including subdomain blacklisting.
+knary is a canary token server that notifies a Slack/Discord/Teams/Lark channel (or other webhook) when incoming HTTP(S) or DNS requests match a given domain or any of its subdomains. It also supports functionality useful in offensive engagements including subdomain denylisting, working with Burp Collaborator, and running from a container.
 
 ![knary canary-ing](https://github.com/sudosammy/knary/raw/master/screenshots/canary.gif "knary canary-ing")
 
@@ -18,38 +18,46 @@ Defenders also use canaries as tripwires that can alert them of an attacker with
 
 1. Download the [applicable 64-bit knary binary](https://github.com/sudosammy/knary/releases) __OR__ build knary from source:
 
-__Prerequisite:__ You need Go >=1.10 to build knary yourself. Ideally, use Go 1.14.x.
+__Prerequisite:__ You need Go >=1.10 to build knary. Ideally, use Go 1.16.x.
 ```
 go get -u github.com/sudosammy/knary
 ```
-2. Create an `A` record matching a subdomain wildcard (`*.mycanary.com`) to your server's IP address
-3. Create an `NS` record matching `dns.mycanary.com` with `ns.mycanary.com` - knary will receive all DNS requests for `*.dns.mycanary.com` 
-4. For accepting TLS (HTTPS) connections you can create a self-signed certificate; however, some hosts might refuse to connect to you. It's better if you letsencrypt yourself a wildcard cert with something like `sudo certbot certonly --server https://acme-v02.api.letsencrypt.org/directory --manual --preferred-challenges dns -d *.mycanary.com`
-5. Setup your [webhook](https://github.com/sudosammy/knary#webhook-config)
-6. Create a `.env` file in the same directory as the binary and [configure](https://github.com/sudosammy/knary#config-options) it as necessary. Examples can be found in `examples/`
-7. Run the binary (probably in `screen`, `tmux`, or similar because knary can't daemon _yet_) and hope for output that looks something like this: 
+2. Update your domain nameserver to point to a subdomain under itself; such as `ns.knary.tld`. If required you can set multiple nameserver records such as `ns1.knary.tld`, `ns2.knary.ltd`.
+3. Create a "Glue Record", sometimes referred to as the "Nameserver Registration", or "Nameserver IP address" to point to your knary server. This is what it looks like in `name.com`:
+
+ ![Setting a glue record](https://github.com/sudosammy/knary/raw/master/screenshots/nameserver-ip.png "Setting a glue record")
+
+4. This will take some time to propagate, so setup your [webhook](https://github.com/sudosammy/knary#webhook-config).
+
+5. Create a `.env` file in the same directory as the knary binary and [configure](https://github.com/sudosammy/knary#config-options) it as necessary. Examples can be found in `examples/`. You can also use environment variables to set these configurations.
+
+6. __Optional__ For accepting TLS (HTTPS) connections you can create a self-signed certificate; however, some hosts might refuse to connect to you. It's better if you letsencrypt yourself a wildcard cert with something like `sudo certbot certonly --server https://acme-v02.api.letsencrypt.org/directory --manual --preferred-challenges dns -d *.knary.tld`
+
+7. __Optional__ When doing this `certbot` will ask you to set a TXT DNS record. You can do this by setting the `ZONE_FILE` configuration option with knary. You can use the example found in `examples/zone_file.txt` to set the DNS response required. Complete the next step before hitting "Enter" in `certbot`.
+
+8. Run the binary (probably in `screen`, `tmux`, or similar) and hope for output that looks something like this (`DEBUG` is on): 
 
 ![knary go-ing](https://github.com/sudosammy/knary/raw/master/screenshots/run.png "knary go-ing")
 
 ## Testing
 See & run `test_knary.sh`
 
-## Blacklisting matches
-You might find systems that spam your knary even long after an engagement has ended. To stop these from cluttering your Slack channel knary supports a blacklist (location specified in `.env`). Add the offending subdomains or IP addresses separated by a newline:
+## Denying matches
+You might find systems that spam your knary even long after an engagement has ended. To stop these from cluttering your notifications knary supports a denylist (location specified in `.env`). Add the offending subdomains or IP addresses separated by a newline:
 ```
-mycanary.com
-www.mycanary.com
+knary.tld
+www.knary.tld
 171.244.140.247
 ```
-This would stop knary from alerting on `www.mycanary.com` but not `another.www.mycanary.com`. Changes to this file will require a knary restart.
+This would stop knary from alerting on `www.knary.tld` but not `another.www.knary.tld`. Changes to this file will require a knary restart. A sample can be found in `examples/denylist.txt` with common subdomains to include.
 
 ## Necessary Config
-Example config files can be found in `examples/`
+Example config can be found in `examples/`
 * `DNS` Enable/Disable the DNS canary
-* `HTTP` Enable/Disable the HTTP(S) canary
-* `BIND_ADDR` The IP address you want knary to listen on. Example input: `0.0.0.0` to bind to all addresses available
-* `CANARY_DOMAIN` The domain + TLD to match canary hits on. Example input: `mycanary.com` (knary will match `*.mycanary.com`)
-* `TLS_*` (CRT/KEY) The location of your certificate and private key necessary for accepting TLS (https) requests
+* `HTTP` Enable/Disable the HTTP canary
+* `BIND_ADDR` The IP address you want knary to listen on. Example: `0.0.0.0` to bind to all addresses available
+* `CANARY_DOMAIN` The domain + TLD to match canary hits on. Example input: `knary.tld` (knary will match `*.knary.tld`)
+* `TLS_*` (CRT/KEY) The location of your certificate and private key necessary for accepting TLS (HTTPS) requests
 
 ### Webhook Config
 * `SLACK_WEBHOOK` __Optional__ The full URL of the [incoming webhook](https://api.slack.com/custom-integrations/incoming-webhooks) for the Slack channel you want knary to notify
@@ -62,8 +70,7 @@ Example config files can be found in `examples/`
 
 ### Burp Collaborator Config
 If you are running Burp Collaborator on the same server as knary, you will need to configure the following.
-* `BURP` __Optional__ Enable Burp Collaborator friendly mode
-* `BURP_DOMAIN` The domain + TLD to match Collaborator hits on (e.g. `burp.{CANARY_DOMAIN}`). This needs to be an `NS` record much like the knary DNS configuration. See step 3. Example input: `burp.mycanary.com`
+* `BURP_DOMAIN` The domain + TLD to match Collaborator hits on (e.g. `burp.{CANARY_DOMAIN}`).
 * `BURP_DNS_PORT` Local Burp Collaborator DNS port. This can't be 53, because knary listens on that one! Change Collaborator config to be something like 8053, and set this to `8053`
 * `BURP_HTTP_PORT` Much like the above - set to `8080` (or whatever you set the Burp HTTP port to be)
 * `BURP_HTTPS_PORT` Much like the above - set to `8443` (or whatever you set the Burp HTTPS port to be)
@@ -71,8 +78,8 @@ If you are running Burp Collaborator on the same server as knary, you will need 
 
 ### Optional Config Options
 * `DEBUG` __Optional__ Enable/Disable displaying incoming requests in the terminal and some additional info. Default disabled.
-* `EXT_IP` __Optional__ The IP address the DNS canary will answer `A` questions with. By default knary will use the answer to `knary.{CANARY_DOMAIN}.`. Setting this option will overrule that behaviour
-* `DNS_SERVER` __Optional__ The DNS server to use when asking `dns.{CANARY_DOMAIN}.`. This option is obsolete if `EXT_IP` is set. Default is Google's nameserver: `8.8.8.8`
+* `EXT_IP` __Optional__ The IP address the DNS canary will answer `A` questions with. By default knary will use the nameserver glue record. Setting this option will overrule that behaviour
 * `LOG_FILE` __Optional__ Location for a file that knary will log timestamped matches and some errors. Example input: `/home/me/knary.log`
-* `BLACKLIST_FILE` __Optional__ Location for a file containing case-insensitive subdomains (separated by newlines) that should be ignored by knary and not logged or posted to Slack. Example input: `blacklist.txt` 
+* `BLACKLIST_FILE` __Optional__ Location for a file containing case-insensitive subdomains (separated by newlines) that should be ignored by knary and not logged or posted to Slack. Example input: `denylist.txt` 
 * `BLACKLIST_ALERTING` __Optional__ By default knary will alert on items in the blacklist that haven't triggered in >14 days. Set to `false` to disable this behaviour
+* `ZONE_FILE` __Optional__ knary supports responding to requests based on an RFC 1034/1035 compliant zone file. Example input: `zone.txt`

@@ -11,8 +11,8 @@ func dailyTasks(version string, githubVersion string, githubURL string) bool {
 	CheckUpdate(version, githubVersion, githubURL)
 
 	// if blacklist alerting is enabled, flag any old blacklist items
-	if os.Getenv("BLACKLIST_ALERTING") == "" || os.Getenv("BLACKLIST_ALERTING") == "true" {
-		CheckLastHit()
+	if os.Getenv("BLACKLIST_ALERTING") != "false" {
+		checkLastHit()
 	}
 
 	// if HTTP knary is operating, check certificate expiry

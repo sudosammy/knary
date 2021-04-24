@@ -1,0 +1,1 @@
+_acme_challenge.knary.tld.		300		IN	TXT		"Let's Encrypt TXT value goes here"

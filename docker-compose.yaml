@@ -1,0 +1,21 @@
+version: "3.9"
+services:
+  knary:
+    container_name: knary
+    hostname: knary
+    restart: always
+    env_file:
+      - .env # as commented below, you can also use the `environment` key to specify variables. This will overwrite anything in `env_file`
+    # environment:
+    #   - DNS=true
+    #   - HTTP=true
+    #   - BIND_ADDR=127.0.0.1
+    #   - CANARY_DOMAIN=sam.ooo
+    # (etc. etc.)
+    build: .
+    ports:
+      - "80:80"
+      - "443:443"
+      - "53:53/udp"
+    volumes:
+      - ./certs:/certs/

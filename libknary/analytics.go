@@ -35,6 +35,7 @@ type analy struct {
 }
 
 var day = 0
+
 func UsageStats(version string) bool {
 	trackingDomain := "https://knary.sam.ooo" // make this an empty string to sinkhole analytics
 
