@@ -4,10 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net"
 	"os"
 	"strings"
 	"sync"
-	"net"
 
 	"github.com/miekg/dns"
 )
@@ -91,7 +91,7 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 				// https://github.com/sudosammy/knary/issues/43
 				c := new(dns.Client)
 				laddr := net.UDPAddr{
-					IP: net.ParseIP(ipaddrNoPort),
+					IP:   net.ParseIP(ipaddrNoPort),
 					Port: port,
 					Zone: "",
 				}
@@ -103,7 +103,7 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 				newM := dns.Msg{}
 				newM.SetQuestion(q.Name, dns.TypeA)
 				r, _, err := c.Exchange(&newM, burpIP+":"+os.Getenv("BURP_DNS_PORT"))
-				
+
 				if err != nil {
 					Printy(err.Error(), 2)
 					return

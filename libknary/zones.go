@@ -50,7 +50,7 @@ func LoadZone() (bool, error) {
 }
 
 func inZone(needle string, qType uint16) (dns.RR, bool) {
-	if val, ok := zoneMap[needle]; (ok && val.Header().Rrtype == qType) {
+	if val, ok := zoneMap[needle]; ok && val.Header().Rrtype == qType {
 		if os.Getenv("DEBUG") == "true" {
 			Printy(needle+" found in zone file", 3)
 		}

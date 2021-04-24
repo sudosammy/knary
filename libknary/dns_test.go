@@ -3,9 +3,7 @@ package libknary
 import (
 	"github.com/miekg/dns"
 	"net"
-	"os"
 	"sync"
-	"testing"
 	"time"
 )
 

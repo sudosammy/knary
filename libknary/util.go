@@ -43,7 +43,7 @@ func splitPort(ipaddr string) (string, int) {
 	ipSlice := strings.Split(ipaddr, ":")
 	ipSlice = ipSlice[:len(ipSlice)-1]
 	ipaddrNoPort := strings.Join(ipSlice[:], ",")
-	
+
 	portSlice := strings.Split(ipaddr, ":")
 	portSlice = portSlice[len(portSlice)-1:]
 

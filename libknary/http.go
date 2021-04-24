@@ -18,7 +18,7 @@ func PrepareRequest80() net.Listener {
 	p80 := os.Getenv("BIND_ADDR") + ":80"
 
 	if os.Getenv("BURP_HTTP_PORT") != "" {
-		p80 = "127.0.0.1:8880"  // set local port that knary will listen on as the client of the reverse proxy
+		p80 = "127.0.0.1:8880" // set local port that knary will listen on as the client of the reverse proxy
 
 		// to support our container friends - let the player choose the IP Burp is bound to
 		burpIP := ""
@@ -61,7 +61,7 @@ func PrepareRequest443() net.Listener {
 	p443 := os.Getenv("BIND_ADDR") + ":443"
 
 	if os.Getenv("BURP_HTTPS_PORT") != "" {
-		p443 = "127.0.0.1:8843"  // set local port that knary will listen on as the client of the reverse proxy
+		p443 = "127.0.0.1:8843" // set local port that knary will listen on as the client of the reverse proxy
 
 		// to support our container friends - let the player choose the IP Burp is bound to
 		burpIP := ""
@@ -156,7 +156,7 @@ func handleRequest(conn net.Conn) bool {
 					host = header
 					host = strings.TrimRight(header, "\r\n") + ":"
 					// using a reverse proxy, set ports back to the actual received ones
-					if  os.Getenv("BURP_HTTP_PORT") != "" || os.Getenv("BURP_HTTPS_PORT") != "" {
+					if os.Getenv("BURP_HTTP_PORT") != "" || os.Getenv("BURP_HTTPS_PORT") != "" {
 						if lPort == 8880 {
 							host = host + "80"
 						} else if lPort == 8843 {
