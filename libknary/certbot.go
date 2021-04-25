@@ -108,17 +108,6 @@ func decode(pemEncoded string) *ecdsa.PrivateKey {
 	return privateKey
 }
 
-// Thanks: https://dabase.com/e/15006/
-func trimStringArray(s []string) []string {
-	var r []string
-	for _, str := range s {
-		if str != "" {
-			r = append(r, str)
-		}
-	}
-	return r
-}
-
 func loadLEPrivKey() *MyUser {
 	// check if user exits or rego new user
 	if _, err := os.Stat("certs/server.key"); os.IsNotExist(err) {
@@ -184,10 +173,15 @@ func GenLetsEncrypt() {
 		myUser.Registration = reg
 	}
 
-	domainArray := []string{os.Getenv("CANARY_DOMAIN"), os.Getenv("BURP_DOMAIN")}
+	var domainArray []string
+	domainArray = append(domainArray, "*"+os.Getenv("CANARY_DOMAIN"))
+
+	if os.Getenv("BURP_DOMAIN") != "" {
+		domainArray = append(domainArray, "*"+os.Getenv("BURP_DOMAIN"))
+	}
 
 	request := certificate.ObtainRequest{
-		Domains: trimStringArray(domainArray),
+		Domains: domainArray,
 		Bundle:  true,
 	}
 	certificates, err := client.Certificate.Obtain(request)
@@ -197,6 +191,11 @@ func GenLetsEncrypt() {
 
 	// Each certificate comes back with the cert bytes, the bytes of the client's
 	// private key, and a certificate URL. SAVE THESE TO DISK.
+
+	// &certificate.Resource{Domain:"sam.ooo", CertURL:"https://acme-staging-v02.api.letsencrypt.org/acme/cert/fae516b4d8d5f2d5175a71e43fa9b957fb65", CertStableURL:"https://acme-staging-v02.api.letsencrypt.org/acme/cert/fae516b4d8d5f2d5175a71e43fa9b957fb65", PrivateKey:[]uint8{}
+	// }, Certificate:[]uint8{}
+	// }, IssuerCertificate:[]uint8{}
+	// CSR:[]uint8(nil)
 	fmt.Printf("%#v\n", certificates)
 
 	// ... all done.
