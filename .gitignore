@@ -7,4 +7,3 @@ zone.txt
 knary.exe
 certs/*.crt
 certs/*.key
-libknary/certbot.nogo

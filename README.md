@@ -2,6 +2,8 @@
 
 [![Build Status](https://travis-ci.org/sudosammy/knary.svg?branch=master)](https://travis-ci.org/sudosammy/knary)  [![Coverage Status](https://coveralls.io/repos/github/sudosammy/knary/badge.svg?branch=master)](https://coveralls.io/github/sudosammy/knary?branch=master)
 
+⚠️ **Note: Upgrading from version 2? You need to change your DNS setup. See step #2 and #3 below.** ⚠️
+
 >Like "Canary" but more hipster, which means better 😎😎😎
 
 knary is a canary token server that notifies a Slack/Discord/Teams/Lark channel (or other webhook) when incoming HTTP(S) or DNS requests match a given domain or any of its subdomains. It also supports functionality useful in offensive engagements including subdomain denylisting, working with Burp Collaborator, and running from a container.

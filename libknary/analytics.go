@@ -12,7 +12,8 @@ import (
 
 /*
 	This function collects very basic analytics to track knary usage.
-	If you have any thoughts about knary you can contact me on Twitter: @sudosammy
+	It does NOT collect anything that could be tied back to you easily; however, does take a SHA256 hash of your knary domain name.
+	If you have any thoughts about knary you can contact me on Twitter: @sudosammy or GitHub: https://github.com/sudosammy/knary
 */
 type features struct {
 	DNS      bool `json:"dns"`
@@ -60,7 +61,7 @@ func UsageStats(version string) bool {
 	if os.Getenv("HTTP") == "true" {
 		https = true
 	}
-	if os.Getenv("BURP") == "true" {
+	if os.Getenv("BURP_DOMAIN") == "true" {
 		burp = true
 	}
 	if os.Getenv("SLACK_WEBHOOK") != "" {

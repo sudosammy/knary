@@ -2,6 +2,7 @@ package libknary
 
 import (
 	"bufio"
+	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -57,4 +58,27 @@ func inZone(needle string, qType uint16) (dns.RR, bool) {
 		return val, true
 	}
 	return nil, false
+}
+
+func addZone(fqdn string, ttl int, qType string, value string) error {
+	rr, err := dns.NewRR(fmt.Sprintf("%s IN %d %s %s", fqdn, ttl, qType, value))
+
+	if err != nil {
+		Printy(err.Error(), 3)
+		return err
+	}
+
+	zoneMap[rr.Header().Name] = rr
+
+	if os.Getenv("DEBUG") == "true" {
+		Printy(fqdn+" "+qType+" added to zone", 3)
+	}
+	return nil
+}
+
+func remZone(fqdn string) {
+	_, ok := zoneMap[fqdn]
+	if ok {
+		delete(zoneMap, fqdn)
+	}
 }

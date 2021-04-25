@@ -127,6 +127,11 @@ func main() {
 		go libknary.AcceptDNS(&wg)
 	}
 
+	// generate a let's encrypt certificate
+	if os.Getenv("LETS_ENCRYPT") != "" && os.Getenv("DNS") == "true" {
+		libknary.GenLetsEncrypt()
+	}
+
 	if os.Getenv("HTTP") == "true" {
 		ln80 := libknary.PrepareRequest80()
 		// HTTP
