@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/miekg/dns"
 )
@@ -51,7 +52,7 @@ func LoadZone() (bool, error) {
 }
 
 func inZone(needle string, qType uint16) (dns.RR, bool) {
-	if val, ok := zoneMap[needle]; ok && val.Header().Rrtype == qType {
+	if val, ok := zoneMap[strings.ToLower(needle)]; ok && val.Header().Rrtype == qType {
 		if os.Getenv("DEBUG") == "true" {
 			Printy(needle+" found in zone file", 3)
 		}
@@ -61,7 +62,7 @@ func inZone(needle string, qType uint16) (dns.RR, bool) {
 }
 
 func addZone(fqdn string, ttl int, qType string, value string) error {
-	rr, err := dns.NewRR(fmt.Sprintf("%s IN %d %s %s", fqdn, ttl, qType, value))
+	rr, err := dns.NewRR(fmt.Sprintf("%s IN %d %s %s", strings.ToLower(fqdn), ttl, qType, value))
 
 	if err != nil {
 		Printy(err.Error(), 3)
