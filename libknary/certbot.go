@@ -13,16 +13,13 @@ import (
 	"os"
 	"time"
 
+	"github.com/sudosammy/knary/libknary/lego"
 	"github.com/go-acme/lego/v4/certcrypto"
 	"github.com/go-acme/lego/v4/certificate"
 	"github.com/go-acme/lego/v4/challenge/dns01"
 	"github.com/go-acme/lego/v4/lego"
 	"github.com/go-acme/lego/v4/platform/config/env"
 	"github.com/go-acme/lego/v4/registration"
-)
-
-const (
-	minTTL = 120
 )
 
 // You'll need a user or account type that implements acme.User
@@ -42,7 +39,7 @@ type Config struct {
 // NewDefaultConfig returns a default configuration for the DNSProvider.
 func NewDefaultConfig() *Config {
 	return &Config{
-		TTL:                env.GetOrDefaultInt("CERTBOT_TTL", minTTL),
+		TTL:                env.GetOrDefaultInt("CERTBOT_TTL", 120),
 		PropagationTimeout: env.GetOrDefaultSecond("CERTBOT_PROPAGATION_TIMEOUT", 1*time.Minute),
 		PollingInterval:    env.GetOrDefaultSecond("CERTBOT_POLLING_INTERVAL", 2*time.Second),
 	}
@@ -108,7 +105,7 @@ func decode(pemEncoded string) *ecdsa.PrivateKey {
 	return privateKey
 }
 
-func loadLEPrivKey() *MyUser {
+func loadMyUser() *MyUser {
 	// check if user exits or rego new user
 	if _, err := os.Stat("certs/server.key"); os.IsNotExist(err) {
 		// Create a user. New accounts need an email and private key to start.
@@ -130,6 +127,8 @@ func loadLEPrivKey() *MyUser {
 		log.Fatal(err)
 	}
 
+	// we need to see whether there is an appropriate registration.Resource
+	// json file we can import and set below
 	myUser := MyUser{
 		Email: os.Getenv("LETS_ENCRYPT"),
 		key:   decode(string([]byte(privateKey))),
@@ -138,8 +137,8 @@ func loadLEPrivKey() *MyUser {
 	return &myUser
 }
 
-func GenLetsEncrypt() {
-	myUser := loadLEPrivKey()
+func StartLetsEncrypt() {
+	myUser := loadMyUser()
 	config := lego.NewConfig(myUser)
 
 	if os.Getenv("LE_STAGING") == "true" {
@@ -161,6 +160,7 @@ func GenLetsEncrypt() {
 	client.Challenge.SetDNS01Provider(knaryDNS)
 
 	// if user exists, add rego details to struct
+	// TODO currently as myUser.Registration is always empty at this point
 	ereg, err := client.Registration.QueryRegistration()
 	if err == nil {
 		myUser.Registration = ereg
@@ -170,14 +170,17 @@ func GenLetsEncrypt() {
 		if err != nil {
 			log.Fatal(err)
 		}
+		// to fix the issue above
+		// we need to save this information to a JSON file
+		// and load it into MyUser when we load the private key and email address
 		myUser.Registration = reg
 	}
 
 	var domainArray []string
-	domainArray = append(domainArray, "*"+os.Getenv("CANARY_DOMAIN"))
+	domainArray = append(domainArray, "*."+os.Getenv("CANARY_DOMAIN"))
 
 	if os.Getenv("BURP_DOMAIN") != "" {
-		domainArray = append(domainArray, "*"+os.Getenv("BURP_DOMAIN"))
+		domainArray = append(domainArray, "*."+os.Getenv("BURP_DOMAIN"))
 	}
 
 	request := certificate.ObtainRequest{
@@ -189,6 +192,11 @@ func GenLetsEncrypt() {
 		log.Fatal(err)
 	}
 
+	// apparently we can renew like this:
+	// client.Certificate.Renew(certRes certificate.Resource, bundle bool, mustStaple bool, preferredChain string)
+	// we should do this in our TLS certificate daily check but when the certificate is ~20 days from expiry and
+	// raise any issues in the renewal to our chans
+
 	// Each certificate comes back with the cert bytes, the bytes of the client's
 	// private key, and a certificate URL. SAVE THESE TO DISK.
 
@@ -197,6 +205,10 @@ func GenLetsEncrypt() {
 	// }, IssuerCertificate:[]uint8{}
 	// CSR:[]uint8(nil)
 	fmt.Printf("%#v\n", certificates)
+
+
+	certsStorage := cmd.NewCertificatesStorage()
+	certsStorage.SaveResource(certificates)
 
 	// ... all done.
 }

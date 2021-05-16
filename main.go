@@ -80,10 +80,10 @@ func main() {
 	libknary.LoadZone()
 	go libknary.UsageStats(VERSION)
 
-	if os.Getenv("HTTP") == "true" && (os.Getenv("TLS_CRT") == "" || os.Getenv("TLS_KEY") == "") {
+	if os.Getenv("HTTP") == "true" && os.Getenv("LETS_ENCRYPT") == "" && (os.Getenv("TLS_CRT") == "" || os.Getenv("TLS_KEY") == "") {
 		libknary.Printy("Listening for http://*."+os.Getenv("CANARY_DOMAIN")+" requests", 1)
 		libknary.Printy("Without TLS_CRT & TLS_KEY set you will only be able to make HTTP (port 80) requests to knary", 2)
-	} else {
+	} else if (os.Getenv("HTTP") == "true" && (os.Getenv("LETS_ENCRYPT") != "" || os.Getenv("TLS_KEY") != "")) {
 		libknary.Printy("Listening for http(s)://*."+os.Getenv("CANARY_DOMAIN")+" requests", 1)
 	}
 	if os.Getenv("DNS") == "true" {
@@ -128,8 +128,10 @@ func main() {
 	}
 
 	// generate a let's encrypt certificate
-	if os.Getenv("LETS_ENCRYPT") != "" && os.Getenv("DNS") == "true" {
-		libknary.GenLetsEncrypt()
+	if os.Getenv("LETS_ENCRYPT") != "" && os.Getenv("HTTP") == "true" && os.Getenv("DNS") == "true" {
+		libknary.StartLetsEncrypt()
+		// out of this we need to set TLS_CRT and TLS_KEY
+		os.Setenv("KEY","value")
 	}
 
 	if os.Getenv("HTTP") == "true" {
