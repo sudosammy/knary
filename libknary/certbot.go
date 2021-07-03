@@ -116,7 +116,7 @@ func loadMyUser() *MyUser {
 		// encode key into strings
 		encPriv := encode(privateKey)
 		// save the private key
-		err = os.WriteFile("certs/server.key", []byte(encPriv), 0400)
+		err = os.WriteFile("certs/server.key", []byte(encPriv), 400)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -141,8 +141,11 @@ func StartLetsEncrypt() {
 	myUser := loadMyUser()
 	config := lego.NewConfig(myUser)
 
-	if os.Getenv("LE_STAGING") == "true" {
+	if os.Getenv("LE_ENV") == "staging" {
 		config.CADirURL = "https://acme-staging-v02.api.letsencrypt.org/directory"
+		config.Certificate.KeyType = certcrypto.RSA2048
+	} else if (os.Getenv("LE_ENV") == "dev") {
+		config.CADirURL = "http://127.0.0.1:4001/directory"
 		config.Certificate.KeyType = certcrypto.RSA2048
 	}
 

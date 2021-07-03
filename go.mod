@@ -8,6 +8,6 @@ require (
 	github.com/go-acme/lego/v4 v4.3.1
 	github.com/joho/godotenv v1.3.0
 	github.com/miekg/dns v1.1.41
-	golang.org/x/net v0.0.0-20210410081132-afb366fc7cd1 // indirect
+	golang.org/x/net v0.0.0-20210410081132-afb366fc7cd1
 	golang.org/x/sys v0.0.0-20210412220455-f1c623a9e750 // indirect
 )

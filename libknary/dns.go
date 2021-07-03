@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"net"
+//	"net"
 	"os"
 	"strings"
 	"sync"
@@ -86,20 +86,20 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 					burpIP = "127.0.0.1"
 				}
 
-				ipaddrNoPort, port := splitPort(ipaddr)
-
 				// https://github.com/sudosammy/knary/issues/43
-				c := new(dns.Client)
-				laddr := net.UDPAddr{
-					IP:   net.ParseIP(ipaddrNoPort),
-					Port: port,
-					Zone: "",
-				}
-				c.Dialer = &net.Dialer{
-					//Timeout: 200 * time.Millisecond,
-					LocalAddr: &laddr,
-				}
+				//ipaddrNoPort, port := splitPort(ipaddr)
+				// c := new(dns.Client)
+				// laddr := net.UDPAddr{
+				// 	IP:   net.ParseIP(ipaddrNoPort),
+				// 	Port: port,
+				// 	Zone: "",
+				// }
+				// c.Dialer = &net.Dialer{
+				// 	//Timeout: 200 * time.Millisecond,
+				// 	LocalAddr: &laddr,
+				// }
 
+				c := dns.Client{}
 				newM := dns.Msg{}
 				newM.SetQuestion(q.Name, dns.TypeA)
 				r, _, err := c.Exchange(&newM, burpIP+":"+os.Getenv("BURP_DNS_PORT"))
