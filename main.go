@@ -129,12 +129,12 @@ func main() {
 
 	// generate a let's encrypt certificate
 	if os.Getenv("LETS_ENCRYPT") != "" && os.Getenv("HTTP") == "true" && os.Getenv("DNS") == "true" {
-		libknary.StartLetsEncrypt()
+		certName := libknary.StartLetsEncrypt()
 		// out of this we need to set TLS_CRT and TLS_KEY
-		os.Setenv("TLS_CRT","certs/server.crt")
-		os.Setenv("TLS_KEY","certs/server.key")
+		os.Setenv("TLS_CRT","certs/"+certName+".crt")
+		os.Setenv("TLS_KEY","certs/"+certName+".key")
 	} else if (os.Getenv("LETS_ENCRYPT") != "" && (os.Getenv("HTTP") != "true" || os.Getenv("DNS") != "true")) {
-		libknary.Printy("HTTP and DNS configurations must be \"true\" to use Let's Encrypt", 2)
+		libknary.Printy("HTTP and DNS environment variables must be set to \"true\" to use Let's Encrypt", 2)
 	}
 
 	if os.Getenv("HTTP") == "true" {

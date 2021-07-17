@@ -1,1 +1,10 @@
-Certs go here
+# Let's Encrypt Certificates
+
+We use this folder for storing Let's Encrypt certificates.
+
+If you would like to change this certificate paths, set the following environment variables:
+
+```
+CERT_PATH=<path>
+OLD_CERT_PATH=<path>
+```

@@ -20,24 +20,18 @@ import (
 	"golang.org/x/net/idna"
 )
 
-const (
-	baseCertificatesFolderName = "certs"
-	baseArchivesFolderName     = "archives"
-)
+var baseCertificatesFolderName = "certs"
+var baseArchivesFolderName     = "certs/archives"
 
 // CertificatesStorage a certificates storage.
 //
 // rootPath:
-//
-//     ./.lego/certs/
-//          │      └── root certificates directory
-//          └── "path" option
+//     /knary/certs/
+//                └── root certificates directory
 //
 // archivePath:
-//
-//     ./.lego/archives/
-//          │      └── archived certificates directory
-//          └── "path" option
+//     /knary/certs/archives/
+//                    └── archived certificates directory
 //
 type CertificatesStorage struct {
 	rootPath    string

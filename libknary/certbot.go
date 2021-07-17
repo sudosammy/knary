@@ -8,7 +8,6 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
-	"fmt"
 	"log"
 	"os"
 	"time"
@@ -137,7 +136,7 @@ func loadMyUser() *MyUser {
 	return &myUser
 }
 
-func StartLetsEncrypt() {
+func StartLetsEncrypt() string {
 	myUser := loadMyUser()
 	config := lego.NewConfig(myUser)
 
@@ -207,11 +206,8 @@ func StartLetsEncrypt() {
 	// }, Certificate:[]uint8{}
 	// }, IssuerCertificate:[]uint8{}
 	// CSR:[]uint8(nil)
-	fmt.Printf("%#v\n", certificates)
-
-
 	certsStorage := cmd.NewCertificatesStorage()
 	certsStorage.SaveResource(certificates)
 
-	// ... all done.
+	return certificates.Domain
 }

@@ -1,1 +1,2 @@
-_acme_challenge.knary.tld.		300		IN	TXT		"Let's Encrypt TXT value goes here"
+helloworld.knary.tld.	300		IN	A		127.0.0.1
+sample.knary.tld.		300		IN	TXT		"A custom response here"
