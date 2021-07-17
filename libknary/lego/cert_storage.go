@@ -124,7 +124,7 @@ func (s *CertificatesStorage) ReadFile(domain, extension string) ([]byte, error)
 }
 
 func (s *CertificatesStorage) GetFileName(domain, extension string) string {
-	filename := sanitizedDomain(domain) + extension
+	filename := SanitizedDomain(domain) + extension
 	return filepath.Join(s.rootPath, filename)
 }
 
@@ -140,14 +140,14 @@ func (s *CertificatesStorage) ReadCertificate(domain, extension string) ([]*x509
 
 func (s *CertificatesStorage) WriteFile(domain, extension string, data []byte) error {
 	var baseFileName string
-	baseFileName = sanitizedDomain(domain)
+	baseFileName = SanitizedDomain(domain)
 	filePath := filepath.Join(s.rootPath, baseFileName+extension)
 
 	return ioutil.WriteFile(filePath, data, 400)
 }
 
 func (s *CertificatesStorage) MoveToArchive(domain string) error {
-	matches, err := filepath.Glob(filepath.Join(s.rootPath, sanitizedDomain(domain)+".*"))
+	matches, err := filepath.Glob(filepath.Join(s.rootPath, SanitizedDomain(domain)+".*"))
 	if err != nil {
 		return err
 	}
@@ -167,7 +167,7 @@ func (s *CertificatesStorage) MoveToArchive(domain string) error {
 }
 
 // sanitizedDomain Make sure no funny chars are in the cert names (like wildcards ;)).
-func sanitizedDomain(domain string) string {
+func SanitizedDomain(domain string) string {
 	safe, err := idna.ToASCII(strings.ReplaceAll(domain, "*", "_"))
 	if err != nil {
 		log.Fatal(err)

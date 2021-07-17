@@ -12,7 +12,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/sudosammy/knary/libknary/lego"
+	cmd "github.com/sudosammy/knary/libknary/lego"
 	"github.com/go-acme/lego/v4/certcrypto"
 	"github.com/go-acme/lego/v4/certificate"
 	"github.com/go-acme/lego/v4/challenge/dns01"
@@ -209,5 +209,5 @@ func StartLetsEncrypt() string {
 	certsStorage := cmd.NewCertificatesStorage()
 	certsStorage.SaveResource(certificates)
 
-	return certificates.Domain
+	return cmd.SanitizedDomain(certificates.Domain)
 }
