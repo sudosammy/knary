@@ -165,6 +165,13 @@ func renewLetsEncrypt() {
 	myUser := loadMyUser()
 	config := lego.NewConfig(myUser)
 
+	if os.Getenv("LE_ENV") == "staging" {
+		config.CADirURL = "https://acme-staging-v02.api.letsencrypt.org/directory"
+
+	} else if (os.Getenv("LE_ENV") == "dev") {
+		config.CADirURL = "http://127.0.0.1:4001/directory"
+	}
+
 	client, err := lego.NewClient(config)
 	if err != nil {
 		logger("ERROR", err.Error())
