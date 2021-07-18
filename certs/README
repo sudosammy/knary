@@ -2,3 +2,5 @@
 
 We use this folder for storing Let's Encrypt certificates.
 
+If you are having trouble with Let's Encrypt, try deleting all the files in this directory. Don't delete the `archives` folder. 
+

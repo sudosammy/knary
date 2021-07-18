@@ -1,4 +1,4 @@
 # Archived Let's Encrypt Certificates
 
-We use this folder for moving old Let's Encrypt certificates.
+We use this folder for storing old Let's Encrypt certificates.
 
