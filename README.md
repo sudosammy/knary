@@ -50,7 +50,7 @@ www.knary.tld
 ```
 This would stop knary from alerting on `www.knary.tld` but not `another.www.knary.tld`. Changes to this file will require a knary restart. A sample can be found in `examples/denylist.txt` with common subdomains to include.
 
-*Important:* You will almost certainly want to include your TLD, `ns`, and `_acme-challenge` subdomains (e.g. `mycanary.com`, `ns.mycanary.com`, and `_acme-challenge.mycanary.com`) as several mundane systems will perform DNS lookups against these records every day.
+**Important:** You will almost certainly want to include your TLD, `ns`, and `_acme-challenge` subdomains (e.g. `mycanary.com`, `ns.mycanary.com`, and `_acme-challenge.mycanary.com`) as several mundane systems will perform DNS lookups against these records every day.
 
 ## Necessary Config
 Example config can be found in `examples/`
@@ -70,6 +70,8 @@ Example config can be found in `examples/`
 * `LARK_SECRET` __Optional__ The [secret token](https://www.feishu.cn/hc/en-US/articles/360024984973-Bot-Use-bots-in-groups) used to sign messages to your Lark/Feishu bot
 
 ### Burp Collaborator Config
+**Note:** If you have previously been running knary with Let's Encrypt and have now configured Burp Collaborator, you will need to delete the certificates in the `certs/` folder so that knary can re-generate certificates that include your Burp Collaborator subdomain.
+
 If you are running Burp Collaborator on the same server as knary, you will need to configure the following.
 * `BURP_DOMAIN` The domain + TLD to match Collaborator hits on (e.g. `burp.{CANARY_DOMAIN}`).
 * `BURP_DNS_PORT` Local Burp Collaborator DNS port. This can't be 53, because knary listens on that one! Change Collaborator config to be something like 8053, and set this to `8053`

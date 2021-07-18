@@ -160,7 +160,9 @@ func StartLetsEncrypt() string {
 }
 
 func renewLetsEncrypt() {
+	Printy("Attempting Let's Encrypt renewal", 3)
 	logger("INFO", "Attempting Let's Encrypt certificate renewal.")
+	go sendMsg(":lock: Attempting renewal of the Let's Encrypt certificate. I'll let you know how I go.")
 
 	myUser := loadMyUser()
 	config := lego.NewConfig(myUser)
@@ -174,6 +176,8 @@ func renewLetsEncrypt() {
 
 	client, err := lego.NewClient(config)
 	if err != nil {
+		go sendMsg(":warning: " + err.Error() + " :warning:")
+		go sendMsg("knary is shutting down because of this error :(")
 		logger("ERROR", err.Error())
 		GiveHead(2)
 		log.Fatal(err)
@@ -186,11 +190,17 @@ func renewLetsEncrypt() {
 	
 	keyBytes, errR := certsStorage.ReadFile(certDomains[0], ".key")
 	if errR != nil {
-		log.Fatalf("Error while loading the private key for domain %s\n\t%v", certDomains[0], errR)
+		go sendMsg(":warning: " + errR.Error() + " :warning:")
+		go sendMsg("knary is shutting down because of this error :(")
+		logger("ERROR", errR.Error())
+		GiveHead(2)
+		log.Fatal(errR)
 	}
 
 	privateKey, errR = certcrypto.ParsePEMPrivateKey(keyBytes)
 	if errR != nil {
+		go sendMsg(":warning: " + errR.Error() + " :warning:")
+		go sendMsg("knary is shutting down because of this error :(")
 		logger("ERROR", errR.Error())
 		GiveHead(2)
 		log.Fatal(errR)
@@ -205,16 +215,15 @@ func renewLetsEncrypt() {
 	}
 	certRes, err := client.Certificate.Obtain(request)
 	if err != nil {
+		go sendMsg(":warning: " + err.Error() + " :warning:")
+		go sendMsg("knary is shutting down because of this error :(")
 		log.Fatal(err)
 	}
 
+	// move old certificates to archive folder
+	certsStorage.MoveToArchive(certDomains[0])
+
 	certsStorage.SaveResource(certRes)
-
-	// meta[renewEnvCertDomain] = domain
-	// meta[renewEnvCertPath] = certsStorage.GetFileName(domain, ".crt")
-	// meta[renewEnvCertKeyPath] = certsStorage.GetFileName(domain, ".key")
-
-	// TEST archive move
-	//certsStorage.MoveToArchive("*.sam.ooo")
+	go sendMsg(":lock: Certificate successfully renewed!")
 
 }

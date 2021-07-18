@@ -219,7 +219,6 @@ func CheckTLSExpiry(days int) bool {
 		logger("INFO", "TLS certificate expires in " + strconv.Itoa(expiry) + " days.")
 		Printy("TLS certificate expires in " + strconv.Itoa(expiry) + " days.", 3)
 		if (os.Getenv("LETS_ENCRYPT") != "") {
-			Printy("Attempting Let's Encrypt renewal...", 3)
 			renewLetsEncrypt()
 		}
 	}
