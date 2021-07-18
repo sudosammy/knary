@@ -10,7 +10,7 @@ SLACK_WEBHOOK=https://hooks.slack.com/services/...
 
 DEBUG=false
 LOG_FILE=knary.log
-BLACKLIST_FILE=blacklist.txt
+DENYLIST_FILE=denylist.txt
 
 BURP_DOMAIN=burp.mydomain.ooo
 BURP_DNS_PORT=8053

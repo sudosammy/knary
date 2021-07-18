@@ -197,6 +197,7 @@ func inBlacklist(needles ...string) bool {
 				// matches blacklist.domain or 1.1.1.1 but not x.blacklist.domain
 				updBL := blacklistMap[i]
 				updBL.lastHit = time.Now() // update last hit
+				// TODO there is a race condition here!
 				blacklistMap[i] = updBL
 
 				if os.Getenv("DEBUG") == "true" {
