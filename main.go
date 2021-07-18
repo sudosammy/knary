@@ -113,10 +113,6 @@ func main() {
 		libknary.Printy("Posting to webhook: "+os.Getenv("LARK_WEBHOOK"), 1)
 	}
 
-	// these go after all the screen prining for neatness
-	libknary.CheckUpdate(VERSION, GITHUBVERSION, GITHUB)
-	libknary.HeartBeat(VERSION, true)
-
 	// setup waitgroups for DNS/HTTP go routines
 	var wg sync.WaitGroup // there isn't actually any clean exit option, so we can just wait forever
 
@@ -145,6 +141,10 @@ func main() {
 		libknary.Printy("TLS_* and LETS_ENCRYPT environment variables found. We'll use the TLS_* set certificates", 2)
 		os.Setenv("LETS_ENCRYPT","") // clear variable to not confuse certificate renewal logic
 	}
+
+	// these go after all the screen prining for neatness
+	libknary.CheckUpdate(VERSION, GITHUBVERSION, GITHUB)
+	libknary.HeartBeat(VERSION, true)
 
 	if os.Getenv("HTTP") == "true" {
 		ln80 := libknary.PrepareRequest80()

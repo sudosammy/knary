@@ -177,7 +177,7 @@ func renewLetsEncrypt() {
 	client, err := lego.NewClient(config)
 	if err != nil {
 		go sendMsg(":warning: " + err.Error() + " :warning:")
-		go sendMsg("knary is shutting down because of this error :(")
+		go sendMsg(":warning: knary is shutting down because of this error :(")
 		logger("ERROR", err.Error())
 		GiveHead(2)
 		log.Fatal(err)
@@ -191,7 +191,7 @@ func renewLetsEncrypt() {
 	keyBytes, errR := certsStorage.ReadFile(certDomains[0], ".key")
 	if errR != nil {
 		go sendMsg(":warning: " + errR.Error() + " :warning:")
-		go sendMsg("knary is shutting down because of this error :(")
+		go sendMsg(":warning: knary is shutting down because of this error :(")
 		logger("ERROR", errR.Error())
 		GiveHead(2)
 		log.Fatal(errR)
@@ -200,7 +200,7 @@ func renewLetsEncrypt() {
 	privateKey, errR = certcrypto.ParsePEMPrivateKey(keyBytes)
 	if errR != nil {
 		go sendMsg(":warning: " + errR.Error() + " :warning:")
-		go sendMsg("knary is shutting down because of this error :(")
+		go sendMsg(":warning: knary is shutting down because of this error :(")
 		logger("ERROR", errR.Error())
 		GiveHead(2)
 		log.Fatal(errR)
@@ -216,7 +216,8 @@ func renewLetsEncrypt() {
 	certRes, err := client.Certificate.Obtain(request)
 	if err != nil {
 		go sendMsg(":warning: " + err.Error() + " :warning:")
-		go sendMsg("knary is shutting down because of this error :(")
+		go sendMsg(":warning: knary is shutting down because of this error :(")
+		GiveHead(2)
 		log.Fatal(err)
 	}
 
@@ -224,7 +225,13 @@ func renewLetsEncrypt() {
 	if os.Getenv("DEBUG") == "true" {
 		Printy("Archiving old certificates", 3)
 	}
-	certsStorage.MoveToArchive(certDomains[0])
+	err = certsStorage.MoveToArchive(certDomains[0])
+	if err != nil {
+		msg := "There was an error moving the old certificates to the archive folder. Did you delete the folder? I'll overwrite the old certificates instead. See the log for more information."
+		go sendMsg(":warning: " + msg)
+		Printy(msg, 2)
+		logger("WARNING", "Could not move certificates to archive: " + err.Error())
+	}
 
 	certsStorage.SaveResource(certRes)
 	msg := "Certificate successfully renewed!"
