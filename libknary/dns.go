@@ -123,22 +123,17 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 				Printy("Got A question for: "+q.Name, 3)
 			}
 
-			if inBlacklist(q.Name, ipaddr) {
-				m.Rcode = dns.RcodeNameError // return an NXDOMAIN on blacklisted domains
-				return
-			}
-
 			ipaddrNoPort, _ := splitPort(ipaddr)
 			reverse, _ := dns.ReverseAddr(ipaddrNoPort)
 
-			if reverse == "" {
+			if reverse == "" && !inBlacklist(q.Name, ipaddr) {
 				go sendMsg("DNS (A): " + q.Name +
 					"```" +
 					"From: " + ipaddr +
 					"```")
 				logger("INFO", ipaddr+" - "+q.Name)
 
-			} else {
+			} else if !inBlacklist(q.Name, ipaddr) {
 				go sendMsg("DNS (A): " + q.Name +
 					"```" +
 					"From: " + ipaddr + "\n" +
@@ -166,22 +161,17 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 				Printy("Got AAAA question for: "+q.Name, 3)
 			}
 
-			if inBlacklist(q.Name, ipaddr) {
-				m.Rcode = dns.RcodeNameError // return an NXDOMAIN on blacklisted domains
-				return
-			}
-
 			ipaddrNoPort, _ := splitPort(ipaddr)
 			reverse, _ := dns.ReverseAddr(ipaddrNoPort)
 
-			if reverse == "" {
+			if reverse == "" && !inBlacklist(q.Name, ipaddr) {
 				go sendMsg("DNS (AAAA): " + q.Name +
 					"```" +
 					"From: " + ipaddr +
 					"```")
 				logger("INFO", ipaddr+" - "+q.Name)
 
-			} else {
+			} else if !inBlacklist(q.Name, ipaddr) {
 				go sendMsg("DNS (AAAA): " + q.Name +
 					"```" +
 					"From: " + ipaddr + "\n" +
@@ -214,22 +204,17 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 				Printy("Got CNAME question for: "+q.Name, 3)
 			}
 
-			if inBlacklist(q.Name, ipaddr) {
-				m.Rcode = dns.RcodeNameError // return an NXDOMAIN on blacklisted domains
-				return
-			}
-
 			ipaddrNoPort, _ := splitPort(ipaddr)
 			reverse, _ := dns.ReverseAddr(ipaddrNoPort)
 
-			if reverse == "" {
+			if reverse == "" && !inBlacklist(q.Name, ipaddr) {
 				go sendMsg("DNS (CNAME): " + q.Name +
 					"```" +
 					"From: " + ipaddr +
 					"```")
 				logger("INFO", ipaddr+" - "+q.Name)
 
-			} else {
+			} else if !inBlacklist(q.Name, ipaddr) {
 				go sendMsg("DNS (CNAME): " + q.Name +
 					"```" +
 					"From: " + ipaddr + "\n" +
@@ -243,15 +228,33 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 				m.Answer = append(m.Answer, rr)
 			}
 
-		// for letsencrypt
 		case dns.TypeTXT:
 			if os.Getenv("DEBUG") == "true" {
 				Printy("Got TXT question for: "+q.Name, 3)
 			}
 
-			/*
-				Lets Encrypt Here
-			*/
+			ipaddrNoPort, _ := splitPort(ipaddr)
+			reverse, _ := dns.ReverseAddr(ipaddrNoPort)
+
+			if reverse == "" && !inBlacklist(q.Name, ipaddr) {
+				go sendMsg("DNS (TXT): " + q.Name +
+					"```" +
+					"From: " + ipaddr +
+					"```")
+				logger("INFO", ipaddr+" - "+q.Name)
+
+			} else if !inBlacklist(q.Name, ipaddr) {
+				go sendMsg("DNS (TXT): " + q.Name +
+					"```" +
+					"From: " + ipaddr + "\n" +
+					"PTR: " + reverse +
+					"```")
+				logger("INFO", ipaddr+" - "+reverse+" - "+q.Name)
+			}
+
+			if !foundInZone {
+				return
+			}
 
 		// for other nameserver functions
 		case dns.TypeSOA:
