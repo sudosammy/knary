@@ -82,7 +82,7 @@ func main() {
 
 	if os.Getenv("HTTP") == "true" && os.Getenv("LETS_ENCRYPT") == "" && (os.Getenv("TLS_CRT") == "" || os.Getenv("TLS_KEY") == "") {
 		libknary.Printy("Listening for http://*."+os.Getenv("CANARY_DOMAIN")+" requests", 1)
-		libknary.Printy("Without TLS_CRT & TLS_KEY set you will only be able to make HTTP (port 80) requests to knary", 2)
+		libknary.Printy("Without LETS_ENCRYPT or TLS_* environment variables set you will only be able to make HTTP (port 80) requests to knary", 2)
 	} else if (os.Getenv("HTTP") == "true" && (os.Getenv("LETS_ENCRYPT") != "" || os.Getenv("TLS_KEY") != "")) {
 		libknary.Printy("Listening for http(s)://*."+os.Getenv("CANARY_DOMAIN")+" requests", 1)
 	}
@@ -134,6 +134,7 @@ func main() {
 		// TODO make these not rely on hardcoded paths
 		os.Setenv("TLS_CRT","certs/"+certName+".crt")
 		os.Setenv("TLS_KEY","certs/"+certName+".key")
+		libknary.Printy("Let's Encrypt certificate is loaded", 1)
 
 	} else if (os.Getenv("LETS_ENCRYPT") != "" && (os.Getenv("HTTP") != "true" || os.Getenv("DNS") != "true")) {
 		libknary.Printy("HTTP and DNS environment variables must be set to \"true\" to use Let's Encrypt. We'll continue without Let's Encrypt", 2)

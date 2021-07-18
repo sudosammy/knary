@@ -4,6 +4,8 @@ import (
 	"time"
 	"log"
 	"os"
+	"strings"
+	"path/filepath"
 
 	"github.com/go-acme/lego/v4/lego"
 	"github.com/go-acme/lego/v4/registration"
@@ -50,8 +52,11 @@ func registerAccount(client *lego.Client) *registration.Resource {
 }
 
 func needRenewal(days int) (bool, int) {
+	certName := strings.TrimSuffix(os.Getenv("TLS_CERT"), filepath.Ext(os.Getenv("TLS_CERT")))
+	certExt := filepath.Ext(os.Getenv("TLS_CERT"))
+
 	certsStorage := cmd.NewCertificatesStorage()
-	certificates, err := certsStorage.ReadCertificate(getDomains()[0], ".crt")
+	certificates, err := certsStorage.ReadCertificate(certName, certExt)
 	if err != nil {
 		logger("ERROR", err.Error())
 		GiveHead(2)
