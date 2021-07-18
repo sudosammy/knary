@@ -1,5 +1,6 @@
 knary.tld
 ns.knary.tld
+_acme-challenge.knary.tld
 www.knary.tld
 webdisk.knary.tld
 webmail.knary.tld

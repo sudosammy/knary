@@ -128,27 +128,24 @@ func StartLetsEncrypt() string {
 
 	client.Challenge.SetDNS01Provider(knaryDNS)
 
-	// if user exists, add rego details to struct
-	// TODO currently as myUser.Registration is always empty at this point
-	ereg, err := client.Registration.QueryRegistration()
+	// if we're an existing user, loadMyUser would have populated cmd.Account with our Registration details
+	currentReg, err := client.Registration.QueryRegistration()
 	if err == nil {
-		myUser.Registration = ereg
+		myUser.Registration = currentReg
+
 	} else {
-		// if not, create new user
+		// if not, cmd.Account will just have our email address + private key in it, so we create new user
 		reg, err := client.Registration.Register(registration.RegisterOptions{TermsOfServiceAgreed: true})
 		if err != nil {
 			log.Fatal(err)
 		}
-		// to fix the issue above
-		// we need to save this information to a JSON file
-		// and load it into MyUser when we load the private key and email address
 		myUser.Registration = reg
-	}
 
-	// like this?
-	accountStorage := cmd.NewAccountsStorage()
-	if err := accountStorage.Save(myUser); err != nil {
-		log.Fatal(err)
+		// save these registration details to disk
+		accountStorage := cmd.NewAccountsStorage()
+		if err := accountStorage.Save(myUser); err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	var domainArray []string
@@ -156,6 +153,15 @@ func StartLetsEncrypt() string {
 
 	if os.Getenv("BURP_DOMAIN") != "" {
 		domainArray = append(domainArray, "*."+os.Getenv("BURP_DOMAIN"))
+	}
+
+	// should only request certs if the current ones are old...
+	certsStorage := cmd.NewCertificatesStorage()
+
+	if certsStorage.ExistsFile(cmd.SanitizedDomain(os.Getenv("CANARY_DOMAIN")),"key") &&
+		certsStorage.ExistsFile(cmd.SanitizedDomain(os.Getenv("CANARY_DOMAIN")),"crt") {
+		// We have keys already, don't need new ones.
+		return cmd.SanitizedDomain(os.Getenv("CANARY_DOMAIN"))
 	}
 
 	request := certificate.ObtainRequest{
@@ -172,7 +178,9 @@ func StartLetsEncrypt() string {
 	// we should do this in our TLS certificate daily check but when the certificate is ~20 days from expiry and
 	// raise any issues in the renewal to our chans
 
-	certsStorage := cmd.NewCertificatesStorage()
+	// TEST archive move
+	//certsStorage.MoveToArchive("*.sam.ooo")
+	
 	certsStorage.SaveResource(certificates)
 
 	return cmd.SanitizedDomain(certificates.Domain)

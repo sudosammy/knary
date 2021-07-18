@@ -8,4 +8,5 @@ knary.exe
 certs/*.json
 certs/*.crt
 certs/*.key
-certs/archive/*
+certs/archives/*
+!certs/archives/README.md
