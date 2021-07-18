@@ -208,16 +208,12 @@ func inBlacklist(needles ...string) bool {
 	return false
 }
 
-func CheckTLSExpiry(days int) bool {
+func CheckTLSExpiry(days int) (bool, int) {
 	renew, expiry := needRenewal(days)
 
-	if os.Getenv("DEBUG") == "true" {
-		Printy("TLS certificate expires in " + strconv.Itoa(expiry) + " days.", 3)
-	}
-
 	if renew {
-		logger("INFO", "TLS certificate expires in " + strconv.Itoa(expiry) + " days.")
-		Printy("TLS certificate expires in " + strconv.Itoa(expiry) + " days.", 3)
+		logger("INFO", "TLS certificate expires in " + strconv.Itoa(expiry) + " days")
+		Printy("TLS certificate expires in " + strconv.Itoa(expiry) + " days", 3)
 		if (os.Getenv("LETS_ENCRYPT") != "") {
 			renewLetsEncrypt()
 		}
@@ -228,10 +224,10 @@ func CheckTLSExpiry(days int) bool {
 		Printy(certMsg, 2)
 		logger("WARNING", certMsg)
 		go sendMsg(":lock: " + certMsg)
-		return true
+		return true, expiry
 	}
 
-	return false
+	return false, expiry
 }
 
 func HeartBeat(version string, firstrun bool) (bool, error) {

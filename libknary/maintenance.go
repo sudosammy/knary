@@ -16,7 +16,7 @@ func dailyTasks(version string, githubVersion string, githubURL string) bool {
 
 	// if HTTPS knary is operating, check certificate expiry
 	if os.Getenv("TLS_CRT") != "" && os.Getenv("TLS_KEY") != "" {
-		CheckTLSExpiry(30)
+		_,_ = CheckTLSExpiry(30)
 	}
 
 	// log knary usage

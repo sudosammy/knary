@@ -71,6 +71,8 @@ func needRenewal(days int) (bool, int) {
 	// }
 
 	notAfter := int(time.Until(x509Cert.NotAfter).Hours() / 24.0)
+	// TESTING
+	notAfter = -5
 
 	if days >= 0 && notAfter > days {
 		return false, notAfter

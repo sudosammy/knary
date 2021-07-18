@@ -221,9 +221,14 @@ func renewLetsEncrypt() {
 	}
 
 	// move old certificates to archive folder
+	if os.Getenv("DEBUG") == "true" {
+		Printy("Archiving old certificates", 3)
+	}
 	certsStorage.MoveToArchive(certDomains[0])
 
 	certsStorage.SaveResource(certRes)
-	go sendMsg(":lock: Certificate successfully renewed!")
-
+	msg := "Certificate successfully renewed!"
+	go sendMsg(":lock: " + msg)
+	logger("INFO", msg)
+	Printy(msg, 3)
 }
