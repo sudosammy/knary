@@ -160,7 +160,7 @@ func StartLetsEncrypt() string {
 }
 
 func renewLetsEncrypt() {
-	Printy("Attempting Let's Encrypt renewal", 3)
+	Printy("Attempting Let's Encrypt renewal", 1)
 	logger("INFO", "Attempting Let's Encrypt certificate renewal.")
 	go sendMsg(":lock: Attempting renewal of the Let's Encrypt certificate. I'll let you know how I go.")
 
