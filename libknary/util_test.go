@@ -79,12 +79,7 @@ func TestTLSExpiryCase1(t *testing.T) {
 	os.Setenv("TLS_PORT", port)
 	defer ts.Close()
 
-	// its self signed so need to skip any checks
-	conf := &tls.Config{
-		InsecureSkipVerify: true,
-	}
-
-	val, err := CheckTLSExpiry(dom, conf)
+	val, err := CheckTLSExpiry(dom)
 
 	if val == false && err != nil {
 		t.Errorf(err.Error())
@@ -104,12 +99,7 @@ func TestTLSExpiryCase2(t *testing.T) {
 	os.Setenv("TLS_PORT", port)
 	defer ts.Close()
 
-	// its self signed so need to skip any checks
-	conf := &tls.Config{
-		InsecureSkipVerify: true,
-	}
-
-	val, err := CheckTLSExpiry(dom, conf)
+	val, err := CheckTLSExpiry(dom)
 
 	if val == false && err != nil {
 		t.Errorf(err.Error())
@@ -128,11 +118,7 @@ func TestTLSExpiryCase3(t *testing.T) {
 	os.Setenv("TLS_PORT", port)
 	defer ts.Close()
 
-	// its self signed so need to skip any checks
-	conf := &tls.Config{
-		InsecureSkipVerify: true,
-	}
-	val, err := CheckTLSExpiry(dom, conf)
+	val, err := CheckTLSExpiry(dom)
 
 	if val == false && err != nil {
 		t.Errorf(err.Error())

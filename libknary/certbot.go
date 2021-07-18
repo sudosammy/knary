@@ -1,10 +1,10 @@
 package libknary
 
 import (
-	"crypto"
+	// "crypto"
+	// "crypto/elliptic"
+	// "crypto/rand"
 	"crypto/ecdsa"
-	"crypto/elliptic"
-	"crypto/rand"
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
@@ -20,13 +20,6 @@ import (
 	"github.com/go-acme/lego/v4/platform/config/env"
 	"github.com/go-acme/lego/v4/registration"
 )
-
-// You'll need a user or account type that implements acme.User
-type MyUser struct {
-	Email        string
-	Registration *registration.Resource
-	key          crypto.PrivateKey
-}
 
 // Config is used to configure the creation of the DNSProvider.
 type Config struct {
@@ -78,16 +71,6 @@ func (d *DNSProvider) CleanUp(domain, token, keyAuth string) error {
 	return nil
 }
 
-func (u *MyUser) GetEmail() string {
-	return u.Email
-}
-func (u MyUser) GetRegistration() *registration.Resource {
-	return u.Registration
-}
-func (u *MyUser) GetPrivateKey() crypto.PrivateKey {
-	return u.key
-}
-
 // Thanks: https://stackoverflow.com/questions/21322182/how-to-store-ecdsa-private-key-in-go
 func encode(privateKey *ecdsa.PrivateKey) string {
 	x509Encoded, _ := x509.MarshalECPrivateKey(privateKey)
@@ -104,48 +87,32 @@ func decode(pemEncoded string) *ecdsa.PrivateKey {
 	return privateKey
 }
 
-func loadMyUser() *MyUser {
-	// check if user exits or rego new user
-	if _, err := os.Stat("certs/server.key"); os.IsNotExist(err) {
-		// Create a user. New accounts need an email and private key to start.
-		privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-		if err != nil {
-			log.Fatal(err)
-		}
-		// encode key into strings
-		encPriv := encode(privateKey)
-		// save the private key
-		err = os.WriteFile("certs/server.key", []byte(encPriv), 400)
-		if err != nil {
-			log.Fatal(err)
-		}
+func loadMyUser() *cmd.Account {
+	accountStorage := cmd.NewAccountsStorage()
+
+	//privateKey := accountStorage.GetPrivateKey(certcrypto.EC384)
+	privateKey := accountStorage.GetPrivateKey(certcrypto.RSA2048)
+
+	var account *cmd.Account
+	if accountStorage.ExistsAccountFilePath() {
+		account = accountStorage.LoadAccount(privateKey)
+	} else {
+		account = &cmd.Account{Email: accountStorage.GetUserID(), Key: privateKey}
 	}
 
-	privateKey, err := os.ReadFile("certs/server.key")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// we need to see whether there is an appropriate registration.Resource
-	// json file we can import and set below
-	myUser := MyUser{
-		Email: os.Getenv("LETS_ENCRYPT"),
-		key:   decode(string([]byte(privateKey))),
-	}
-
-	return &myUser
+	return &*account
 }
 
 func StartLetsEncrypt() string {
+
 	myUser := loadMyUser()
 	config := lego.NewConfig(myUser)
 
 	if os.Getenv("LE_ENV") == "staging" {
 		config.CADirURL = "https://acme-staging-v02.api.letsencrypt.org/directory"
-		config.Certificate.KeyType = certcrypto.RSA2048
+
 	} else if (os.Getenv("LE_ENV") == "dev") {
 		config.CADirURL = "http://127.0.0.1:4001/directory"
-		config.Certificate.KeyType = certcrypto.RSA2048
 	}
 
 	// A client facilitates communication with the CA server.
@@ -178,6 +145,12 @@ func StartLetsEncrypt() string {
 		myUser.Registration = reg
 	}
 
+	// like this?
+	accountStorage := cmd.NewAccountsStorage()
+	if err := accountStorage.Save(myUser); err != nil {
+		log.Fatal(err)
+	}
+
 	var domainArray []string
 	domainArray = append(domainArray, "*."+os.Getenv("CANARY_DOMAIN"))
 
@@ -199,13 +172,6 @@ func StartLetsEncrypt() string {
 	// we should do this in our TLS certificate daily check but when the certificate is ~20 days from expiry and
 	// raise any issues in the renewal to our chans
 
-	// Each certificate comes back with the cert bytes, the bytes of the client's
-	// private key, and a certificate URL. SAVE THESE TO DISK.
-
-	// &certificate.Resource{Domain:"sam.ooo", CertURL:"https://acme-staging-v02.api.letsencrypt.org/acme/cert/fae516b4d8d5f2d5175a71e43fa9b957fb65", CertStableURL:"https://acme-staging-v02.api.letsencrypt.org/acme/cert/fae516b4d8d5f2d5175a71e43fa9b957fb65", PrivateKey:[]uint8{}
-	// }, Certificate:[]uint8{}
-	// }, IssuerCertificate:[]uint8{}
-	// CSR:[]uint8(nil)
 	certsStorage := cmd.NewCertificatesStorage()
 	certsStorage.SaveResource(certificates)
 

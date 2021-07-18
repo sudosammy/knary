@@ -41,9 +41,6 @@ go get -u github.com/sudosammy/knary
 
 ![knary go-ing](https://github.com/sudosammy/knary/raw/master/screenshots/run.png "knary go-ing")
 
-## Testing
-See & run `test_knary.sh`
-
 ## Denying matches
 You might find systems that spam your knary even long after an engagement has ended. To stop these from cluttering your notifications knary supports a denylist (location specified in `.env`). Add the offending subdomains or IP addresses separated by a newline:
 ```
@@ -52,6 +49,8 @@ www.knary.tld
 171.244.140.247
 ```
 This would stop knary from alerting on `www.knary.tld` but not `another.www.knary.tld`. Changes to this file will require a knary restart. A sample can be found in `examples/denylist.txt` with common subdomains to include.
+
+*Important:* You will almost certainly want to include your TLD (e.g. `mycanary.com` and `ns.mycanary.com`) as several mundane systems will perform DNS lookups against these records every day.
 
 ## Necessary Config
 Example config can be found in `examples/`

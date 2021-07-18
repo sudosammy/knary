@@ -128,13 +128,16 @@ func main() {
 	}
 
 	// generate a let's encrypt certificate
-	if os.Getenv("LETS_ENCRYPT") != "" && os.Getenv("HTTP") == "true" && os.Getenv("DNS") == "true" {
+	if os.Getenv("LETS_ENCRYPT") != "" && os.Getenv("HTTP") == "true" && os.Getenv("DNS") == "true" && (os.Getenv("TLS_CRT") == "" || os.Getenv("TLS_KEY") == "") {
 		certName := libknary.StartLetsEncrypt()
 		// out of this we need to set TLS_CRT and TLS_KEY
 		os.Setenv("TLS_CRT","certs/"+certName+".crt")
 		os.Setenv("TLS_KEY","certs/"+certName+".key")
+
 	} else if (os.Getenv("LETS_ENCRYPT") != "" && (os.Getenv("HTTP") != "true" || os.Getenv("DNS") != "true")) {
 		libknary.Printy("HTTP and DNS environment variables must be set to \"true\" to use Let's Encrypt", 2)
+	} else if os.Getenv("TLS_CRT") != "" || os.Getenv("TLS_KEY") != "" {
+		libknary.Printy("TLS_* and LETS_ENCRYPT environment variables found. We'll use the TLS_* set certificates", 2)
 	}
 
 	if os.Getenv("HTTP") == "true" {
@@ -148,6 +151,8 @@ func main() {
 			ln443 := libknary.PrepareRequest443()
 			wg.Add(1)
 			go libknary.AcceptRequest(ln443, &wg)
+			// check TLS expiry on first lauch of knary
+			libknary.CheckTLSExpiry("internal.knary.tls.tester."+os.Getenv("CANARY_DOMAIN"))
 		}
 	}
 

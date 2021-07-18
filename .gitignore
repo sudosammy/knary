@@ -5,5 +5,7 @@ knary.log
 blacklist.txt
 zone.txt
 knary.exe
+certs/*.json
 certs/*.crt
 certs/*.key
+certs/archive/*

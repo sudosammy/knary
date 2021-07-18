@@ -209,7 +209,7 @@ func inBlacklist(needles ...string) bool {
 	return false
 }
 
-func CheckTLSExpiry(domain string, config *tls.Config) (bool, error) {
+func CheckTLSExpiry(domain string) (bool, error) {
 	port := "443"
 	// need this to make testing possible
 	if os.Getenv("TLS_PORT") != "" {
@@ -229,7 +229,10 @@ func CheckTLSExpiry(domain string, config *tls.Config) (bool, error) {
 		defer testTLSConn.Close()
 	}
 
-	conn := tls.Client(testTLSConn, config)
+	conf := &tls.Config{
+		InsecureSkipVerify: true,
+	}
+	conn := tls.Client(testTLSConn, conf)
 	err = conn.Handshake()
 
 	if err != nil {
@@ -241,9 +244,17 @@ func CheckTLSExpiry(domain string, config *tls.Config) (bool, error) {
 	expiry := conn.ConnectionState().PeerCertificates[0].NotAfter
 	diff := time.Until(expiry)
 
+	if int(diff.Hours()/24) <= 20 && int(diff.Hours()/24) > 10 { // if cert expires in 20 days, stopping once it expires in 10 days
+		if (os.Getenv("LETS_ENCRYPT") != "") {
+			logger("INFO", "Attempting Let's Encrypt certificate renewal.")
+			// Let's Encrypt renewal time!
+			
+		}
+	}
+
 	if int(diff.Hours()/24) <= 10 { // if cert expires in 10 days or less
 		days := int(diff.Hours() / 24)
-		certMsg := "The TLS certificate for `" + domain + "` expires in " + strconv.Itoa(days) + " days."
+		certMsg := "The TLS certificate for `" + os.Getenv("CANARY_DOMAIN") + "` expires in " + strconv.Itoa(days) + " days."
 		Printy(certMsg, 2)
 		logger("WARNING", certMsg)
 		go sendMsg(":lock: " + certMsg)
