@@ -216,6 +216,8 @@ func CheckTLSExpiry(domain string) (bool, error) {
 		port = os.Getenv("TLS_PORT")
 	}
 
+	needRenewal(100)
+
 	// tls.Dial doesn't support timeouts
 	// this is another solution: https://godoc.org/github.com/getlantern/tlsdialer#DialTimeout
 	// it's probably doing something like this in the background anyway
@@ -246,9 +248,9 @@ func CheckTLSExpiry(domain string) (bool, error) {
 
 	if int(diff.Hours()/24) <= 20 && int(diff.Hours()/24) > 10 { // if cert expires in 20 days, stopping once it expires in 10 days
 		if (os.Getenv("LETS_ENCRYPT") != "") {
-			logger("INFO", "Attempting Let's Encrypt certificate renewal.")
+			days := int(diff.Hours() / 24)
 			// Let's Encrypt renewal time!
-			
+			renewLetsEncrypt(days)
 		}
 	}
 
@@ -338,4 +340,15 @@ func SignLark(secret string, timestamp int64) (string, error) {
 
 	signature := base64.StdEncoding.EncodeToString(h.Sum(nil))
 	return signature, nil
+}
+
+func fileExists(file string) bool {
+	if _, err := os.Stat(file); os.IsNotExist(err) {
+		return false
+	} else if err != nil {
+		logger("ERROR", err.Error())
+		Printy(err.Error(), 2)
+		return false
+	}
+	return true
 }

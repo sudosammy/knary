@@ -1,24 +1,16 @@
 package libknary
 
 import (
-	// "crypto"
-	// "crypto/elliptic"
-	// "crypto/rand"
-	"crypto/ecdsa"
-	"crypto/x509"
-	"encoding/pem"
 	"errors"
 	"log"
 	"os"
 	"time"
 
-	cmd "github.com/sudosammy/knary/libknary/lego"
-	"github.com/go-acme/lego/v4/certcrypto"
 	"github.com/go-acme/lego/v4/certificate"
 	"github.com/go-acme/lego/v4/challenge/dns01"
 	"github.com/go-acme/lego/v4/lego"
 	"github.com/go-acme/lego/v4/platform/config/env"
-	"github.com/go-acme/lego/v4/registration"
+	cmd "github.com/sudosammy/knary/libknary/lego"
 )
 
 // Config is used to configure the creation of the DNSProvider.
@@ -71,40 +63,7 @@ func (d *DNSProvider) CleanUp(domain, token, keyAuth string) error {
 	return nil
 }
 
-// Thanks: https://stackoverflow.com/questions/21322182/how-to-store-ecdsa-private-key-in-go
-func encode(privateKey *ecdsa.PrivateKey) string {
-	x509Encoded, _ := x509.MarshalECPrivateKey(privateKey)
-	pemEncoded := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: x509Encoded})
-
-	return string(pemEncoded)
-}
-
-func decode(pemEncoded string) *ecdsa.PrivateKey {
-	block, _ := pem.Decode([]byte(pemEncoded))
-	x509Encoded := block.Bytes
-	privateKey, _ := x509.ParseECPrivateKey(x509Encoded)
-
-	return privateKey
-}
-
-func loadMyUser() *cmd.Account {
-	accountStorage := cmd.NewAccountsStorage()
-
-	//privateKey := accountStorage.GetPrivateKey(certcrypto.EC384)
-	privateKey := accountStorage.GetPrivateKey(certcrypto.RSA2048)
-
-	var account *cmd.Account
-	if accountStorage.ExistsAccountFilePath() {
-		account = accountStorage.LoadAccount(privateKey)
-	} else {
-		account = &cmd.Account{Email: accountStorage.GetUserID(), Key: privateKey}
-	}
-
-	return &*account
-}
-
 func StartLetsEncrypt() string {
-
 	myUser := loadMyUser()
 	config := lego.NewConfig(myUser)
 
@@ -130,17 +89,24 @@ func StartLetsEncrypt() string {
 
 	// if we're an existing user, loadMyUser would have populated cmd.Account with our Registration details
 	currentReg, err := client.Registration.QueryRegistration()
-	if err == nil {
+
+	if err == nil && currentReg.Body.Status != "valid" {
+		Printy("Found the Let's Encrypt user, but apparently the registration is not valid. We'll try re-registering...", 2)
+		
+		myUser.Registration = registerAccount(client)
+		
+		// save these registration details to disk
+		accountStorage := cmd.NewAccountsStorage()
+		if err := accountStorage.Save(myUser); err != nil {
+			log.Fatal(err)
+		}
+
+	} else if err == nil && currentReg.Body.Status == "valid" {
 		myUser.Registration = currentReg
 
 	} else {
-		// if not, cmd.Account will just have our email address + private key in it, so we create new user
-		reg, err := client.Registration.Register(registration.RegisterOptions{TermsOfServiceAgreed: true})
-		if err != nil {
-			log.Fatal(err)
-		}
-		myUser.Registration = reg
-
+		myUser.Registration = registerAccount(client)
+		
 		// save these registration details to disk
 		accountStorage := cmd.NewAccountsStorage()
 		if err := accountStorage.Save(myUser); err != nil {
@@ -148,40 +114,24 @@ func StartLetsEncrypt() string {
 		}
 	}
 
-	var domainArray []string
-	domainArray = append(domainArray, "*."+os.Getenv("CANARY_DOMAIN"))
-
-	if os.Getenv("BURP_DOMAIN") != "" {
-		domainArray = append(domainArray, "*."+os.Getenv("BURP_DOMAIN"))
-	}
-
-	// should only request certs if the current ones are old...
 	certsStorage := cmd.NewCertificatesStorage()
 
-	if certsStorage.ExistsFile("certs/"+cmd.SanitizedDomain("*."+os.Getenv("CANARY_DOMAIN")),"key") &&
-		certsStorage.ExistsFile("certs/"+cmd.SanitizedDomain("*."+os.Getenv("CANARY_DOMAIN")),"crt") {
-		// We have keys already, don't need new ones.
-		return cmd.SanitizedDomain(os.Getenv("CANARY_DOMAIN"))
+	// should only request certs if currently none exist
+	if fileExists(certsStorage.GetFileName(getDomains()[0], "key")) &&
+		fileExists(certsStorage.GetFileName(getDomains()[0], "crt")) {
+		
+		return cmd.SanitizedDomain(getDomains()[0])
 	}
 
 	request := certificate.ObtainRequest{
-		Domains: domainArray,
+		Domains: getDomains(),
 		Bundle:  true,
 	}
 	certificates, err := client.Certificate.Obtain(request)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	// apparently we can renew like this:
-	// client.Certificate.Renew(certRes certificate.Resource, bundle bool, mustStaple bool, preferredChain string)
-	// we should do this in our TLS certificate daily check but when the certificate is ~20 days from expiry and
-	// raise any issues in the renewal to our chans
-
-	// TEST archive move
-	//certsStorage.MoveToArchive("*.sam.ooo")
 	
 	certsStorage.SaveResource(certificates)
-
 	return cmd.SanitizedDomain(certificates.Domain)
 }

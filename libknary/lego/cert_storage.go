@@ -108,17 +108,6 @@ func (s *CertificatesStorage) ReadResource(domain string) certificate.Resource {
 	return resource
 }
 
-func (s *CertificatesStorage) ExistsFile(domain, extension string) bool {
-	filePath := s.GetFileName(domain, extension)
-
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		return false
-	} else if err != nil {
-		log.Fatal(err)
-	}
-	return true
-}
-
 func (s *CertificatesStorage) ReadFile(domain, extension string) ([]byte, error) {
 	return ioutil.ReadFile(s.GetFileName(domain, extension))
 }

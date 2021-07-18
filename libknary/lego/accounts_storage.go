@@ -10,6 +10,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"io/ioutil"
+	"path/filepath"
 	"os"
 
 	"github.com/go-acme/lego/v4/certcrypto"
@@ -21,6 +22,7 @@ import (
 type AccountsStorage struct {
 	userID          string
 	accountFilePath string
+	keyFilePath		string
 }
 
 // NewAccountsStorage Creates a new AccountsStorage.
@@ -28,7 +30,8 @@ func NewAccountsStorage() *AccountsStorage {
 	email := os.Getenv("LETS_ENCRYPT")
 	return &AccountsStorage{
 		userID:          email,
-		accountFilePath: "certs/account.json",
+		accountFilePath: filepath.Join(baseCertificatesFolderName, "account.json"),
+		keyFilePath:	 filepath.Join(baseCertificatesFolderName, "knary.key"),
 	}
 }
 
@@ -86,7 +89,7 @@ func (s *AccountsStorage) LoadAccount(privateKey crypto.PrivateKey) *Account {
 }
 
 func (s *AccountsStorage) GetPrivateKey(keyType certcrypto.KeyType) crypto.PrivateKey {
-	accKeyPath := "certs/server.key"
+	accKeyPath := s.keyFilePath
 
 	if _, err := os.Stat(accKeyPath); os.IsNotExist(err) {
 		log.Printf("No key found for account %s. Generating a %s key.", s.userID, keyType)
