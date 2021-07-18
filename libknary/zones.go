@@ -41,6 +41,7 @@ func LoadZone() (bool, error) {
 
 	if err := zp.Err(); err != nil {
 		if err != nil {
+			logger("ERROR", err.Error())
 			GiveHead(2)
 			log.Fatal(err)
 		}

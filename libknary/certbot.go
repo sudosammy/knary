@@ -77,11 +77,15 @@ func StartLetsEncrypt() string {
 	// A client facilitates communication with the CA server.
 	client, err := lego.NewClient(config)
 	if err != nil {
+		logger("ERROR", err.Error())
+		GiveHead(2)
 		log.Fatal(err)
 	}
 
 	knaryDNS, err := NewDNSProvider()
 	if err != nil {
+		logger("ERROR", err.Error())
+		GiveHead(2)
 		log.Fatal(err)
 	}
 
@@ -98,6 +102,8 @@ func StartLetsEncrypt() string {
 		// save these registration details to disk
 		accountStorage := cmd.NewAccountsStorage()
 		if err := accountStorage.Save(myUser); err != nil {
+			logger("ERROR", err.Error())
+			GiveHead(2)
 			log.Fatal(err)
 		}
 
@@ -110,6 +116,8 @@ func StartLetsEncrypt() string {
 		// save these registration details to disk
 		accountStorage := cmd.NewAccountsStorage()
 		if err := accountStorage.Save(myUser); err != nil {
+			logger("ERROR", err.Error())
+			GiveHead(2)
 			log.Fatal(err)
 		}
 	}
@@ -129,6 +137,8 @@ func StartLetsEncrypt() string {
 	}
 	certificates, err := client.Certificate.Obtain(request)
 	if err != nil {
+		logger("ERROR", err.Error())
+		GiveHead(2)
 		log.Fatal(err)
 	}
 	

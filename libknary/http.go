@@ -50,6 +50,7 @@ func PrepareRequest80() net.Listener {
 
 	ln80, err := net.Listen("tcp", p80)
 	if err != nil {
+		logger("ERROR", err.Error())
 		GiveHead(2)
 		log.Fatal(err)
 	}
@@ -96,6 +97,7 @@ func PrepareRequest443() net.Listener {
 
 	cer, err := tls.LoadX509KeyPair(os.Getenv("TLS_CRT"), os.Getenv("TLS_KEY"))
 	if err != nil {
+		logger("ERROR", err.Error())
 		GiveHead(2)
 		log.Fatal(err)
 	}
@@ -103,6 +105,7 @@ func PrepareRequest443() net.Listener {
 	config := &tls.Config{Certificates: []tls.Certificate{cer}}
 	ln443, err := tls.Listen("tcp", p443, config)
 	if err != nil {
+		logger("ERROR", err.Error())
 		GiveHead(2)
 		log.Fatal(err)
 	}
@@ -191,7 +194,9 @@ func handleRequest(conn net.Conn) bool {
 
 			msg := fmt.Sprintf("%s\n```Query: %s\n%s\n%s\nFrom: %s", host, query, userAgent, cookie, conn.RemoteAddr().String())
 			go sendMsg(msg + "```")
-			logger("INFO", conn.RemoteAddr().String()+" - "+host)
+			if os.Getenv("DEBUG") == "true" {
+				logger("INFO", conn.RemoteAddr().String()+" - "+host)
+			}
 		}
 	}
 

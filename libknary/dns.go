@@ -65,6 +65,13 @@ func HandleDNS(w dns.ResponseWriter, r *dns.Msg, EXT_IP string) {
 	w.WriteMsg(m)
 }
 
+func infoLog(ipaddr string, reverse string, name string) {
+	// only log informationals if DEBUG is true
+	if os.Getenv("DEBUG") == "true" {
+		logger("INFO", ipaddr+" - "+reverse+" - "+name)
+	}
+}
+
 func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 	// for each DNS question to our nameserver
 	// there can be multiple questions in the question section of a single request
@@ -131,7 +138,7 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 					"```" +
 					"From: " + ipaddr +
 					"```")
-				logger("INFO", ipaddr+" - "+q.Name)
+				infoLog(ipaddr, reverse, q.Name)
 
 			} else if !inBlacklist(q.Name, ipaddr) {
 				go sendMsg("DNS (A): " + q.Name +
@@ -139,7 +146,7 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 					"From: " + ipaddr + "\n" +
 					"PTR: " + reverse +
 					"```")
-				logger("INFO", ipaddr+" - "+reverse+" - "+q.Name)
+				infoLog(ipaddr, reverse, q.Name)
 			}
 
 			/*
@@ -169,7 +176,7 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 					"```" +
 					"From: " + ipaddr +
 					"```")
-				logger("INFO", ipaddr+" - "+q.Name)
+				infoLog(ipaddr, reverse, q.Name)
 
 			} else if !inBlacklist(q.Name, ipaddr) {
 				go sendMsg("DNS (AAAA): " + q.Name +
@@ -177,7 +184,7 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 					"From: " + ipaddr + "\n" +
 					"PTR: " + reverse +
 					"```")
-				logger("INFO", ipaddr+" - "+reverse+" - "+q.Name)
+				infoLog(ipaddr, reverse, q.Name)
 			}
 
 			/*
@@ -212,7 +219,7 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 					"```" +
 					"From: " + ipaddr +
 					"```")
-				logger("INFO", ipaddr+" - "+q.Name)
+				infoLog(ipaddr, reverse, q.Name)
 
 			} else if !inBlacklist(q.Name, ipaddr) {
 				go sendMsg("DNS (CNAME): " + q.Name +
@@ -220,7 +227,7 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 					"From: " + ipaddr + "\n" +
 					"PTR: " + reverse +
 					"```")
-				logger("INFO", ipaddr+" - "+reverse+" - "+q.Name)
+				infoLog(ipaddr, reverse, q.Name)
 			}
 
 			if !foundInZone {
@@ -241,7 +248,7 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 					"```" +
 					"From: " + ipaddr +
 					"```")
-				logger("INFO", ipaddr+" - "+q.Name)
+				infoLog(ipaddr, reverse, q.Name)
 
 			} else if !inBlacklist(q.Name, ipaddr) {
 				go sendMsg("DNS (TXT): " + q.Name +
@@ -249,7 +256,7 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 					"From: " + ipaddr + "\n" +
 					"PTR: " + reverse +
 					"```")
-				logger("INFO", ipaddr+" - "+reverse+" - "+q.Name)
+				infoLog(ipaddr, reverse, q.Name)
 			}
 
 			if !foundInZone {

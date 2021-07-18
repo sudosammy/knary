@@ -3,7 +3,6 @@ package libknary
 import (
 	"time"
 	"log"
-	"strconv"
 	"os"
 
 	"github.com/go-acme/lego/v4/lego"
@@ -43,39 +42,39 @@ func registerAccount(client *lego.Client) *registration.Resource {
 		// cmd.Account will just have our email address + private key in it, so we create new user
 		reg, err := client.Registration.Register(registration.RegisterOptions{TermsOfServiceAgreed: true})
 		if err != nil {
+			logger("ERROR", err.Error())
+			GiveHead(2)
 			log.Fatal(err)
 		}
 		return reg
 }
 
-func needRenewal(days int) bool {
-	
+func needRenewal(days int) (bool, int) {
 	certsStorage := cmd.NewCertificatesStorage()
-
 	certificates, err := certsStorage.ReadCertificate(getDomains()[0], ".crt")
 	if err != nil {
-		log.Fatalf("Error while loading the certificate for domain \t%v", err)
+		logger("ERROR", err.Error())
+		GiveHead(2)
+		log.Fatal(err)
 	}
 
 	x509Cert := certificates[0]
+	// if x509Cert.IsCA {
+	// 	Printy("Domain certificate bundle starts with a CA certificate.", 2)
+	// 	logger("ERROR", "Cannot check for certificate expiry due to the domains certificate bundle (.crt) starts with a CA certificate.")
+	// 	return false, 0
+	// }
 
-	if x509Cert.IsCA {
-		log.Fatalf("Domain certificate bundle starts with a CA certificate...")
+	notAfter := int(time.Until(x509Cert.NotAfter).Hours() / 24.0)
+
+	if days >= 0 && notAfter > days {
+		return false, notAfter
 	}
-
-	if days >= 0 {
-		notAfter := int(time.Until(x509Cert.NotAfter).Hours() / 24.0)
-		if notAfter > days {
-			log.Printf("Domain certificate expires in %d days, the number of days defined to perform the renewal is %d: no renewal.", notAfter, days)
-			return false
-		}
-	}
-
-	return true
+	return true, notAfter
 }
 
-func renewLetsEncrypt(days int) {
-	logger("INFO", "TLS certificate expires in "+strconv.Itoa(days)+" days. Attempting Let's Encrypt certificate renewal.")
+func renewLetsEncrypt() {
+	logger("INFO", "Attempting Let's Encrypt certificate renewal.")
 
 	// apparently we can renew like this:
 	// client.Certificate.Renew(certRes certificate.Resource, bundle bool, mustStaple bool, preferredChain string)

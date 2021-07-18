@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"crypto/hmac"
 	"crypto/sha256"
-	"crypto/tls"
 	"encoding/base64"
 	"fmt"
 	"net"
@@ -127,8 +126,8 @@ func CheckUpdate(version string, githubVersion string, githubURL string) (bool, 
 		}
 	}
 
-	logger("INFO", "Checked for updates...")
 	if os.Getenv("DEBUG") == "true" {
+		logger("INFO", "Checked for updates...")
 		Printy("Checked for updates", 3)
 	}
 	return false, nil
@@ -182,8 +181,8 @@ func checkLastHit() bool { // this runs once a day
 			}
 		}
 
-		logger("INFO", "Checked blacklist...")
 		if os.Getenv("DEBUG") == "true" {
+			logger("INFO", "Checked blacklist...")
 			Printy("Checked for old blacklist items", 3)
 		}
 	}
@@ -209,67 +208,29 @@ func inBlacklist(needles ...string) bool {
 	return false
 }
 
-func CheckTLSExpiry(domain string) (bool, error) {
-	port := "443"
-	// need this to make testing possible
-	if os.Getenv("TLS_PORT") != "" {
-		port = os.Getenv("TLS_PORT")
-	}
+func CheckTLSExpiry(days int) bool {
+	renew, expiry := needRenewal(days)
 
-	needRenewal(100)
-
-	// tls.Dial doesn't support timeouts
-	// this is another solution: https://godoc.org/github.com/getlantern/tlsdialer#DialTimeout
-	// it's probably doing something like this in the background anyway
-	testTLSConn, err := net.DialTimeout("tcp", domain+":"+port, 5*time.Second)
-
-	if err != nil {
-		logger("WARNING", err.Error())
-		Printy(err.Error(), 2)
-		return false, err
-	} else {
-		defer testTLSConn.Close()
-	}
-
-	conf := &tls.Config{
-		InsecureSkipVerify: true,
-	}
-	conn := tls.Client(testTLSConn, conf)
-	err = conn.Handshake()
-
-	if err != nil {
-		logger("WARNING", err.Error())
-		Printy(err.Error(), 2)
-		return false, err
-	}
-
-	expiry := conn.ConnectionState().PeerCertificates[0].NotAfter
-	diff := time.Until(expiry)
-
-	if int(diff.Hours()/24) <= 20 && int(diff.Hours()/24) > 10 { // if cert expires in 20 days, stopping once it expires in 10 days
-		if (os.Getenv("LETS_ENCRYPT") != "") {
-			days := int(diff.Hours() / 24)
-			// Let's Encrypt renewal time!
-			renewLetsEncrypt(days)
-		}
-	}
-
-	if int(diff.Hours()/24) <= 10 { // if cert expires in 10 days or less
-		days := int(diff.Hours() / 24)
-		certMsg := "The TLS certificate for `" + os.Getenv("CANARY_DOMAIN") + "` expires in " + strconv.Itoa(days) + " days."
-		Printy(certMsg, 2)
-		logger("WARNING", certMsg)
-		go sendMsg(":lock: " + certMsg)
-		//while returning false here is a bit weird we need to differentiate this code path for the tests
-		return false, nil
-	}
-
-	logger("INFO", "Checked TLS expiry...")
 	if os.Getenv("DEBUG") == "true" {
 		Printy("Checked TLS expiry", 3)
 	}
 
-	return true, nil
+	if renew {
+		logger("INFO", "TLS certificate expires in " + strconv.Itoa(expiry) + " days.")
+		if (os.Getenv("LETS_ENCRYPT") != "") {
+			renewLetsEncrypt()
+		}
+	}
+
+	if expiry <= 20 { // if cert expires in 20 days or less
+		certMsg := "The TLS certificate for `" + os.Getenv("CANARY_DOMAIN") + "` expires in " + strconv.Itoa(expiry) + " days."
+		Printy(certMsg, 2)
+		logger("WARNING", certMsg)
+		go sendMsg(":lock: " + certMsg)
+		return true
+	}
+
+	return false
 }
 
 func HeartBeat(version string, firstrun bool) (bool, error) {
@@ -318,8 +279,8 @@ func HeartBeat(version string, firstrun bool) (bool, error) {
 
 	go sendMsg(beatMsg)
 
-	logger("INFO", "Sent heartbeat...")
 	if os.Getenv("DEBUG") == "true" {
+		logger("INFO", "Sent heartbeat...")
 		Printy("Sent heartbeat message", 3)
 	}
 

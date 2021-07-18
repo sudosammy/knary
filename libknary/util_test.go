@@ -12,13 +12,12 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"strings"
 	"testing"
 	"time"
 )
 
 const (
-	VERSION       = "2.3.0"
+	VERSION       = "3.3.0"
 	GITHUB        = "https://github.com/sudosammy/knary"
 	GITHUBVERSION = "https://raw.githubusercontent.com/sudosammy/knary/master/VERSION"
 )
@@ -69,64 +68,6 @@ func NewLocalHTTPSTestServer(handler http.Handler, eTime int) *httptest.Server {
 	ts.TLS = config
 	ts.StartTLS()
 	return ts
-}
-
-func TestTLSExpiryCase1(t *testing.T) {
-	//first case is when certificate expires in less tha 8 days
-	dom := "127.0.0.1"
-	ts := NewLocalHTTPSTestServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}), 8)
-	port := strings.SplitAfter(ts.URL, ":")[2]
-	os.Setenv("TLS_PORT", port)
-	defer ts.Close()
-
-	val, err := CheckTLSExpiry(dom)
-
-	if val == false && err != nil {
-		t.Errorf(err.Error())
-	}
-
-	if val == true {
-		t.Errorf("Expected False(certificate expiry < 10 days) But got True(not expiring in < 10 days)")
-	}
-
-}
-
-func TestTLSExpiryCase2(t *testing.T) {
-	//second case is when certificate is all well and good with expiry > 10 days
-	dom := "127.0.0.1"
-	ts := NewLocalHTTPSTestServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}), 12)
-	port := strings.SplitAfter(ts.URL, ":")[2]
-	os.Setenv("TLS_PORT", port)
-	defer ts.Close()
-
-	val, err := CheckTLSExpiry(dom)
-
-	if val == false && err != nil {
-		t.Errorf(err.Error())
-	}
-
-	if val == false && err == nil {
-		t.Errorf("Expected True(Certificate expiry > 10 days) But got False(expiring in < 10 days)")
-	}
-}
-
-func TestTLSExpiryCase3(t *testing.T) {
-	//third case when expiry is negative !(jeez come on)
-	dom := "127.0.0.1"
-	ts := NewLocalHTTPSTestServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}), -1)
-	port := strings.SplitAfter(ts.URL, ":")[2]
-	os.Setenv("TLS_PORT", port)
-	defer ts.Close()
-
-	val, err := CheckTLSExpiry(dom)
-
-	if val == false && err != nil {
-		t.Errorf(err.Error())
-	}
-
-	if val == true {
-		t.Errorf("Expected False(Certificate expiry is negative) But got True(not expiring in > 10 days)")
-	}
 }
 
 func TestCheckUpdate(t *testing.T) {

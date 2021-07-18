@@ -156,7 +156,7 @@ func main() {
 			wg.Add(1)
 			go libknary.AcceptRequest(ln443, &wg)
 			// check TLS expiry on first lauch of knary
-			libknary.CheckTLSExpiry("internal.knary.tls.tester."+os.Getenv("CANARY_DOMAIN"))
+			libknary.CheckTLSExpiry(30)
 		}
 	}
 
