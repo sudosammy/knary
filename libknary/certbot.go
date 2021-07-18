@@ -125,20 +125,20 @@ func StartLetsEncrypt() string {
 	certsStorage := cmd.NewCertificatesStorage()
 
 	// should only request certs if currently none exist
-	if fileExists(certsStorage.GetFileName(getDomains()[0], "key")) &&
-		fileExists(certsStorage.GetFileName(getDomains()[0], "crt")) {
+	if fileExists(certsStorage.GetFileName(getDomains()[0], ".key")) &&
+		fileExists(certsStorage.GetFileName(getDomains()[0], ".crt")) {
 		
 		if os.Getenv("DEBUG") == "true" {
-			Printy("TLS private key found: " + certsStorage.GetFileName(getDomains()[0], "key"), 3)
-			Printy("TLS certificate found: " + certsStorage.GetFileName(getDomains()[0], "crt"), 3)
+			Printy("TLS private key found: " + certsStorage.GetFileName(getDomains()[0], ".key"), 3)
+			Printy("TLS certificate found: " + certsStorage.GetFileName(getDomains()[0], ".crt"), 3)
 		}
 		return cmd.SanitizedDomain(getDomains()[0])
 	}
 
 	if os.Getenv("DEBUG") == "true" {
 		Printy("No existing certificates found at:", 3)
-		Printy(certsStorage.GetFileName(getDomains()[0], "key"), 2)
-		Printy(certsStorage.GetFileName(getDomains()[0], "crt"), 2)
+		Printy(certsStorage.GetFileName(getDomains()[0], ".key"), 2)
+		Printy(certsStorage.GetFileName(getDomains()[0], ".crt"), 2)
 		Printy("Let's Encrypt ourselves some new ones!", 3)
 	}
 
