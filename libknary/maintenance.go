@@ -6,17 +6,18 @@ import (
 )
 
 func dailyTasks(version string, githubVersion string, githubURL string) bool {
+	logger("INFO", "Daily maintenance tasks running")
 	// check for updates
 	CheckUpdate(version, githubVersion, githubURL)
 
 	// if blacklist alerting is enabled, flag any old blacklist items
-	if os.Getenv("BLACKLIST_ALERTING") != "false" {
+	if os.Getenv("DENYLIST_ALERTING") != "false" {
 		checkLastHit()
 	}
 
 	// if HTTPS knary is operating, check certificate expiry
 	if os.Getenv("TLS_CRT") != "" && os.Getenv("TLS_KEY") != "" {
-		_,_ = CheckTLSExpiry(30)
+		_, _ = CheckTLSExpiry(30)
 	}
 
 	// log knary usage

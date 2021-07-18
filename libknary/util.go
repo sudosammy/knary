@@ -144,11 +144,11 @@ var blacklistCount = 0
 
 func LoadBlacklist() (bool, error) {
 	// load blacklist file into struct on startup
-	if _, err := os.Stat(os.Getenv("BLACKLIST_FILE")); os.IsNotExist(err) {
+	if _, err := os.Stat(os.Getenv("DENYLIST_FILE")); os.IsNotExist(err) {
 		return false, err
 	}
 
-	blklist, err := os.Open(os.Getenv("BLACKLIST_FILE"))
+	blklist, err := os.Open(os.Getenv("DENYLIST_FILE"))
 	defer blklist.Close()
 
 	if err != nil {
@@ -163,8 +163,8 @@ func LoadBlacklist() (bool, error) {
 		blacklistCount++
 	}
 
-	Printy("Monitoring "+strconv.Itoa(blacklistCount)+" items in blacklist", 1)
-	logger("INFO", "Monitoring "+strconv.Itoa(blacklistCount)+" items in blacklist")
+	Printy("Monitoring "+strconv.Itoa(blacklistCount)+" items in denylist", 1)
+	logger("INFO", "Monitoring "+strconv.Itoa(blacklistCount)+" items in denylist")
 	return true, nil
 }
 
@@ -175,15 +175,16 @@ func checkLastHit() bool { // this runs once a day
 			expiryDate := blacklistMap[i].lastHit.AddDate(0, 0, 14)
 
 			if time.Now().After(expiryDate) { // let 'em know it's old
-				go sendMsg(":wrench: Blacklist item `" + blacklistMap[i].domain + "` hasn't had a hit in >14 days. Consider removing it. Configure `BLACKLIST_ALERTING` to supress.")
-				logger("INFO", "Blacklist item: "+blacklistMap[i].domain+" hasn't had a hit in >14 days. Consider removing it.")
-				Printy("Blacklist item: "+blacklistMap[i].domain+" hasn't had a hit in >14 days. Consider removing it.", 1)
+				msg := "Denied item `" + blacklistMap[i].domain + "` hasn't had a hit in >14 days. Consider removing it."
+				go sendMsg(":wrench: " + msg + " Configure `DENYLIST_ALERTING` to supress.")
+				logger("INFO", msg)
+				Printy(msg, 1)
 			}
 		}
 
 		if os.Getenv("DEBUG") == "true" {
-			logger("INFO", "Checked blacklist...")
-			Printy("Checked for old blacklist items", 3)
+			logger("INFO", "Checked denylist...")
+			Printy("Checked for old denylist items", 3)
 		}
 	}
 	return true
@@ -199,7 +200,7 @@ func inBlacklist(needles ...string) bool {
 				blacklistMap[i] = updBL
 
 				if os.Getenv("DEBUG") == "true" {
-					Printy(blacklistMap[i].domain+" found in blacklist", 3)
+					Printy(blacklistMap[i].domain+" found in denylist", 3)
 				}
 				return true
 			}
@@ -212,9 +213,8 @@ func CheckTLSExpiry(days int) (bool, int) {
 	renew, expiry := needRenewal(days)
 
 	if renew {
-		logger("INFO", "TLS certificate expires in " + strconv.Itoa(expiry) + " days")
-		Printy("TLS certificate expires in " + strconv.Itoa(expiry) + " days", 3)
-		if (os.Getenv("LETS_ENCRYPT") != "") {
+		Printy("TLS certificate expires in "+strconv.Itoa(expiry)+" days", 3)
+		if os.Getenv("LETS_ENCRYPT") != "" {
 			renewLetsEncrypt()
 		}
 	}
@@ -253,7 +253,7 @@ func HeartBeat(version string, firstrun bool) (bool, error) {
 	}
 
 	// print blacklisted items
-	beatMsg += strconv.Itoa(blacklistCount) + " blacklisted domains: \n"
+	beatMsg += strconv.Itoa(blacklistCount) + " denied domains: \n"
 	beatMsg += "------------------------\n"
 	for i := range blacklistMap { // foreach blacklist item
 		beatMsg += strings.ToLower(blacklistMap[i].domain) + "\n"

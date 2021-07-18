@@ -10,8 +10,8 @@ import (
 	"encoding/pem"
 	"errors"
 	"io/ioutil"
-	"path/filepath"
 	"os"
+	"path/filepath"
 
 	"github.com/go-acme/lego/v4/certcrypto"
 	"github.com/go-acme/lego/v4/lego"
@@ -22,7 +22,7 @@ import (
 type AccountsStorage struct {
 	userID          string
 	accountFilePath string
-	keyFilePath		string
+	keyFilePath     string
 }
 
 // NewAccountsStorage Creates a new AccountsStorage.
@@ -31,7 +31,7 @@ func NewAccountsStorage() *AccountsStorage {
 	return &AccountsStorage{
 		userID:          email,
 		accountFilePath: filepath.Join(baseCertificatesFolderName, "account.json"),
-		keyFilePath:	 filepath.Join(baseCertificatesFolderName, "knary.key"),
+		keyFilePath:     filepath.Join(baseCertificatesFolderName, "knary.key"),
 	}
 }
 
@@ -157,7 +157,7 @@ func tryRecoverRegistration(privateKey crypto.PrivateKey) (*registration.Resourc
 	if os.Getenv("LE_ENV") == "staging" {
 		config.CADirURL = "https://acme-staging-v02.api.letsencrypt.org/directory"
 
-	} else if (os.Getenv("LE_ENV") == "dev") {
+	} else if os.Getenv("LE_ENV") == "dev" {
 		config.CADirURL = "http://127.0.0.1:4001/directory"
 	}
 

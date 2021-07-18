@@ -1,15 +1,15 @@
 package libknary
 
 import (
-	"time"
 	"log"
 	"os"
-	"strings"
 	"path/filepath"
+	"strings"
+	"time"
 
+	"github.com/go-acme/lego/v4/certcrypto"
 	"github.com/go-acme/lego/v4/lego"
 	"github.com/go-acme/lego/v4/registration"
-	"github.com/go-acme/lego/v4/certcrypto"
 	cmd "github.com/sudosammy/knary/libknary/lego"
 )
 
@@ -41,14 +41,14 @@ func loadMyUser() *cmd.Account {
 }
 
 func registerAccount(client *lego.Client) *registration.Resource {
-		// cmd.Account will just have our email address + private key in it, so we create new user
-		reg, err := client.Registration.Register(registration.RegisterOptions{TermsOfServiceAgreed: true})
-		if err != nil {
-			logger("ERROR", err.Error())
-			GiveHead(2)
-			log.Fatal(err)
-		}
-		return reg
+	// cmd.Account will just have our email address + private key in it, so we create new user
+	reg, err := client.Registration.Register(registration.RegisterOptions{TermsOfServiceAgreed: true})
+	if err != nil {
+		logger("ERROR", err.Error())
+		GiveHead(2)
+		log.Fatal(err)
+	}
+	return reg
 }
 
 func needRenewal(days int) (bool, int) {

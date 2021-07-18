@@ -13,7 +13,7 @@ import (
 type Account struct {
 	Email        string                 `json:"email"`
 	Registration *registration.Resource `json:"registration"`
-	Key          crypto.PrivateKey 		`json:"-"`
+	Key          crypto.PrivateKey      `json:"-"`
 }
 
 /** Implementation of the registration.User interface **/

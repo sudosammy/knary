@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"sync"
 	"strconv"
+	"sync"
 
 	"github.com/sudosammy/knary/libknary"
 )
@@ -84,7 +84,7 @@ func main() {
 	if os.Getenv("HTTP") == "true" && os.Getenv("LETS_ENCRYPT") == "" && (os.Getenv("TLS_CRT") == "" || os.Getenv("TLS_KEY") == "") {
 		libknary.Printy("Listening for http://*."+os.Getenv("CANARY_DOMAIN")+" requests", 1)
 		libknary.Printy("Without LETS_ENCRYPT or TLS_* environment variables set you will only be able to make HTTP (port 80) requests to knary", 2)
-	} else if (os.Getenv("HTTP") == "true" && (os.Getenv("LETS_ENCRYPT") != "" || os.Getenv("TLS_KEY") != "")) {
+	} else if os.Getenv("HTTP") == "true" && (os.Getenv("LETS_ENCRYPT") != "" || os.Getenv("TLS_KEY") != "") {
 		libknary.Printy("Listening for http(s)://*."+os.Getenv("CANARY_DOMAIN")+" requests", 1)
 	}
 	if os.Getenv("DNS") == "true" {
@@ -129,17 +129,17 @@ func main() {
 		certName := libknary.StartLetsEncrypt()
 		// out of this we need to set TLS_CRT and TLS_KEY
 		// TODO make these not rely on hardcoded paths
-		os.Setenv("TLS_CRT","certs/"+certName+".crt")
-		os.Setenv("TLS_KEY","certs/"+certName+".key")
+		os.Setenv("TLS_CRT", "certs/"+certName+".crt")
+		os.Setenv("TLS_KEY", "certs/"+certName+".key")
 		libknary.Printy("Let's Encrypt certificate is loaded", 1)
 
-	} else if (os.Getenv("LETS_ENCRYPT") != "" && (os.Getenv("HTTP") != "true" || os.Getenv("DNS") != "true")) {
+	} else if os.Getenv("LETS_ENCRYPT") != "" && (os.Getenv("HTTP") != "true" || os.Getenv("DNS") != "true") {
 		libknary.Printy("HTTP and DNS environment variables must be set to \"true\" to use Let's Encrypt. We'll continue without Let's Encrypt", 2)
-		os.Setenv("LETS_ENCRYPT","") // clear variable to not confuse certificate renewal logic
+		os.Setenv("LETS_ENCRYPT", "") // clear variable to not confuse certificate renewal logic
 
 	} else if os.Getenv("TLS_CRT") != "" || os.Getenv("TLS_KEY") != "" {
 		libknary.Printy("TLS_* and LETS_ENCRYPT environment variables found. We'll use the TLS_* set certificates", 2)
-		os.Setenv("LETS_ENCRYPT","") // clear variable to not confuse certificate renewal logic
+		os.Setenv("LETS_ENCRYPT", "") // clear variable to not confuse certificate renewal logic
 	}
 
 	// these go after all the screen prining for neatness
@@ -159,7 +159,7 @@ func main() {
 			go libknary.AcceptRequest(ln443, &wg)
 			// check TLS expiry on first lauch of knary
 			_, expiry := libknary.CheckTLSExpiry(30)
-			libknary.Printy("TLS certificate expires in " + strconv.Itoa(expiry) + " days", 3)
+			libknary.Printy("TLS certificate expires in "+strconv.Itoa(expiry)+" days", 3)
 		}
 	}
 

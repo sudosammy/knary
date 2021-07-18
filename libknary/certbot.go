@@ -1,11 +1,11 @@
 package libknary
 
 import (
+	"crypto"
 	"errors"
 	"log"
 	"os"
 	"time"
-	"crypto"
 
 	"github.com/go-acme/lego/v4/certcrypto"
 	"github.com/go-acme/lego/v4/certificate"
@@ -72,7 +72,7 @@ func StartLetsEncrypt() string {
 	if os.Getenv("LE_ENV") == "staging" {
 		config.CADirURL = "https://acme-staging-v02.api.letsencrypt.org/directory"
 
-	} else if (os.Getenv("LE_ENV") == "dev") {
+	} else if os.Getenv("LE_ENV") == "dev" {
 		config.CADirURL = "http://127.0.0.1:4001/directory"
 	}
 
@@ -98,9 +98,9 @@ func StartLetsEncrypt() string {
 
 	if err == nil && currentReg.Body.Status != "valid" {
 		Printy("Found the Let's Encrypt user, but apparently the registration is not valid. We'll try re-registering...", 2)
-		
+
 		myUser.Registration = registerAccount(client)
-		
+
 		// save these registration details to disk
 		accountStorage := cmd.NewAccountsStorage()
 		if err := accountStorage.Save(myUser); err != nil {
@@ -114,7 +114,7 @@ func StartLetsEncrypt() string {
 
 	} else {
 		myUser.Registration = registerAccount(client)
-		
+
 		// save these registration details to disk
 		accountStorage := cmd.NewAccountsStorage()
 		if err := accountStorage.Save(myUser); err != nil {
@@ -129,10 +129,10 @@ func StartLetsEncrypt() string {
 	// should only request certs if currently none exist
 	if fileExists(certsStorage.GetFileName(getDomains()[0], ".key")) &&
 		fileExists(certsStorage.GetFileName(getDomains()[0], ".crt")) {
-		
+
 		if os.Getenv("DEBUG") == "true" {
-			Printy("TLS private key found: " + certsStorage.GetFileName(getDomains()[0], ".key"), 3)
-			Printy("TLS certificate found: " + certsStorage.GetFileName(getDomains()[0], ".crt"), 3)
+			Printy("TLS private key found: "+certsStorage.GetFileName(getDomains()[0], ".key"), 3)
+			Printy("TLS certificate found: "+certsStorage.GetFileName(getDomains()[0], ".crt"), 3)
 		}
 		return cmd.SanitizedDomain(getDomains()[0])
 	}
@@ -154,7 +154,7 @@ func StartLetsEncrypt() string {
 		GiveHead(2)
 		log.Fatal(err)
 	}
-	
+
 	certsStorage.SaveResource(certificates)
 	return cmd.SanitizedDomain(certificates.Domain)
 }
@@ -170,7 +170,7 @@ func renewLetsEncrypt() {
 	if os.Getenv("LE_ENV") == "staging" {
 		config.CADirURL = "https://acme-staging-v02.api.letsencrypt.org/directory"
 
-	} else if (os.Getenv("LE_ENV") == "dev") {
+	} else if os.Getenv("LE_ENV") == "dev" {
 		config.CADirURL = "http://127.0.0.1:4001/directory"
 	}
 
@@ -187,7 +187,7 @@ func renewLetsEncrypt() {
 	certsStorage := cmd.NewCertificatesStorage()
 
 	var privateKey crypto.PrivateKey
-	
+
 	keyBytes, errR := certsStorage.ReadFile(certDomains[0], ".key")
 	if errR != nil {
 		go sendMsg(":warning: " + errR.Error() + " :warning:")
@@ -205,8 +205,8 @@ func renewLetsEncrypt() {
 		GiveHead(2)
 		log.Fatal(errR)
 	}
-	
-	request := certificate.ObtainRequest {
+
+	request := certificate.ObtainRequest{
 		Domains:        certDomains,
 		Bundle:         false,
 		PrivateKey:     privateKey,
@@ -230,7 +230,7 @@ func renewLetsEncrypt() {
 		msg := "There was an error moving the old certificates to the archive folder. Did you delete the folder? I'll overwrite the old certificates instead. See the log for more information."
 		go sendMsg(":warning: " + msg)
 		Printy(msg, 2)
-		logger("WARNING", "Could not move certificates to archive: " + err.Error())
+		logger("WARNING", "Could not move certificates to archive: "+err.Error())
 	}
 
 	certsStorage.SaveResource(certRes)

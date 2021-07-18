@@ -83,6 +83,6 @@ If you are running Burp Collaborator on the same server as knary, you will need 
 * `DEBUG` __Optional__ Enable/Disable displaying incoming requests in the terminal and some additional info. Default disabled.
 * `EXT_IP` __Optional__ The IP address the DNS canary will answer `A` questions with. By default knary will use the nameserver glue record. Setting this option will overrule that behaviour
 * `LOG_FILE` __Optional__ Location for a file that knary will log timestamped matches and some errors. Example input: `/home/me/knary.log`
-* `BLACKLIST_FILE` __Optional__ Location for a file containing case-insensitive subdomains (separated by newlines) that should be ignored by knary and not logged or posted to Slack. Example input: `denylist.txt` 
-* `BLACKLIST_ALERTING` __Optional__ By default knary will alert on items in the blacklist that haven't triggered in >14 days. Set to `false` to disable this behaviour
+* `DENYLIST_FILE` __Optional__ Location for a file containing case-insensitive subdomains (separated by newlines) that should be ignored by knary and not logged or posted to Slack. Example input: `denylist.txt` 
+* `DENYLIST_ALERTING` __Optional__ By default knary will alert on items in the denylist that haven't triggered in >14 days. Set to `false` to disable this behaviour
 * `ZONE_FILE` __Optional__ knary supports responding to requests based on an RFC 1034/1035 compliant zone file. Example input: `zone.txt`

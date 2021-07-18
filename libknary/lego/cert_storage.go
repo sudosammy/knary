@@ -21,7 +21,7 @@ import (
 )
 
 var baseCertificatesFolderName = "certs"
-var baseArchivesFolderName     = "certs/archives"
+var baseArchivesFolderName = "certs/archives"
 
 // CertificatesStorage a certificates storage.
 //
