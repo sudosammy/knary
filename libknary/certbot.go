@@ -158,8 +158,8 @@ func StartLetsEncrypt() string {
 	// should only request certs if the current ones are old...
 	certsStorage := cmd.NewCertificatesStorage()
 
-	if certsStorage.ExistsFile(cmd.SanitizedDomain(os.Getenv("CANARY_DOMAIN")),"key") &&
-		certsStorage.ExistsFile(cmd.SanitizedDomain(os.Getenv("CANARY_DOMAIN")),"crt") {
+	if certsStorage.ExistsFile(cmd.SanitizedDomain("*."+os.Getenv("CANARY_DOMAIN")),"key") &&
+		certsStorage.ExistsFile(cmd.SanitizedDomain("*."+os.Getenv("CANARY_DOMAIN")),"crt") {
 		// We have keys already, don't need new ones.
 		return cmd.SanitizedDomain(os.Getenv("CANARY_DOMAIN"))
 	}
