@@ -52,8 +52,8 @@ func registerAccount(client *lego.Client) *registration.Resource {
 }
 
 func needRenewal(days int) (bool, int) {
-	certName := strings.TrimSuffix(os.Getenv("TLS_CERT"), filepath.Ext(os.Getenv("TLS_CERT")))
-	certExt := filepath.Ext(os.Getenv("TLS_CERT"))
+	certName := strings.TrimSuffix(os.Getenv("TLS_CRT"), filepath.Ext(os.Getenv("TLS_CRT")))
+	certExt := filepath.Ext(os.Getenv("TLS_CRT"))
 
 	certsStorage := cmd.NewCertificatesStorage()
 	certificates, err := certsStorage.ReadCertificate(certName, certExt)
