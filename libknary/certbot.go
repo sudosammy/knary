@@ -5,7 +5,9 @@ import (
 	"log"
 	"os"
 	"time"
+	"crypto"
 
+	"github.com/go-acme/lego/v4/certcrypto"
 	"github.com/go-acme/lego/v4/certificate"
 	"github.com/go-acme/lego/v4/challenge/dns01"
 	"github.com/go-acme/lego/v4/lego"
@@ -155,4 +157,57 @@ func StartLetsEncrypt() string {
 	
 	certsStorage.SaveResource(certificates)
 	return cmd.SanitizedDomain(certificates.Domain)
+}
+
+func renewLetsEncrypt() {
+	logger("INFO", "Attempting Let's Encrypt certificate renewal.")
+
+	myUser := loadMyUser()
+	config := lego.NewConfig(myUser)
+
+	client, err := lego.NewClient(config)
+	if err != nil {
+		logger("ERROR", err.Error())
+		GiveHead(2)
+		log.Fatal(err)
+	}
+
+	certDomains := getDomains()
+	certsStorage := cmd.NewCertificatesStorage()
+
+	var privateKey crypto.PrivateKey
+	
+	keyBytes, errR := certsStorage.ReadFile(certDomains[0], ".key")
+	if errR != nil {
+		log.Fatalf("Error while loading the private key for domain %s\n\t%v", certDomains[0], errR)
+	}
+
+	privateKey, errR = certcrypto.ParsePEMPrivateKey(keyBytes)
+	if errR != nil {
+		logger("ERROR", errR.Error())
+		GiveHead(2)
+		log.Fatal(errR)
+	}
+	
+	request := certificate.ObtainRequest {
+		Domains:        certDomains,
+		Bundle:         false,
+		PrivateKey:     privateKey,
+		MustStaple:     false,
+		PreferredChain: "",
+	}
+	certRes, err := client.Certificate.Obtain(request)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	certsStorage.SaveResource(certRes)
+
+	// meta[renewEnvCertDomain] = domain
+	// meta[renewEnvCertPath] = certsStorage.GetFileName(domain, ".crt")
+	// meta[renewEnvCertKeyPath] = certsStorage.GetFileName(domain, ".key")
+
+	// TEST archive move
+	//certsStorage.MoveToArchive("*.sam.ooo")
+
 }

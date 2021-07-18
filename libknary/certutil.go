@@ -77,16 +77,3 @@ func needRenewal(days int) (bool, int) {
 	}
 	return true, notAfter
 }
-
-func renewLetsEncrypt() {
-	logger("INFO", "Attempting Let's Encrypt certificate renewal.")
-
-	// apparently we can renew like this:
-	// client.Certificate.Renew(certRes certificate.Resource, bundle bool, mustStaple bool, preferredChain string)
-	// we should do this in our TLS certificate daily check but when the certificate is ~20 days from expiry and
-	// raise any issues in the renewal to our chans
-
-	// TEST archive move
-	//certsStorage.MoveToArchive("*.sam.ooo")
-
-}
