@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"sync"
+//	"sync"
 
 	"github.com/blang/semver/v4"
 )
@@ -135,6 +135,10 @@ func CheckUpdate(version string, githubVersion string, githubURL string) (bool, 
 }
 
 // map for blacklist
+// TODO. this is lol
+// you want to match on domain
+// so domain should be the map key
+// and the struct should contain `mutex *sync.RWMutex`
 type blacklist struct {
 	domain  string
 	lastHit time.Time
@@ -196,22 +200,24 @@ func checkLastHit() bool { // this runs once a day
 }
 
 func inBlacklist(needles ...string) bool {
-	var mutex = &sync.Mutex{}
+	// this function should not require nested for loops!
+	// https://play.golang.org/p/JGZ7mN0-U-
 	for _, needle := range needles {
 		for i := range blacklistMap { // foreach blacklist item
-			mutex.Lock() // lock this operation to prevent race conditions
 			if stringContains(needle, blacklistMap[i].domain) && !stringContains(needle, "."+blacklistMap[i].domain) {
 				// matches blacklist.domain or 1.1.1.1 but not x.blacklist.domain
 				updBL := blacklistMap[i]
 				updBL.lastHit = time.Now() // update last hit
+				// lock this operation to prevent race conditions
+				//c.mutex.Lock()
 				blacklistMap[i] = updBL
+				//c.mutex.Unlock()
 
 				if os.Getenv("DEBUG") == "true" {
 					Printy(blacklistMap[i].domain+" found in denylist", 3)
 				}
 				return true
 			}
-			mutex.Unlock()
 		}
 	}
 	return false
