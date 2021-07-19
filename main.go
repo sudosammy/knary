@@ -142,10 +142,6 @@ func main() {
 		os.Setenv("LETS_ENCRYPT", "") // clear variable to not confuse certificate renewal logic
 	}
 
-	// these go after all the screen prining for neatness
-	libknary.CheckUpdate(VERSION, GITHUBVERSION, GITHUB)
-	libknary.HeartBeat(VERSION, true)
-
 	if os.Getenv("HTTP") == "true" {
 		ln80 := libknary.PrepareRequest80()
 		// HTTP
@@ -162,6 +158,10 @@ func main() {
 			libknary.Printy("TLS certificate expires in "+strconv.Itoa(expiry)+" days", 3)
 		}
 	}
+
+	// these go after all the screen prining for neatness
+	libknary.CheckUpdate(VERSION, GITHUBVERSION, GITHUB)
+	libknary.HeartBeat(VERSION, true)
 
 	wg.Wait()
 }

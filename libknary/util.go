@@ -143,6 +143,10 @@ var blacklistMap = map[int]blacklist{}
 var blacklistCount = 0
 
 func LoadBlacklist() (bool, error) {
+	if os.Getenv("BLACKLIST_FILE") != "" {
+		// deprecation warning
+		Printy("The environment variable \"DENYLIST_FILE\" has superseded \"BLACKLIST_FILE\". Please update your configuration.", 2)
+	}
 	// load blacklist file into struct on startup
 	if _, err := os.Stat(os.Getenv("DENYLIST_FILE")); os.IsNotExist(err) {
 		return false, err
@@ -211,24 +215,32 @@ func inBlacklist(needles ...string) bool {
 }
 
 func CheckTLSExpiry(days int) (bool, int) {
-	renew, expiry := needRenewal(days)
+	if os.Getenv("TLS_CRT") != "" && os.Getenv("TLS_KEY") != "" {
+		renew, expiry := needRenewal(days)
 
-	if renew {
-		Printy("TLS certificate expires in "+strconv.Itoa(expiry)+" days", 3)
-		if os.Getenv("LETS_ENCRYPT") != "" {
-			renewLetsEncrypt()
+		if renew {
+			Printy("TLS certificate expires in "+strconv.Itoa(expiry)+" days", 3)
+			if os.Getenv("LETS_ENCRYPT") != "" {
+				renewLetsEncrypt()
+			}
 		}
+
+		if expiry <= 20 { // if cert expires in 20 days or less
+			certMsg := "The TLS certificate for `" + os.Getenv("CANARY_DOMAIN") + "` expires in " + strconv.Itoa(expiry) + " days."
+			Printy(certMsg, 2)
+			logger("WARNING", certMsg)
+			go sendMsg(":lock: " + certMsg)
+			return true, expiry
+		}
+
+		return false, expiry
 	}
 
-	if expiry <= 20 { // if cert expires in 20 days or less
-		certMsg := "The TLS certificate for `" + os.Getenv("CANARY_DOMAIN") + "` expires in " + strconv.Itoa(expiry) + " days."
-		Printy(certMsg, 2)
-		logger("WARNING", certMsg)
-		go sendMsg(":lock: " + certMsg)
-		return true, expiry
+	if os.Getenv("DEBUG") == "true" {
+		Printy("CheckTLSExpiry was called without any certificates being loaded...", 2)
 	}
 
-	return false, expiry
+	return false, 0
 }
 
 func HeartBeat(version string, firstrun bool) (bool, error) {
@@ -244,6 +256,16 @@ func HeartBeat(version string, firstrun bool) (bool, error) {
 		beatMsg += "\n\n"
 	} else {
 		beatMsg += "❤️ Heartbeat (v" + version + ") ❤️\n"
+	}
+
+	// print TLS cert expiry
+	if os.Getenv("TLS_CRT") != "" && os.Getenv("TLS_KEY") != "" {
+		_, expiry := needRenewal(30)
+		if expiry == 1 {
+			beatMsg += "Certificate expires in: " + strconv.Itoa(expiry) + " day\n"
+		} else {
+			beatMsg += "Certificate expires in: " + strconv.Itoa(expiry) + " days\n"
+		}
 	}
 
 	// print uptime
