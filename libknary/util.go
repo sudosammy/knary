@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"sync"
 
 	"github.com/blang/semver/v4"
 )
@@ -195,14 +196,17 @@ func checkLastHit() bool { // this runs once a day
 }
 
 func inBlacklist(needles ...string) bool {
+	var mutex = &sync.Mutex{}
 	for _, needle := range needles {
 		for i := range blacklistMap { // foreach blacklist item
 			if stringContains(needle, blacklistMap[i].domain) && !stringContains(needle, "."+blacklistMap[i].domain) {
 				// matches blacklist.domain or 1.1.1.1 but not x.blacklist.domain
 				updBL := blacklistMap[i]
 				updBL.lastHit = time.Now() // update last hit
-				// TODO there is a race condition here!
+				// lock this operation to prevent race conditions
+				mutex.Lock()
 				blacklistMap[i] = updBL
+				mutex.Unlock()
 
 				if os.Getenv("DEBUG") == "true" {
 					Printy(blacklistMap[i].domain+" found in denylist", 3)
@@ -262,9 +266,9 @@ func HeartBeat(version string, firstrun bool) (bool, error) {
 	if os.Getenv("TLS_CRT") != "" && os.Getenv("TLS_KEY") != "" {
 		_, expiry := needRenewal(30)
 		if expiry == 1 {
-			beatMsg += "Certificate expires in: " + strconv.Itoa(expiry) + " day\n"
+			beatMsg += "Certificate expiry in: " + strconv.Itoa(expiry) + " day\n"
 		} else {
-			beatMsg += "Certificate expires in: " + strconv.Itoa(expiry) + " days\n"
+			beatMsg += "Certificate expiry in: " + strconv.Itoa(expiry) + " days\n"
 		}
 	}
 
