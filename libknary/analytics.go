@@ -81,7 +81,7 @@ func UsageStats(version string) bool {
 		anonKnaryID,
 		version,
 		day,
-		len(blacklistMap),
+		blacklistCount,
 		(offset / 60 / 60),
 		zone,
 		features{

@@ -11,11 +11,50 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
-//	"sync"
 
 	"github.com/blang/semver/v4"
 )
+
+// map for denylist
+type blacklist struct {
+	mutex sync.RWMutex
+	deny map[string]time.Time
+}
+
+// add or update a denied domain/IP
+func (a *blacklist) updateD(term string) {
+	d := strings.ToLower(term)
+	a.mutex.Lock()
+	a.deny[d] = time.Now()
+	a.mutex.Unlock()
+}
+
+// search for a denied domain/IP
+func (a *blacklist) searchD(term string) (bool) {
+	d := strings.ToLower(term)
+
+	// this is all fucked.
+	// need to get just the domain (no trailing FQDN dot, or port numbers)
+	// to lookup against the map :(
+
+	termTrimmed := strings.TrimSuffix(d, ":")
+	termTrimmed = strings.TrimSuffix(termTrimmed, ".")
+
+	Printy(termTrimmed, 2)
+
+	a.mutex.Lock()
+	defer a.mutex.Unlock()
+
+	if _, ok := a.deny[termTrimmed]; ok {
+		return true // found!
+	}
+	return false
+}
+
+var denied = blacklist{deny: make(map[string]time.Time)}
+var blacklistCount = 0
 
 // https://github.com/dsanader/govalidator/blob/master/validator.go
 func IsIP(str string) bool {
@@ -134,25 +173,12 @@ func CheckUpdate(version string, githubVersion string, githubURL string) (bool, 
 	return false, nil
 }
 
-// map for blacklist
-// TODO. this is lol
-// you want to match on domain
-// so domain should be the map key
-// and the struct should contain `mutex *sync.RWMutex`
-type blacklist struct {
-	domain  string
-	lastHit time.Time
-}
-
-var blacklistMap = map[int]blacklist{}
-var blacklistCount = 0
-
 func LoadBlacklist() (bool, error) {
 	if os.Getenv("BLACKLIST_FILE") != "" {
 		// deprecation warning
 		Printy("The environment variable \"DENYLIST_FILE\" has superseded \"BLACKLIST_FILE\". Please update your configuration.", 2)
 	}
-	// load blacklist file into struct on startup
+	// load denylist file into struct on startup
 	if _, err := os.Stat(os.Getenv("DENYLIST_FILE")); os.IsNotExist(err) {
 		return false, err
 	}
@@ -167,8 +193,8 @@ func LoadBlacklist() (bool, error) {
 
 	scanner := bufio.NewScanner(blklist)
 
-	for scanner.Scan() { // foreach blacklist item
-		blacklistMap[blacklistCount] = blacklist{scanner.Text(), time.Now()} // add to struct
+	for scanner.Scan() { // foreach denied item
+		denied.updateD(scanner.Text())
 		blacklistCount++
 	}
 
@@ -178,46 +204,35 @@ func LoadBlacklist() (bool, error) {
 }
 
 func checkLastHit() bool { // this runs once a day
-	if len(blacklistMap) != 0 {
-		// iterate through blacklist and look for items >14 days old
-		for i := range blacklistMap { // foreach blacklist item
-			expiryDate := blacklistMap[i].lastHit.AddDate(0, 0, 14)
+	for subdomain := range denied.deny {
+		expiryDate := denied.deny[subdomain].AddDate(0, 0, 14)
 
-			if time.Now().After(expiryDate) { // let 'em know it's old
-				msg := "Denied item `" + blacklistMap[i].domain + "` hasn't had a hit in >14 days. Consider removing it."
-				go sendMsg(":wrench: " + msg + " Configure `DENYLIST_ALERTING` to supress.")
-				logger("INFO", msg)
-				Printy(msg, 1)
-			}
-		}
-
-		if os.Getenv("DEBUG") == "true" {
-			logger("INFO", "Checked denylist...")
-			Printy("Checked for old denylist items", 3)
+		if time.Now().After(expiryDate) { // let 'em know it's old
+			msg := "Denied item `" + subdomain + "` hasn't had a hit in >14 days. Consider removing it."
+			go sendMsg(":wrench: " + msg + " Configure `DENYLIST_ALERTING` to supress.")
+			logger("INFO", msg)
+			Printy(msg, 1)
 		}
 	}
+	
+	if os.Getenv("DEBUG") == "true" {
+		logger("INFO", "Checked denylist...")
+		Printy("Checked for old denylist items", 3)
+	}
+
 	return true
 }
 
 func inBlacklist(needles ...string) bool {
-	// this function should not require nested for loops!
-	// https://play.golang.org/p/JGZ7mN0-U-
 	for _, needle := range needles {
-		for i := range blacklistMap { // foreach blacklist item
-			if stringContains(needle, blacklistMap[i].domain) && !stringContains(needle, "."+blacklistMap[i].domain) {
-				// matches blacklist.domain or 1.1.1.1 but not x.blacklist.domain
-				updBL := blacklistMap[i]
-				updBL.lastHit = time.Now() // update last hit
-				// lock this operation to prevent race conditions
-				//c.mutex.Lock()
-				blacklistMap[i] = updBL
-				//c.mutex.Unlock()
+		if denied.searchD(needle) {
+			denied.updateD(needle) // found! safely updating the last hit time
 
-				if os.Getenv("DEBUG") == "true" {
-					Printy(blacklistMap[i].domain+" found in denylist", 3)
-				}
-				return true
+			if os.Getenv("DEBUG") == "true" {
+				logger("INFO", "Found " + needle + " in denylist")
+				Printy("Found " + needle + " in denylist", 3)
 			}
+			return true
 		}
 	}
 	return false
@@ -253,7 +268,7 @@ func CheckTLSExpiry(days int) (bool, int) {
 }
 
 func HeartBeat(version string, firstrun bool) (bool, error) {
-	// runs weekly (and on launch) to let people know we're alive (and show them the blacklist)
+	// runs weekly (and on launch) to let people know we're alive (and show them the denylist)
 	beatMsg := "```"
 	if firstrun {
 		beatMsg += ` __                           
@@ -284,11 +299,11 @@ func HeartBeat(version string, firstrun bool) (bool, error) {
 		beatMsg += "Uptime: " + strconv.Itoa(day) + " days\n\n"
 	}
 
-	// print blacklisted items
+	// print denied items
 	beatMsg += strconv.Itoa(blacklistCount) + " denied domains: \n"
 	beatMsg += "------------------------\n"
-	for i := range blacklistMap { // foreach blacklist item
-		beatMsg += strings.ToLower(blacklistMap[i].domain) + "\n"
+	for subdomain := range denied.deny {
+		beatMsg += subdomain + "\n"
 	}
 	beatMsg += "------------------------\n\n"
 
