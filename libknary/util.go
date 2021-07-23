@@ -23,33 +23,36 @@ type blacklist struct {
 	deny map[string]time.Time
 }
 
+var denied = blacklist{deny: make(map[string]time.Time)}
+var blacklistCount = 0
+
 // add or update a denied domain/IP
 func (a *blacklist) updateD(term string) bool {
 	if term == "" {
 		return false // would happen if there's no X-Forwarded-For header
 	}
+	item := standerdiseDenylistItem(term)
 	a.mutex.Lock()
-	a.deny[term] = time.Now()
+	a.deny[item] = time.Now()
 	a.mutex.Unlock()
 	return true
 }
 
 // search for a denied domain/IP
 func (a *blacklist) searchD(term string) (bool) {
-
-
+	item := standerdiseDenylistItem(term)
 	a.mutex.Lock()
 	defer a.mutex.Unlock()
 
-	if _, ok := a.deny[term]; ok {
+	if _, ok := a.deny[item]; ok {
 		return true // found!
 	}
 	return false
 }
 
-func prepTerm(term string) string {
-	d := strings.ToLower(term)
-	d = strings.TrimSpace(d) // important
+func standerdiseDenylistItem(term string) string {
+	d := strings.ToLower(term) // lowercase
+	d = strings.TrimSpace(d) // remove any surrounding whitespaces
 	sTerm := ""
 
 	if IsIP(d) {
@@ -61,9 +64,6 @@ func prepTerm(term string) string {
 
 	return sTerm
 }
-
-var denied = blacklist{deny: make(map[string]time.Time)}
-var blacklistCount = 0
 
 // https://github.com/dsanader/govalidator/blob/master/validator.go
 func IsIP(str string) bool {
@@ -222,8 +222,10 @@ func LoadBlacklist() (bool, error) {
 	scanner := bufio.NewScanner(blklist)
 
 	for scanner.Scan() { // foreach denied item
-		denied.updateD(scanner.Text())
-		blacklistCount++
+		if scanner.Text() != "" {
+			denied.updateD(scanner.Text())
+			blacklistCount++
+		}
 	}
 
 	Printy("Monitoring "+strconv.Itoa(blacklistCount)+" items in denylist", 1)
@@ -253,12 +255,8 @@ func checkLastHit() bool { // this runs once a day
 
 func inBlacklist(needles ...string) bool {
 	for _, needle := range needles {
-
-		needleStrip := prepTerm(needle)
-
-		if denied.searchD(needleStrip) {
-			
-			denied.updateD(needleStrip) // found! safely updating the last hit time
+		if denied.searchD(needle) {
+			denied.updateD(needle) // found!
 
 			if os.Getenv("DEBUG") == "true" {
 				logger("INFO", "Found " + needle + " in denylist")
