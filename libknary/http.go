@@ -211,7 +211,14 @@ func handleRequest(conn net.Conn) bool {
 
 			hostDomain := strings.TrimPrefix(strings.ToLower(host), "host:") // trim off the "Host:" section of header
 			if !inBlacklist(hostDomain, conn.RemoteAddr().String(), fwd) {
-				msg := fmt.Sprintf("%s\n```Query: %s\n%s\n%s\nFrom: %s", host, query, userAgent, cookie, conn.RemoteAddr().String())
+				var msg string
+				if cookie != "" {
+					msg = fmt.Sprintf("%s\n```Query: %s\n%s\n%s\nFrom: %s", host, query, userAgent, cookie, conn.RemoteAddr().String())
+
+				} else {
+					msg = fmt.Sprintf("%s\n```Query: %s\n%s\nFrom: %s", host, query, userAgent, conn.RemoteAddr().String())
+
+				}
 				go sendMsg(msg + "```")
 				if os.Getenv("DEBUG") == "true" {
 					logger("INFO", conn.RemoteAddr().String()+" - "+host)

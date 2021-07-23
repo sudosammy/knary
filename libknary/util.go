@@ -33,6 +33,7 @@ func (a *blacklist) updateD(term string) bool {
 	}
 	item := standerdiseDenylistItem(term)
 	a.mutex.Lock()
+	//a.deny[item] = time.Now()
 	a.deny[item] = time.Now()
 	a.mutex.Unlock()
 	return true
@@ -53,7 +54,7 @@ func (a *blacklist) searchD(term string) (bool) {
 func standerdiseDenylistItem(term string) string {
 	d := strings.ToLower(term) // lowercase
 	d = strings.TrimSpace(d) // remove any surrounding whitespaces
-	sTerm := ""
+	var sTerm string
 
 	if IsIP(d) {
 		sTerm, _ = splitPort(d) // yeet port off IP
@@ -88,7 +89,7 @@ func stringContains(stringA string, stringB string) bool {
 // https://rosettacode.org/wiki/Parse_an_IP_Address#Go
 func splitPort(s string) (string, int) {
 	ip := net.ParseIP(s)
-	port := ""
+	var port string
 	
 	if ip == nil {
 		var host string
@@ -122,30 +123,6 @@ func splitPort(s string) (string, int) {
 	} else {
 		return "", 0
 	}
-}
-
-func specialMessage(version string) {
-	// check for any special messages to include
-	// running, err := semver.Make(version)
-
-	// if err != nil {
-	// 	Printy("Could not check for messages: " + err.Error(), 2)
-	// 	return false, err
-	// }
-
-	// c := &http.Client{
-	// 	Timeout: 10 * time.Second,
-	// }
-	// response, err := c.Get("https://raw.githubusercontent.com/sudosammy/knary/master/MESSAGES")
-
-	// if err != nil {
-	// 	Printy("Could not check for messages: " + err.Error(), 2)
-	// 	return false, err
-	// }
-	// we want to check github for a file which includes a semver and a message
-	// something like <3.3.0 "thi is the message"
-	// this function will run daily and if any messages match our version number
-	// we print to the webhook
 }
 
 func CheckUpdate(version string, githubVersion string, githubURL string) (bool, error) { // this runs once a day
