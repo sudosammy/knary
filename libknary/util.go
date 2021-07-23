@@ -19,38 +19,47 @@ import (
 
 // map for denylist
 type blacklist struct {
-	mutex sync.RWMutex
+	mutex sync.Mutex
 	deny map[string]time.Time
 }
 
 // add or update a denied domain/IP
-func (a *blacklist) updateD(term string) {
-	d := strings.ToLower(term)
+func (a *blacklist) updateD(term string) bool {
+	if term == "" {
+		return false // would happen if there's no X-Forwarded-For header
+	}
 	a.mutex.Lock()
-	a.deny[d] = time.Now()
+	a.deny[term] = time.Now()
 	a.mutex.Unlock()
+	return true
 }
 
 // search for a denied domain/IP
 func (a *blacklist) searchD(term string) (bool) {
-	d := strings.ToLower(term)
 
-	// this is all fucked.
-	// need to get just the domain (no trailing FQDN dot, or port numbers)
-	// to lookup against the map :(
-
-	termTrimmed := strings.TrimSuffix(d, ":")
-	termTrimmed = strings.TrimSuffix(termTrimmed, ".")
-
-	Printy(termTrimmed, 2)
 
 	a.mutex.Lock()
 	defer a.mutex.Unlock()
 
-	if _, ok := a.deny[termTrimmed]; ok {
+	if _, ok := a.deny[term]; ok {
 		return true // found!
 	}
 	return false
+}
+
+func prepTerm(term string) string {
+	d := strings.ToLower(term)
+	d = strings.TrimSpace(d) // important
+	sTerm := ""
+
+	if IsIP(d) {
+		sTerm, _ = splitPort(d) // yeet port off IP
+	} else {
+		domain := strings.Split(d, ":") // split on port number (if exists)
+		sTerm = strings.TrimSuffix(domain[0], ".") // remove trailing FQDN dot if present
+	}
+
+	return sTerm
 }
 
 var denied = blacklist{deny: make(map[string]time.Time)}
@@ -76,21 +85,40 @@ func stringContains(stringA string, stringB string) bool {
 	)
 }
 
-func splitPort(ipaddr string) (string, int) {
-	// spit the IP address to remove the port
-	// this is almost certainly badly broken
-	ipSlice := strings.Split(ipaddr, ":")
-	ipSlice = ipSlice[:len(ipSlice)-1]
-	ipaddrNoPort := strings.Join(ipSlice[:], ",")
+// https://rosettacode.org/wiki/Parse_an_IP_Address#Go
+func splitPort(s string) (string, int) {
+	ip := net.ParseIP(s)
+	port := ""
+	
+	if ip == nil {
+		var host string
+		host, port, err := net.SplitHostPort(s)
+		if err != nil {
+			return "", 0
+		}
 
-	portSlice := strings.Split(ipaddr, ":")
-	portSlice = portSlice[len(portSlice)-1:]
+		if port != "" {
+			// This check only makes sense if service names are not allowed
+			if _, err = strconv.ParseUint(port, 10, 16); err != nil {
+				return "", 0
+			}
+		}
+		ip = net.ParseIP(host)
+	}
 
-	onlyPortSlice := strings.Join(portSlice[:], ",")
-	onlyPort, _ := strconv.Atoi(onlyPortSlice)
+	if ip == nil {
+		return "", 0
+	} else {
+		if ip4 := ip.To4(); ip4 != nil {
+			ip = ip4
+		}
+	}
 
-	if IsIP(ipaddrNoPort) {
-		return ipaddrNoPort, onlyPort
+	stringIP 	:= ip.String()
+	intPort, _  := strconv.Atoi(port)
+
+	if IsIP(stringIP) {
+		return stringIP, intPort
 	} else {
 		return "", 0
 	}
@@ -225,8 +253,12 @@ func checkLastHit() bool { // this runs once a day
 
 func inBlacklist(needles ...string) bool {
 	for _, needle := range needles {
-		if denied.searchD(needle) {
-			denied.updateD(needle) // found! safely updating the last hit time
+
+		needleStrip := prepTerm(needle)
+
+		if denied.searchD(needleStrip) {
+			
+			denied.updateD(needleStrip) // found! safely updating the last hit time
 
 			if os.Getenv("DEBUG") == "true" {
 				logger("INFO", "Found " + needle + " in denylist")

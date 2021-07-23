@@ -153,6 +153,7 @@ func handleRequest(conn net.Conn) bool {
 			query := ""
 			userAgent := ""
 			cookie := ""
+			fwd := ""
 
 			for _, header := range headers {
 				if stringContains(header, "Host") {
@@ -186,16 +187,35 @@ func handleRequest(conn net.Conn) bool {
 				if stringContains(header, "Cookie") {
 					cookie = header
 				}
+				if stringContains(header, "X-Forwarded-For") {
+					//this is pretty funny, and also very irritating.
+					//Golang reverse proxy automagically adds the source IP address, but not the port.
+					//We add the value we want in the prepareRequest function,
+					//and strip off any values that don't have ports in this function.
+					//It's then reconstructed and appended to the message
+					val := strings.Split(header, ": ")[1]
+					srcAndPort := []string{}
+					mult := strings.Split(val, ",")
+					if len(mult) > 1 {
+						for _, srcaddr := range mult {
+							if strings.Contains(srcaddr, ":") {
+								srcAndPort = append(srcAndPort, srcaddr)
+							}
+						}
+					} else {
+						srcAndPort = mult
+					}
+					fwd = strings.Join(srcAndPort, "")
+				}
 			}
 
-			if inBlacklist(host, conn.RemoteAddr().String()) {
-				return false
-			}
-
-			msg := fmt.Sprintf("%s\n```Query: %s\n%s\n%s\nFrom: %s", host, query, userAgent, cookie, conn.RemoteAddr().String())
-			go sendMsg(msg + "```")
-			if os.Getenv("DEBUG") == "true" {
-				logger("INFO", conn.RemoteAddr().String()+" - "+host)
+			hostDomain := strings.TrimPrefix(strings.ToLower(host), "host:") // trim off the "Host:" section of header
+			if !inBlacklist(hostDomain, conn.RemoteAddr().String(), fwd) {
+				msg := fmt.Sprintf("%s\n```Query: %s\n%s\n%s\nFrom: %s", host, query, userAgent, cookie, conn.RemoteAddr().String())
+				go sendMsg(msg + "```")
+				if os.Getenv("DEBUG") == "true" {
+					logger("INFO", conn.RemoteAddr().String()+" - "+host)
+				}
 			}
 		}
 	}

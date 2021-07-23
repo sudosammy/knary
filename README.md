@@ -24,10 +24,14 @@ __Prerequisite:__ You need Go >=1.13 to build knary. Ideally, use Go 1.16.x.
 ```
 go get -u github.com/sudosammy/knary
 ```
-2. Update your domain nameserver to point to a subdomain under itself; such as `ns.knary.tld`. If required you can set multiple nameserver records such as `ns1.knary.tld`, `ns2.knary.ltd`.
+
+2. Update your domain nameserver(s) to point to a subdomain under itself; such as `ns.knary.tld`. If required, you can set multiple nameserver records such as `ns1.knary.tld`, `ns2.knary.ltd`.
+
 3. Create a "Glue Record", sometimes referred to as the "Nameserver Registration", or "Nameserver IP address" to point to your knary server. This is what it looks like in `name.com`:
 
  ![Setting a glue record](https://github.com/sudosammy/knary/raw/master/screenshots/nameserver-ip.png "Setting a glue record")
+
+**Note:** You may need to raise a support ticket to have step #2 and #3 performed by your registrar. If your registry requires you to have multiple nameservers but doesn't permit them to use the same IP address for both, set the second one to other nameserver, such as `8.8.8.8` or `1.1.1.1`.
 
 4. This will take some time to propagate, so setup your [webhook](https://github.com/sudosammy/knary#webhook-config).
 
