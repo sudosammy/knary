@@ -20,7 +20,7 @@ import (
 // map for denylist
 type blacklist struct {
 	mutex sync.Mutex
-	deny map[string]time.Time
+	deny  map[string]time.Time
 }
 
 var denied = blacklist{deny: make(map[string]time.Time)}
@@ -40,7 +40,7 @@ func (a *blacklist) updateD(term string) bool {
 }
 
 // search for a denied domain/IP
-func (a *blacklist) searchD(term string) (bool) {
+func (a *blacklist) searchD(term string) bool {
 	item := standerdiseDenylistItem(term)
 	a.mutex.Lock()
 	defer a.mutex.Unlock()
@@ -53,13 +53,13 @@ func (a *blacklist) searchD(term string) (bool) {
 
 func standerdiseDenylistItem(term string) string {
 	d := strings.ToLower(term) // lowercase
-	d = strings.TrimSpace(d) // remove any surrounding whitespaces
+	d = strings.TrimSpace(d)   // remove any surrounding whitespaces
 	var sTerm string
 
 	if IsIP(d) {
 		sTerm, _ = splitPort(d) // yeet port off IP
 	} else {
-		domain := strings.Split(d, ":") // split on port number (if exists)
+		domain := strings.Split(d, ":")            // split on port number (if exists)
 		sTerm = strings.TrimSuffix(domain[0], ".") // remove trailing FQDN dot if present
 	}
 
@@ -90,7 +90,7 @@ func stringContains(stringA string, stringB string) bool {
 func splitPort(s string) (string, int) {
 	ip := net.ParseIP(s)
 	var port string
-	
+
 	if ip == nil {
 		var host string
 		host, port, err := net.SplitHostPort(s)
@@ -115,8 +115,8 @@ func splitPort(s string) (string, int) {
 		}
 	}
 
-	stringIP 	:= ip.String()
-	intPort, _  := strconv.Atoi(port)
+	stringIP := ip.String()
+	intPort, _ := strconv.Atoi(port)
 
 	if IsIP(stringIP) {
 		return stringIP, intPort
@@ -221,7 +221,7 @@ func checkLastHit() bool { // this runs once a day
 			Printy(msg, 1)
 		}
 	}
-	
+
 	if os.Getenv("DEBUG") == "true" {
 		logger("INFO", "Checked denylist...")
 		Printy("Checked for old denylist items", 3)
@@ -236,8 +236,8 @@ func inBlacklist(needles ...string) bool {
 			denied.updateD(needle) // found!
 
 			if os.Getenv("DEBUG") == "true" {
-				logger("INFO", "Found " + needle + " in denylist")
-				Printy("Found " + needle + " in denylist", 3)
+				logger("INFO", "Found "+needle+" in denylist")
+				Printy("Found "+needle+" in denylist", 3)
 			}
 			return true
 		}

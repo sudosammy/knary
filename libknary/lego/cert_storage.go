@@ -21,7 +21,7 @@ import (
 )
 
 var baseCertificatesFolderName = "certs"
-var baseArchivesFolderName = "certs/archives"
+var baseArchivesFolderName = filepath.Join(baseCertificatesFolderName, "archives")
 
 // CertificatesStorage a certificates storage.
 //

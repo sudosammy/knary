@@ -66,6 +66,9 @@ func (d *DNSProvider) CleanUp(domain, token, keyAuth string) error {
 }
 
 func StartLetsEncrypt() string {
+	// check if folder structure is correct
+	cmd.CreateFolderStructure()
+
 	myUser := loadMyUser()
 	config := lego.NewConfig(myUser)
 
