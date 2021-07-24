@@ -23,7 +23,7 @@ func getDomains() []string {
 	}
 
 	if os.Getenv("DNS_SUBDOMAIN") != "" {
-		domainArray = append(domainArray, "*."+os.Getenv("DNS_SUBDOMAIN"))
+		domainArray = append(domainArray, "*."+os.Getenv("DNS_SUBDOMAIN")+"."+os.Getenv("CANARY_DOMAIN"))
 	}
 	return domainArray
 }
