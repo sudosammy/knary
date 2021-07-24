@@ -39,7 +39,7 @@ If your registry requires you to have multiple nameservers with different IP add
 
 5. Create a `.env` file in the same directory as the knary binary and [configure](https://github.com/sudosammy/knary/tree/master/examples) it as necessary. You can also use environment variables to set these configurations. Environment variables will take precedence over the `.env` file.
 
-6. __Optional__ For accepting TLS (HTTPS) connections set the `LETS_ENCRYPT=<email address>` variable and knary will automagically manage wildcard certificates for you. Otherwise, you can specify the path to your own certificates with `TLS_CRT=<relative path>` and `TLS_KEY=<relative path>`.
+6. __Optional__ For accepting TLS (HTTPS) connections set the `LETS_ENCRYPT=<email address>` variable and knary will automagically manage wildcard certificates for you. Otherwise, you can specify the path to your own certificates with `TLS_CRT=<path>` and `TLS_KEY=<path>`.
 
 7. Run the binary (probably in `screen`, `tmux`, or similar) and hope for output that looks something like this (`DEBUG` is on): 
 
