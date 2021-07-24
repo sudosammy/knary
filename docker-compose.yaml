@@ -10,7 +10,7 @@ services:
     #   - DNS=true
     #   - HTTP=true
     #   - BIND_ADDR=127.0.0.1
-    #   - CANARY_DOMAIN=sam.ooo
+    #   - CANARY_DOMAIN=knary.tld
     # (etc. etc.)
     build: .
     ports:

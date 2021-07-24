@@ -88,7 +88,11 @@ func main() {
 		libknary.Printy("Listening for http(s)://*."+os.Getenv("CANARY_DOMAIN")+" requests", 1)
 	}
 	if os.Getenv("DNS") == "true" {
-		libknary.Printy("Listening for *."+os.Getenv("CANARY_DOMAIN")+" DNS requests", 1)
+		if os.Getenv("DNS_SUBDOMAIN") != "" { 
+			libknary.Printy("Listening for *."+os.Getenv("DNS_SUBDOMAIN")+"."+os.Getenv("CANARY_DOMAIN")+" DNS requests", 1)
+		} else {
+			libknary.Printy("Listening for *."+os.Getenv("CANARY_DOMAIN")+" DNS requests", 1)
+		}
 	}
 	if os.Getenv("BURP_DOMAIN") != "" {
 		libknary.Printy("Working in collaborator compatibility mode on subdomain *."+os.Getenv("BURP_DOMAIN"), 1)

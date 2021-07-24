@@ -71,6 +71,39 @@ func infoLog(ipaddr string, reverse string, name string) {
 	}
 }
 
+func goSendMsg(ipaddr, reverse, name, record string) bool {
+	if os.Getenv("DNS_SUBDOMAIN") != "" &&
+		!stringContains(name, os.Getenv("DNS_SUBDOMAIN")+"."+os.Getenv("CANARY_DOMAIN")) {
+		// disregard unless subdomain we want to report on
+		return false
+	}
+
+	if os.Getenv("DEBUG") == "true" {
+		Printy("Got A question for: " + name, 3)
+	}
+
+	if inBlacklist(name, ipaddr) {
+		return false
+	}
+
+	if reverse == "" {
+		go sendMsg("DNS (" + record + "): " + name +
+			"```" +
+			"From: " + ipaddr +
+			"```")
+		infoLog(ipaddr, reverse, name)
+
+	} else {
+		go sendMsg("DNS (" + record + "): " + name +
+			"```" +
+			"From: " + ipaddr + "\n" +
+			"PTR: " + reverse +
+			"```")
+		infoLog(ipaddr, reverse, name)
+	}
+	return true
+}
+
 func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 	// for each DNS question to our nameserver
 	// there can be multiple questions in the question section of a single request
@@ -125,29 +158,9 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 
 		switch q.Qtype {
 		case dns.TypeA:
-			if os.Getenv("DEBUG") == "true" {
-				Printy("Got A question for: "+q.Name, 3)
-			}
-
 			ipaddrNoPort, _ := splitPort(ipaddr)
 			reverse, _ := dns.ReverseAddr(ipaddrNoPort)
-
-			if reverse == "" && !inBlacklist(q.Name, ipaddr) {
-				go sendMsg("DNS (A): " + q.Name +
-					"```" +
-					"From: " + ipaddr +
-					"```")
-				infoLog(ipaddr, reverse, q.Name)
-
-			} else if !inBlacklist(q.Name, ipaddr) {
-				go sendMsg("DNS (A): " + q.Name +
-					"```" +
-					"From: " + ipaddr + "\n" +
-					"PTR: " + reverse +
-					"```")
-				infoLog(ipaddr, reverse, q.Name)
-			}
-
+			goSendMsg(ipaddr, reverse, q.Name, "A")
 			/*
 				If we are an IPv6 host, to be a "compliant" nameserver (https://tools.ietf.org/html/rfc4074), we should:
 				a) Return an empty response to A questions
@@ -163,29 +176,9 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 			}
 
 		case dns.TypeAAAA:
-			if os.Getenv("DEBUG") == "true" {
-				Printy("Got AAAA question for: "+q.Name, 3)
-			}
-
 			ipaddrNoPort, _ := splitPort(ipaddr)
 			reverse, _ := dns.ReverseAddr(ipaddrNoPort)
-
-			if reverse == "" && !inBlacklist(q.Name, ipaddr) {
-				go sendMsg("DNS (AAAA): " + q.Name +
-					"```" +
-					"From: " + ipaddr +
-					"```")
-				infoLog(ipaddr, reverse, q.Name)
-
-			} else if !inBlacklist(q.Name, ipaddr) {
-				go sendMsg("DNS (AAAA): " + q.Name +
-					"```" +
-					"From: " + ipaddr + "\n" +
-					"PTR: " + reverse +
-					"```")
-				infoLog(ipaddr, reverse, q.Name)
-			}
-
+			goSendMsg(ipaddr, reverse, q.Name, "AAAA")
 			/*
 				If we are an IPv4 host, to be a "compliant" nameserver (https://tools.ietf.org/html/rfc4074), we should:
 				a) Return an empty response to AAAA questions
@@ -206,28 +199,9 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 				return
 			}
 
-			if os.Getenv("DEBUG") == "true" {
-				Printy("Got CNAME question for: "+q.Name, 3)
-			}
-
 			ipaddrNoPort, _ := splitPort(ipaddr)
 			reverse, _ := dns.ReverseAddr(ipaddrNoPort)
-
-			if reverse == "" && !inBlacklist(q.Name, ipaddr) {
-				go sendMsg("DNS (CNAME): " + q.Name +
-					"```" +
-					"From: " + ipaddr +
-					"```")
-				infoLog(ipaddr, reverse, q.Name)
-
-			} else if !inBlacklist(q.Name, ipaddr) {
-				go sendMsg("DNS (CNAME): " + q.Name +
-					"```" +
-					"From: " + ipaddr + "\n" +
-					"PTR: " + reverse +
-					"```")
-				infoLog(ipaddr, reverse, q.Name)
-			}
+			goSendMsg(ipaddr, reverse, q.Name, "CNAME")
 
 			if !foundInZone {
 				rr, _ := dns.NewRR(fmt.Sprintf("%s IN 60 CNAME %s", q.Name, q.Name))
@@ -235,28 +209,9 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 			}
 
 		case dns.TypeTXT:
-			if os.Getenv("DEBUG") == "true" {
-				Printy("Got TXT question for: "+q.Name, 3)
-			}
-
 			ipaddrNoPort, _ := splitPort(ipaddr)
 			reverse, _ := dns.ReverseAddr(ipaddrNoPort)
-
-			if reverse == "" && !inBlacklist(q.Name, ipaddr) {
-				go sendMsg("DNS (TXT): " + q.Name +
-					"```" +
-					"From: " + ipaddr +
-					"```")
-				infoLog(ipaddr, reverse, q.Name)
-
-			} else if !inBlacklist(q.Name, ipaddr) {
-				go sendMsg("DNS (TXT): " + q.Name +
-					"```" +
-					"From: " + ipaddr + "\n" +
-					"PTR: " + reverse +
-					"```")
-				infoLog(ipaddr, reverse, q.Name)
-			}
+			goSendMsg(ipaddr, reverse, q.Name, "TXT")
 
 			if !foundInZone {
 				return

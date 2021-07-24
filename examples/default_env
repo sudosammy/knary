@@ -2,14 +2,10 @@
 DNS=true
 HTTP=true
 BIND_ADDR=0.0.0.0
-CANARY_DOMAIN=knary.tld
-# Not providing certificates will tell knary to only listen on port 80.
-#TLS_CRT=certs/server.crt
-#TLS_KEY=certs/server.key
-SLACK_WEBHOOK=https://hooks.slack.com/services/...
+CANARY_DOMAIN=<knary.tld>
+LETS_ENCRYPT=<your email address here>
+SLACK_WEBHOOK=<https://hooks.slack.com/services/...>
 
 DEBUG=false
 LOG_FILE=knary.log
 DENYLIST_FILE=denylist.txt
-
-ZONE_FILE=zone_file.txt

@@ -79,10 +79,10 @@ func IsIPv6(str string) bool {
 	return ip != nil && strings.Contains(str, ":")
 }
 
-func stringContains(stringA string, stringB string) bool {
+func stringContains(haystack string, needle string) bool {
 	return strings.Contains(
-		strings.ToLower(stringA),
-		strings.ToLower(stringB),
+		strings.ToLower(haystack),
+		strings.ToLower(needle),
 	)
 }
 
@@ -307,7 +307,7 @@ func HeartBeat(version string, firstrun bool) (bool, error) {
 	}
 
 	// print denied items
-	beatMsg += strconv.Itoa(blacklistCount) + " denied domains: \n"
+	beatMsg += strconv.Itoa(blacklistCount) + " denied subdomains / IPs: \n"
 	beatMsg += "------------------------\n"
 	for subdomain := range denied.deny {
 		beatMsg += subdomain + "\n"
@@ -321,7 +321,11 @@ func HeartBeat(version string, firstrun bool) (bool, error) {
 		beatMsg += "Listening for http(s)://*." + os.Getenv("CANARY_DOMAIN") + " requests\n"
 	}
 	if os.Getenv("DNS") == "true" {
-		beatMsg += "Listening for *." + os.Getenv("CANARY_DOMAIN") + " DNS requests\n"
+		if os.Getenv("DNS_SUBDOMAIN") != "" { 
+			beatMsg += "Listening for *." + os.Getenv("DNS_SUBDOMAIN")+"."+os.Getenv("CANARY_DOMAIN") + " DNS requests\n"
+		} else {
+			beatMsg += "Listening for *." + os.Getenv("CANARY_DOMAIN") + " DNS requests\n"
+		}
 	}
 	if os.Getenv("BURP_DOMAIN") != "" {
 		beatMsg += "Working in collaborator compatibility mode on subdomain *." + os.Getenv("BURP_DOMAIN") + "\n"

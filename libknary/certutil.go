@@ -21,6 +21,10 @@ func getDomains() []string {
 	if os.Getenv("BURP_DOMAIN") != "" {
 		domainArray = append(domainArray, "*."+os.Getenv("BURP_DOMAIN"))
 	}
+
+	if os.Getenv("DNS_SUBDOMAIN") != "" {
+		domainArray = append(domainArray, "*."+os.Getenv("DNS_SUBDOMAIN"))
+	}
 	return domainArray
 }
 
