@@ -4,12 +4,14 @@ ns.knary.tld
 ns1.knary.tld
 ns2.knary.tld
 _acme-challenge.knary.tld
-_dmark.knary.tld
+_dmarc.knary.tld
 webdisk.knary.tld
 webmail.knary.tld
 cpcalendars.knary.tld
 cpcontact.knary.tld
 cpanel.knary.tld
-mail.knary.tld
 cpcontacts.knary.tld
+mail.knary.tld
 bgptools-wildcard-confirmed.knary.tld
+_domainkey.knary.tld
+default._domainkey.knary.tld
