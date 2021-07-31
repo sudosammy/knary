@@ -158,9 +158,6 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 
 		switch q.Qtype {
 		case dns.TypeA:
-			ipaddrNoPort, _ := splitPort(ipaddr)
-			reverse, _ := dns.ReverseAddr(ipaddrNoPort)
-			goSendMsg(ipaddr, reverse, q.Name, "A")
 			/*
 				If we are an IPv6 host, to be a "compliant" nameserver (https://tools.ietf.org/html/rfc4074), we should:
 				a) Return an empty response to A questions
@@ -170,15 +167,17 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 			if IsIPv6(EXT_IP) {
 				return
 			}
+
+			ipaddrNoPort, _ := splitPort(ipaddr)
+			reverse, _ := dns.ReverseAddr(ipaddrNoPort)
+			goSendMsg(ipaddr, reverse, q.Name, "A")
+
 			if !foundInZone {
 				rr, _ := dns.NewRR(fmt.Sprintf("%s IN 60 A %s", q.Name, EXT_IP))
 				m.Answer = append(m.Answer, rr)
 			}
 
 		case dns.TypeAAAA:
-			ipaddrNoPort, _ := splitPort(ipaddr)
-			reverse, _ := dns.ReverseAddr(ipaddrNoPort)
-			goSendMsg(ipaddr, reverse, q.Name, "AAAA")
 			/*
 				If we are an IPv4 host, to be a "compliant" nameserver (https://tools.ietf.org/html/rfc4074), we should:
 				a) Return an empty response to AAAA questions
@@ -188,6 +187,11 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 			if IsIPv4(EXT_IP) {
 				return
 			}
+
+			ipaddrNoPort, _ := splitPort(ipaddr)
+			reverse, _ := dns.ReverseAddr(ipaddrNoPort)
+			goSendMsg(ipaddr, reverse, q.Name, "AAAA")
+
 			if !foundInZone {
 				rr, _ := dns.NewRR(fmt.Sprintf("%s IN 60 AAAA %s", q.Name, EXT_IP))
 				m.Answer = append(m.Answer, rr)
