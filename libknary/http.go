@@ -14,17 +14,12 @@ import (
 	"time"
 )
 
-func PrepareRequest() (net.Listener, net.Listener) {
-	//assign bind address and ports
+func PrepareRequest80() net.Listener {
 	p80 := os.Getenv("BIND_ADDR") + ":80"
-	p443 := os.Getenv("BIND_ADDR") + ":443"
 
-	//if burp collab compatible env vars are detected:
-	//-re-assign ports
-	//-set up a reverse proxy to direct as needed
-	if os.Getenv("BURP") == "true" && os.Getenv("BURP_HTTP_PORT") != "" && os.Getenv("BURP_HTTPS_PORT") != "" {
-		p80 = "127.0.0.1:8880"  // these are the local ports that knary
-		p443 = "127.0.0.1:8843" // will listen on as the client of the reverse proxy
+	if os.Getenv("BURP_HTTP_PORT") != "" {
+		p80 = "127.0.0.1:8880" // set local port that knary will listen on as the client of the reverse proxy
+
 		// to support our container friends - let the player choose the IP Burp is bound to
 		burpIP := ""
 		if os.Getenv("BURP_INT_IP") != "" {
@@ -32,17 +27,16 @@ func PrepareRequest() (net.Listener, net.Listener) {
 		} else {
 			burpIP = "127.0.0.1"
 		}
-
-		//start reverse proxy to direct requests appropriately
+		// start reverse proxy to direct requests appropriately
 		go func() {
 			e := http.ListenAndServe(os.Getenv("BIND_ADDR")+":80", &httputil.ReverseProxy{
 				Director: func(r *http.Request) {
 					r.URL.Scheme = "http"
-					//if the incoming request has the burp suffix send it to collab
+					// if the incoming request has the burp suffix send it to collab
 					if strings.HasSuffix(r.Host, os.Getenv("BURP_DOMAIN")) {
 						r.URL.Host = burpIP + ":" + os.Getenv("BURP_HTTP_PORT")
 					} else {
-						//otherwise send it raw to the local knary port
+						// otherwise send it raw to the local knary port
 						r.URL.Host = p80
 						r.Header.Set("X-Forwarded-For", r.RemoteAddr) //add port version of x-fwded for
 					}
@@ -52,7 +46,31 @@ func PrepareRequest() (net.Listener, net.Listener) {
 				Printy(e.Error(), 2)
 			}
 		}()
+	}
 
+	ln80, err := net.Listen("tcp", p80)
+	if err != nil {
+		logger("ERROR", err.Error())
+		GiveHead(2)
+		log.Fatal(err)
+	}
+
+	return ln80
+}
+
+func PrepareRequest443() net.Listener {
+	p443 := os.Getenv("BIND_ADDR") + ":443"
+
+	if os.Getenv("BURP_HTTPS_PORT") != "" {
+		p443 = "127.0.0.1:8843" // set local port that knary will listen on as the client of the reverse proxy
+
+		// to support our container friends - let the player choose the IP Burp is bound to
+		burpIP := ""
+		if os.Getenv("BURP_INT_IP") != "" {
+			burpIP = os.Getenv("BURP_INT_IP")
+		} else {
+			burpIP = "127.0.0.1"
+		}
 		go func() {
 			e := http.ListenAndServeTLS(os.Getenv("BIND_ADDR")+":443", os.Getenv("TLS_CRT"), os.Getenv("TLS_KEY"),
 				&httputil.ReverseProxy{
@@ -76,30 +94,23 @@ func PrepareRequest() (net.Listener, net.Listener) {
 			}
 		}()
 	}
-	ln80, err := net.Listen("tcp", p80)
 
-	if err != nil {
-		GiveHead(2)
-		log.Fatal(err)
-	}
-
-	// open certificates
 	cer, err := tls.LoadX509KeyPair(os.Getenv("TLS_CRT"), os.Getenv("TLS_KEY"))
-
 	if err != nil {
+		logger("ERROR", err.Error())
 		GiveHead(2)
 		log.Fatal(err)
 	}
 
 	config := &tls.Config{Certificates: []tls.Certificate{cer}}
 	ln443, err := tls.Listen("tcp", p443, config)
-
 	if err != nil {
+		logger("ERROR", err.Error())
 		GiveHead(2)
 		log.Fatal(err)
 	}
 
-	return ln80, ln443 // return listeners
+	return ln443
 }
 
 func AcceptRequest(ln net.Listener, wg *sync.WaitGroup) {
@@ -141,14 +152,15 @@ func handleRequest(conn net.Conn) bool {
 			host := ""
 			query := ""
 			userAgent := ""
+			cookie := ""
 			fwd := ""
 
 			for _, header := range headers {
 				if stringContains(header, "Host") {
 					host = header
 					host = strings.TrimRight(header, "\r\n") + ":"
-					//using a reverse proxy, set ports back to the actual received ones
-					if os.Getenv("BURP") == "true" {
+					// using a reverse proxy, set ports back to the actual received ones
+					if os.Getenv("BURP_HTTP_PORT") != "" || os.Getenv("BURP_HTTPS_PORT") != "" {
 						if lPort == 8880 {
 							host = host + "80"
 						} else if lPort == 8843 {
@@ -172,6 +184,9 @@ func handleRequest(conn net.Conn) bool {
 				if stringContains(header, "User-Agent") {
 					userAgent = header
 				}
+				if stringContains(header, "Cookie") {
+					cookie = header
+				}
 				if stringContains(header, "X-Forwarded-For") {
 					//this is pretty funny, and also very irritating.
 					//Golang reverse proxy automagically adds the source IP address, but not the port.
@@ -194,16 +209,18 @@ func handleRequest(conn net.Conn) bool {
 				}
 			}
 
-			if !inBlacklist(host, conn.RemoteAddr().String(), fwd) {
-				msg := fmt.Sprintf("%s\n```Query: %s\n%s\nFrom: %s", host, query, userAgent, conn.RemoteAddr().String())
-				if fwd != "" {
-					msg += "\nX-Forwarded-For: " + fwd
+			hostDomain := strings.TrimPrefix(strings.ToLower(host), "host:") // trim off the "Host:" section of header
+			if !inBlacklist(hostDomain, conn.RemoteAddr().String(), fwd) {
+				var msg string
+				if cookie != "" {
+					msg = fmt.Sprintf("%s\n```Query: %s\n%s\n%s\nFrom: %s", host, query, userAgent, cookie, conn.RemoteAddr().String())
+
+				} else {
+					msg = fmt.Sprintf("%s\n```Query: %s\n%s\nFrom: %s", host, query, userAgent, conn.RemoteAddr().String())
+
 				}
 				go sendMsg(msg + "```")
-
-				if fwd != "" {
-					logger("INFO", fwd+" - "+host)
-				} else {
+				if os.Getenv("DEBUG") == "true" {
 					logger("INFO", conn.RemoteAddr().String()+" - "+host)
 				}
 			}

@@ -2,29 +2,127 @@ package libknary
 
 import (
 	"bufio"
-	"bytes"
 	"crypto/hmac"
 	"crypto/sha256"
-	"crypto/tls"
 	"encoding/base64"
-	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"net"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 )
 
-func stringContains(stringA string, stringB string) bool {
+// map for denylist
+type blacklist struct {
+	mutex sync.Mutex
+	deny  map[string]time.Time
+}
+
+var denied = blacklist{deny: make(map[string]time.Time)}
+var blacklistCount = 0
+
+// add or update a denied domain/IP
+func (a *blacklist) updateD(term string) bool {
+	if term == "" {
+		return false // would happen if there's no X-Forwarded-For header
+	}
+	item := standerdiseDenylistItem(term)
+	a.mutex.Lock()
+	//a.deny[item] = time.Now()
+	a.deny[item] = time.Now()
+	a.mutex.Unlock()
+	return true
+}
+
+// search for a denied domain/IP
+func (a *blacklist) searchD(term string) bool {
+	item := standerdiseDenylistItem(term)
+	a.mutex.Lock()
+	defer a.mutex.Unlock()
+
+	if _, ok := a.deny[item]; ok {
+		return true // found!
+	}
+	return false
+}
+
+func standerdiseDenylistItem(term string) string {
+	d := strings.ToLower(term) // lowercase
+	d = strings.TrimSpace(d)   // remove any surrounding whitespaces
+	var sTerm string
+
+	if IsIP(d) {
+		sTerm, _ = splitPort(d) // yeet port off IP
+	} else {
+		domain := strings.Split(d, ":")            // split on port number (if exists)
+		sTerm = strings.TrimSuffix(domain[0], ".") // remove trailing FQDN dot if present
+	}
+
+	return sTerm
+}
+
+// https://github.com/dsanader/govalidator/blob/master/validator.go
+func IsIP(str string) bool {
+	return net.ParseIP(str) != nil
+}
+func IsIPv4(str string) bool {
+	ip := net.ParseIP(str)
+	return ip != nil && strings.Contains(str, ".")
+}
+func IsIPv6(str string) bool {
+	ip := net.ParseIP(str)
+	return ip != nil && strings.Contains(str, ":")
+}
+
+func stringContains(haystack string, needle string) bool {
 	return strings.Contains(
-		strings.ToLower(stringA),
-		strings.ToLower(stringB),
+		strings.ToLower(haystack),
+		strings.ToLower(needle),
 	)
+}
+
+// https://rosettacode.org/wiki/Parse_an_IP_Address#Go
+func splitPort(s string) (string, int) {
+	ip := net.ParseIP(s)
+	var port string
+
+	if ip == nil {
+		var host string
+		host, port, err := net.SplitHostPort(s)
+		if err != nil {
+			return "", 0
+		}
+
+		if port != "" {
+			// This check only makes sense if service names are not allowed
+			if _, err = strconv.ParseUint(port, 10, 16); err != nil {
+				return "", 0
+			}
+		}
+		ip = net.ParseIP(host)
+	}
+
+	if ip == nil {
+		return "", 0
+	} else {
+		if ip4 := ip.To4(); ip4 != nil {
+			ip = ip4
+		}
+	}
+
+	stringIP := ip.String()
+	intPort, _ := strconv.Atoi(port)
+
+	if IsIP(stringIP) {
+		return stringIP, intPort
+	} else {
+		return "", 0
+	}
 }
 
 func CheckUpdate(version string, githubVersion string, githubURL string) (bool, error) { // this runs once a day
@@ -64,7 +162,7 @@ func CheckUpdate(version string, githubVersion string, githubURL string) (bool, 
 			return false, err
 		}
 
-		if running.Compare(current) != 0 {
+		if running.LT(current) == true {
 			updMsg := "Your version of knary is *" + version + "* & the latest is *" + current.String() + "* - upgrade your binary here: " + githubURL
 			Printy(updMsg, 2)
 			logger("WARNING", updMsg)
@@ -73,29 +171,24 @@ func CheckUpdate(version string, githubVersion string, githubURL string) (bool, 
 		}
 	}
 
-	logger("INFO", "Checked for updates...")
 	if os.Getenv("DEBUG") == "true" {
+		logger("INFO", "Checked for updates...")
 		Printy("Checked for updates", 3)
 	}
 	return false, nil
 }
 
-// map for blacklist
-type blacklist struct {
-	domain  string
-	lastHit time.Time
-}
-
-var blacklistMap = map[int]blacklist{}
-var blacklistCount = 0
-
 func LoadBlacklist() (bool, error) {
-	// load blacklist file into struct on startup
-	if _, err := os.Stat(os.Getenv("BLACKLIST_FILE")); os.IsNotExist(err) {
+	if os.Getenv("BLACKLIST_FILE") != "" {
+		// deprecation warning
+		Printy("The environment variable \"DENYLIST_FILE\" has superseded \"BLACKLIST_FILE\". Please update your configuration.", 2)
+	}
+	// load denylist file into struct on startup
+	if _, err := os.Stat(os.Getenv("DENYLIST_FILE")); os.IsNotExist(err) {
 		return false, err
 	}
 
-	blklist, err := os.Open(os.Getenv("BLACKLIST_FILE"))
+	blklist, err := os.Open(os.Getenv("DENYLIST_FILE"))
 	defer blklist.Close()
 
 	if err != nil {
@@ -104,216 +197,85 @@ func LoadBlacklist() (bool, error) {
 	}
 
 	scanner := bufio.NewScanner(blklist)
-	//count := 0
-	for scanner.Scan() { // foreach blacklist item
-		blacklistMap[blacklistCount] = blacklist{scanner.Text(), time.Now()} // add to struct
-		blacklistCount++
+
+	for scanner.Scan() { // foreach denied item
+		if scanner.Text() != "" {
+			denied.updateD(scanner.Text())
+			blacklistCount++
+		}
 	}
 
-	Printy("Monitoring "+strconv.Itoa(blacklistCount)+" items in blacklist", 1)
-	logger("INFO", "Monitoring "+strconv.Itoa(blacklistCount)+" items in blacklist")
+	Printy("Monitoring "+strconv.Itoa(blacklistCount)+" items in denylist", 1)
+	logger("INFO", "Monitoring "+strconv.Itoa(blacklistCount)+" items in denylist")
 	return true, nil
 }
 
-func CheckLastHit() bool { // this runs once a day
-	if len(blacklistMap) != 0 {
-		// iterate through blacklist and look for items >14 days old
-		for i := range blacklistMap { // foreach blacklist item
-			expiryDate := blacklistMap[i].lastHit.AddDate(0, 0, 14)
+func checkLastHit() bool { // this runs once a day
+	for subdomain := range denied.deny {
+		expiryDate := denied.deny[subdomain].AddDate(0, 0, 14)
 
-			if time.Now().After(expiryDate) { // let 'em know it's old
-				go sendMsg(":wrench: Blacklist item `" + blacklistMap[i].domain + "` hasn't had a hit in >14 days. Consider removing it. Configure `BLACKLIST_ALERTING` to supress.")
-				logger("INFO", "Blacklist item: "+blacklistMap[i].domain+" hasn't had a hit in >14 days. Consider removing it.")
-				Printy("Blacklist item: "+blacklistMap[i].domain+" hasn't had a hit in >14 days. Consider removing it.", 1)
-				return false
-			}
-		}
-
-		logger("INFO", "Checked blacklist...")
-		if os.Getenv("DEBUG") == "true" {
-			Printy("Checked for old blacklist items", 3)
+		if time.Now().After(expiryDate) { // let 'em know it's old
+			msg := "Denied item `" + subdomain + "` hasn't had a hit in >14 days. Consider removing it."
+			go sendMsg(":wrench: " + msg + " Configure `DENYLIST_ALERTING` to supress.")
+			logger("INFO", msg)
+			Printy(msg, 1)
 		}
 	}
+
+	if os.Getenv("DEBUG") == "true" {
+		logger("INFO", "Checked denylist...")
+		Printy("Checked for old denylist items", 3)
+	}
+
 	return true
 }
 
 func inBlacklist(needles ...string) bool {
 	for _, needle := range needles {
-		for i := range blacklistMap { // foreach blacklist item
-			if stringContains(needle, blacklistMap[i].domain) && !stringContains(needle, "."+blacklistMap[i].domain) {
-				// matches blacklist.domain or 1.1.1.1 but not x.blacklist.domain
-				updBL := blacklistMap[i]
-				updBL.lastHit = time.Now() // update last hit
-				blacklistMap[i] = updBL
+		if denied.searchD(needle) {
+			denied.updateD(needle) // found!
 
-				if os.Getenv("DEBUG") == "true" {
-					Printy(blacklistMap[i].domain+" found in blacklist", 3)
-				}
-				return true
+			if os.Getenv("DEBUG") == "true" {
+				logger("INFO", "Found "+needle+" in denylist")
+				Printy("Found "+needle+" in denylist", 3)
 			}
+			return true
 		}
 	}
 	return false
 }
 
-/*
-* This function collects very basic analytics to track knary usage.
-* If you have any thoughts about knary you can contact me on Twitter: @sudosammy
- */
-type features struct {
-	DNS      bool `json:"dns"`
-	HTTP     bool `json:"http"`
-	BURP     bool `json:"burp"`
-	SLACK    bool `json:"slack"`
-	DISCORD  bool `json:"discord"`
-	PUSHOVER bool `json:"pushover"`
-	TEAMS    bool `json:"teams"`
-}
+func CheckTLSExpiry(days int) (bool, int) {
+	if os.Getenv("TLS_CRT") != "" && os.Getenv("TLS_KEY") != "" {
+		renew, expiry := needRenewal(days)
 
-type analy struct {
-	ID        string `json:"id"`
-	Version   string `json:"version"`
-	Status    int    `json:"day"`
-	Blacklist int    `json:"blacklist"`
-	Offset    int    `json:"offset"`
-	Timezone  string `json:"timezone"`
-	features  `json:"features"`
-}
-
-var day = 0
-
-func UsageStats(version string) bool {
-	trackingDomain := "https://knary.sam.ooo" // make this an empty string to sinkhole analytics
-
-	if os.Getenv("CANARY_DOMAIN") == "" || trackingDomain == "" {
-		return false
-	}
-
-	// a unique & desensitised ID
-	knaryID := sha256.New()
-	_, _ = knaryID.Write([]byte(os.Getenv("CANARY_DOMAIN")))
-	anonKnaryID := hex.EncodeToString(knaryID.Sum(nil))
-
-	zone, offset := time.Now().Zone() // timezone
-
-	day++ // track how long knary has been running for
-
-	// disgusting
-	dns, https, burp, slack, discord, pushover, teams := false, false, false, false, false, false, false
-	if os.Getenv("DNS") == "true" {
-		dns = true
-	}
-	if os.Getenv("HTTP") == "true" {
-		https = true
-	}
-	if os.Getenv("BURP") == "true" {
-		burp = true
-	}
-	if os.Getenv("SLACK_WEBHOOK") != "" {
-		slack = true
-	}
-	if os.Getenv("DISCORD_WEBHOOK") != "" {
-		discord = true
-	}
-	if os.Getenv("PUSHOVER_USER") != "" {
-		pushover = true
-	}
-	if os.Getenv("TEAMS_WEBHOOK") != "" {
-		teams = true
-	}
-
-	jsonValues, err := json.Marshal(&analy{
-		anonKnaryID,
-		version,
-		day,
-		len(blacklistMap),
-		(offset / 60 / 60),
-		zone,
-		features{
-			dns,
-			https,
-			burp,
-			slack,
-			discord,
-			pushover,
-			teams,
-		},
-	})
-
-	if err != nil {
-		if os.Getenv("DEBUG") == "true" {
-			Printy(err.Error(), 3)
+		if renew {
+			Printy("TLS certificate expires in "+strconv.Itoa(expiry)+" days", 3)
+			if os.Getenv("LETS_ENCRYPT") != "" {
+				renewLetsEncrypt()
+			}
 		}
-		return false
-	}
 
-	c := &http.Client{
-		Timeout: 10 * time.Second,
-	}
-	_, err = c.Post(trackingDomain, "application/json", bytes.NewBuffer(jsonValues))
-
-	if err != nil {
-		if os.Getenv("DEBUG") == "true" {
-			Printy(err.Error(), 3)
+		if expiry <= 20 { // if cert expires in 20 days or less
+			certMsg := "The TLS certificate for `" + os.Getenv("CANARY_DOMAIN") + "` expires in " + strconv.Itoa(expiry) + " days."
+			Printy(certMsg, 2)
+			logger("WARNING", certMsg)
+			go sendMsg(":lock: " + certMsg)
+			return true, expiry
 		}
-		return false
+
+		return false, expiry
 	}
 
-	return true
-}
-
-func CheckTLSExpiry(domain string, config *tls.Config) (bool, error) {
-	port := "443"
-	// need this to make testing possible
-	if os.Getenv("TLS_PORT") != "" {
-		port = os.Getenv("TLS_PORT")
-	}
-
-	// tls.Dial doesn't support timeouts
-	// this is another soltution: https://godoc.org/github.com/getlantern/tlsdialer#DialTimeout
-	// it's probably doing something like this in the background anyway
-	testTLSConn, err := net.DialTimeout("tcp", domain+":"+port, 5*time.Second)
-
-	if err != nil {
-		logger("WARNING", err.Error())
-		Printy(err.Error(), 2)
-		return false, err
-	} else {
-		defer testTLSConn.Close()
-	}
-
-	conn := tls.Client(testTLSConn, config)
-	err = conn.Handshake()
-
-	if err != nil {
-		logger("WARNING", err.Error())
-		Printy(err.Error(), 2)
-		return false, err
-	}
-
-	expiry := conn.ConnectionState().PeerCertificates[0].NotAfter
-	diff := time.Until(expiry)
-
-	if int(diff.Hours()/24) <= 10 { // if cert expires in 10 days or less
-		days := int(diff.Hours() / 24)
-		certMsg := "The TLS certificate for `" + domain + "` expires in " + strconv.Itoa(days) + " days."
-		Printy(certMsg, 2)
-		logger("WARNING", certMsg)
-		go sendMsg(":lock: " + certMsg)
-		//while returning false here is a bit weird we need to differentiate this code path for the tests
-		return false, nil
-	}
-
-	logger("INFO", "Checked TLS expiry...")
 	if os.Getenv("DEBUG") == "true" {
-		Printy("Checked TLS expiry", 3)
+		Printy("CheckTLSExpiry was called without any certificates being loaded...", 2)
 	}
 
-	return true, nil
+	return false, 0
 }
 
 func HeartBeat(version string, firstrun bool) (bool, error) {
-	// runs weekly (and on launch) to let people know we're alive (and show them the blacklist)
+	// runs weekly (and on launch) to let people know we're alive (and show them the denylist)
 	beatMsg := "```"
 	if firstrun {
 		beatMsg += ` __                           
@@ -327,6 +289,16 @@ func HeartBeat(version string, firstrun bool) (bool, error) {
 		beatMsg += "❤️ Heartbeat (v" + version + ") ❤️\n"
 	}
 
+	// print TLS cert expiry
+	if os.Getenv("TLS_CRT") != "" && os.Getenv("TLS_KEY") != "" {
+		_, expiry := needRenewal(30)
+		if expiry == 1 {
+			beatMsg += "Certificate expiry in: " + strconv.Itoa(expiry) + " day\n"
+		} else {
+			beatMsg += "Certificate expiry in: " + strconv.Itoa(expiry) + " days\n"
+		}
+	}
+
 	// print uptime
 	if day == 1 {
 		beatMsg += "Uptime: " + strconv.Itoa(day) + " day\n\n"
@@ -334,30 +306,36 @@ func HeartBeat(version string, firstrun bool) (bool, error) {
 		beatMsg += "Uptime: " + strconv.Itoa(day) + " days\n\n"
 	}
 
-	// print blacklisted items
-	beatMsg += strconv.Itoa(blacklistCount) + " blacklisted domains: \n"
+	// print denied items
+	beatMsg += strconv.Itoa(blacklistCount) + " denied subdomains / IPs: \n"
 	beatMsg += "------------------------\n"
-	for i := range blacklistMap { // foreach blacklist item
-		beatMsg += strings.ToLower(blacklistMap[i].domain) + "\n"
+	for subdomain := range denied.deny {
+		beatMsg += subdomain + "\n"
 	}
 	beatMsg += "------------------------\n\n"
 
 	// print usage domains
-	if os.Getenv("HTTP") == "true" {
+	if os.Getenv("HTTP") == "true" && (os.Getenv("TLS_CRT") == "" || os.Getenv("TLS_KEY") == "") {
+		beatMsg += "Listening for http://*." + os.Getenv("CANARY_DOMAIN") + " requests\n"
+	} else {
 		beatMsg += "Listening for http(s)://*." + os.Getenv("CANARY_DOMAIN") + " requests\n"
 	}
 	if os.Getenv("DNS") == "true" {
-		beatMsg += "Listening for *.dns." + os.Getenv("CANARY_DOMAIN") + " DNS requests\n"
+		if os.Getenv("DNS_SUBDOMAIN") != "" { 
+			beatMsg += "Listening for *." + os.Getenv("DNS_SUBDOMAIN")+"."+os.Getenv("CANARY_DOMAIN") + " DNS requests\n"
+		} else {
+			beatMsg += "Listening for *." + os.Getenv("CANARY_DOMAIN") + " DNS requests\n"
+		}
 	}
-	if os.Getenv("BURP") == "true" {
-		beatMsg += "Working in collaborator compatibility mode on domain *." + os.Getenv("BURP_DOMAIN") + "\n"
+	if os.Getenv("BURP_DOMAIN") != "" {
+		beatMsg += "Working in collaborator compatibility mode on subdomain *." + os.Getenv("BURP_DOMAIN") + "\n"
 	}
 	beatMsg += "```"
 
 	go sendMsg(beatMsg)
 
-	logger("INFO", "Sent heartbeat...")
 	if os.Getenv("DEBUG") == "true" {
+		logger("INFO", "Sent heartbeat...")
 		Printy("Sent heartbeat message", 3)
 	}
 
@@ -378,4 +356,15 @@ func SignLark(secret string, timestamp int64) (string, error) {
 
 	signature := base64.StdEncoding.EncodeToString(h.Sum(nil))
 	return signature, nil
+}
+
+func fileExists(file string) bool {
+	if _, err := os.Stat(file); os.IsNotExist(err) {
+		return false
+	} else if err != nil {
+		logger("ERROR", err.Error())
+		Printy(err.Error(), 2)
+		return false
+	}
+	return true
 }

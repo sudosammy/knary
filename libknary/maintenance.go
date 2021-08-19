@@ -3,26 +3,21 @@ package libknary
 import (
 	"os"
 	"time"
-	"crypto/tls"
 )
 
 func dailyTasks(version string, githubVersion string, githubURL string) bool {
+	logger("INFO", "Daily maintenance tasks running")
 	// check for updates
 	CheckUpdate(version, githubVersion, githubURL)
 
 	// if blacklist alerting is enabled, flag any old blacklist items
-	if os.Getenv("BLACKLIST_ALERTING") == "" || os.Getenv("BLACKLIST_ALERTING") == "true" {
-		CheckLastHit()
+	if os.Getenv("DENYLIST_ALERTING") != "false" {
+		checkLastHit()
 	}
 
-	// if HTTP knary is operating, check certificate expiry
-	if os.Getenv("HTTP") == "true" {
-		// this could be done better
-		// there's probably not a situation where we want to enforce certificate verification
-		conf := &tls.Config {
-			InsecureSkipVerify: true,
-		}
-		CheckTLSExpiry(os.Getenv("CANARY_DOMAIN"), conf)
+	// if HTTPS knary is operating, check certificate expiry
+	if os.Getenv("TLS_CRT") != "" && os.Getenv("TLS_KEY") != "" {
+		_, _ = CheckTLSExpiry(30)
 	}
 
 	// log knary usage
