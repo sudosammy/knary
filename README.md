@@ -4,7 +4,7 @@
 
 >Like "Canary" but more hipster, which means better 😎😎😎
 
-⚠️ **Note: Upgrading from version 2? You need to change your DNS setup to make use of new knary features. See step [#2 and #3](#setup) below. You may also want to configure [DNS_SUBDOMAIN](#denying-matches) to mimic how knary operated previously.** ⚠️
+⚠️ **Note: Upgrading from version 2? You need to change your DNS setup to make use of new knary features. See step [#2 and #3](#setup) below. You may also want to configure [DNS_SUBDOMAIN](https://github.com/sudosammy/knary/tree/master/examples#likely-recommended-optional-configurations) to mimic how knary operated previously.** ⚠️
 
 knary is a canary token server that notifies a Slack/Discord/Teams/Lark channel (or other webhook) when incoming HTTP(S) or DNS requests match a given domain or any of its subdomains. It also supports functionality useful in offensive engagements including subdomain denylisting, working with Burp Collaborator, and easy TLS certificate creation.
 

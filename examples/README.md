@@ -1,9 +1,9 @@
 # Configuration Options & Example Files
 
 ## Sample Files
-* `default_env` - A recommended quick start configuration file.
+* `default_env` - A recommended quick start configuration file with Let's Encrypt configuration.
 * `burp_env` - A recommended quick start configuration file if you are also using Burp Collaborator on the same server as knary.
-* `denylist.txt` - This is a good starting set of subdomains you should consider denying from notifying your webhook. Find & Replace `knary.tld` with your knary domain.
+* `denylist.txt` - This is a good starting set of subdomains you should consider denying from notifying your webhook. Setting [DNS_SUBDOMAIN](#likely-recommended-optional-configurations) will cut down the noise to your knary too. Find & Replace `knary.tld` with your knary domain.
 * `zone_file.txt` - Although an uncommon configuration, this file demonstrates the proper format for configuring a Zone file for custom responses to DNS queries made to knary.
 
 ## Minimum Necessary Configuration
@@ -14,7 +14,7 @@
 * `*_WEBHOOK` One (or many) webhooks for knary to alert. Refer to the [webhook section in the README](https://github.com/sudosammy/knary#supported-webhook-configurations) for options
 
 ## Recommended Optional Configurations
-* `LETS_ENCRYPT` Enable Let's Encrypt management of your knary domain. If you do not configure this, or `TLS_*` as detailed below, knary will only listen on port 80 and notify of HTTP hits. Example input: `myemailaddress@gmail.com`
+* `LETS_ENCRYPT` Enable Let's Encrypt management of your knary domain. If you do not configure this, or `TLS_*` as [detailed below](#optional-configurations), knary will only listen on port 80 and notify of HTTP hits. Example input: `myemailaddress@gmail.com`
 * `LOG_FILE` Location for a file that knary will log greppable and timestamped warnings/errors. Example input: `/var/log/knary.log` or `knary.log` for current working directory
 * `DENYLIST_FILE` Location for a file containing case-insensitive subdomains or IP addresses (separated by newlines) that should be ignored by knary and not logged or notified. Example input: `denylist.txt` 
 
@@ -34,7 +34,7 @@ If you are running Burp Collaborator on the same server as knary, you will need 
 **Note:** If you have previously been running knary with Let's Encrypt and have now configured Burp Collaborator, you should delete the files in the `certs/` folder so that knary can re-generate certificates that include your Burp Collaborator subdomain as a SAN. Otherwise knary may exhibit strange behaviour / failures when attempting to renew the certificate.
 
 ## Optional Configurations
-* `TLS_*` (CRT/KEY) The location of your certificate and private key necessary for accepting TLS (HTTPS) requests
+* `TLS_*` (CRT/KEY). If you're not using the `LETS_ENCRYPT` configuration use these environment variables to configure the location of your certificate and private key for accepting TLS (HTTPS) requests
 * `DEBUG` Enable/Disable displaying incoming requests in the terminal and some additional info. Default disabled (true/false)
 * `LE_ENV` Set to `staging` to use the Let's Encrypt's staging environment. Useful if you are testing configurations with Let's Encrypt and do not want to hit the rate limit.
 * `EXT_IP` The IP address the DNS canary will answer `A` questions with. By default knary will use the nameserver glue record. Setting this option will overrule that behaviour
