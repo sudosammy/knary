@@ -93,7 +93,6 @@ func StartLetsEncrypt() string {
 		GiveHead(2)
 		log.Fatal(err)
 	}
-
 	client.Challenge.SetDNS01Provider(knaryDNS)
 
 	// if we're an existing user, loadMyUser would have populated cmd.Account with our Registration details
@@ -162,6 +161,14 @@ func StartLetsEncrypt() string {
 	return cmd.SanitizedDomain(certificates.Domain)
 }
 
+func renewError(msg string) {
+	go sendMsg(":warning: " + msg)
+	go sendMsg(":warning: knary is shutting down because of this error :(")
+	logger("ERROR", msg)
+	GiveHead(2)
+	log.Fatal(msg)
+}
+
 func renewLetsEncrypt() {
 	Printy("Attempting Let's Encrypt renewal", 1)
 	logger("INFO", "Attempting Let's Encrypt certificate renewal.")
@@ -179,12 +186,14 @@ func renewLetsEncrypt() {
 
 	client, err := lego.NewClient(config)
 	if err != nil {
-		go sendMsg(":warning: " + err.Error() + " :warning:")
-		go sendMsg(":warning: knary is shutting down because of this error :(")
-		logger("ERROR", err.Error())
-		GiveHead(2)
-		log.Fatal(err)
+		renewError(err.Error())
 	}
+
+	knaryDNS, err := NewDNSProvider()
+	if err != nil {
+		renewError(err.Error())
+	}
+	client.Challenge.SetDNS01Provider(knaryDNS)
 
 	certDomains := getDomains()
 	certsStorage := cmd.NewCertificatesStorage()
@@ -193,35 +202,38 @@ func renewLetsEncrypt() {
 
 	keyBytes, errR := certsStorage.ReadFile(certDomains[0], ".key")
 	if errR != nil {
-		go sendMsg(":warning: " + errR.Error() + " :warning:")
-		go sendMsg(":warning: knary is shutting down because of this error :(")
-		logger("ERROR", errR.Error())
-		GiveHead(2)
-		log.Fatal(errR)
+		renewError(errR.Error())
 	}
 
 	privateKey, errR = certcrypto.ParsePEMPrivateKey(keyBytes)
 	if errR != nil {
-		go sendMsg(":warning: " + errR.Error() + " :warning:")
-		go sendMsg(":warning: knary is shutting down because of this error :(")
-		logger("ERROR", errR.Error())
-		GiveHead(2)
-		log.Fatal(errR)
+		renewError(errR.Error())
 	}
 
-	request := certificate.ObtainRequest{
-		Domains:        certDomains,
-		Bundle:         false,
-		PrivateKey:     privateKey,
-		MustStaple:     false,
-		PreferredChain: "",
+	pemBundle, errR := certsStorage.ReadFile(certDomains[0], ".pem")
+	if errR != nil {
+		renewError(errR.Error())
 	}
-	certRes, err := client.Certificate.Obtain(request)
-	if err != nil {
-		go sendMsg(":warning: " + err.Error() + " :warning:")
-		go sendMsg(":warning: knary is shutting down because of this error :(")
-		GiveHead(2)
-		log.Fatal(err)
+
+	certificates, errR := certcrypto.ParsePEMBundle(pemBundle)
+	if errR != nil {
+		renewError(errR.Error())
+	}
+
+	x509Cert := certificates[0]
+	if x509Cert.IsCA {
+		renewError("Certificate bundle starts with a CA certificate")
+	}
+
+	query := certificate.ObtainRequest{
+		Domains:    certcrypto.ExtractDomains(x509Cert),
+		Bundle:     true,
+		PrivateKey: privateKey,
+		MustStaple: false,
+	}
+	certRes, errR := client.Certificate.Obtain(query)
+	if errR != nil {
+		renewError(errR.Error())
 	}
 
 	// move old certificates to archive folder
