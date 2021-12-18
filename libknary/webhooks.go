@@ -35,6 +35,9 @@ func sendMsg(msg string) {
 	}
 
 	if os.Getenv("TELEGRAM_CHATID") != "" && os.Getenv("TELEGRAM_BOT_TOKEN") != "" {
+		re = regexp.MustCompile("```\\n?")
+		msg = re.ReplaceAllString(msg, "")
+
 		jsonMsg := []byte(`{"chat_id": "` + os.Getenv("TELEGRAM_CHATID") + `", "text": "` + msg + `"}`)
 		_, err := http.Post("https://api.telegram.org/bot" + os.Getenv("TELEGRAM_BOT_TOKEN") + "/sendMessage", "application/json", bytes.NewBuffer(jsonMsg))
 
