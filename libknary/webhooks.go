@@ -35,6 +35,7 @@ func sendMsg(msg string) {
 	}
 
 	if os.Getenv("TELEGRAM_CHATID") != "" && os.Getenv("TELEGRAM_BOT_TOKEN") != "" {
+		msg = strings.ReplaceAll(msg, "```From:", "\nFrom:")
 		re = regexp.MustCompile("```\\n?")
 		msg = re.ReplaceAllString(msg, "")
 
