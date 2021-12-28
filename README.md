@@ -76,3 +76,5 @@ These are environment variables / `.env` file configurations. You can configure 
 * `PUSHOVER_USER` The user token of the Pushover user you want knary to notify
 * `LARK_WEBHOOK` The full URL of the [webhook](https://www.feishu.cn/hc/en-US/articles/360024984973-Bot-Use-bots-in-groups) for the Lark/Feishu bot you want knary to notify
 * `LARK_SECRET` The [secret token](https://www.feishu.cn/hc/en-US/articles/360024984973-Bot-Use-bots-in-groups) used to sign messages to your Lark/Feishu bot
+* `TELEGRAM_CHATID` The [Telegram Bot](https://core.telegram.org/bots) chat ID you want knary to notify
+* `TELEGRAM_BOT_TOKEN` The Telegram Bot token

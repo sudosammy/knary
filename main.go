@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	VERSION       = "3.3.1"
+	VERSION       = "3.3.2"
 	GITHUB        = "https://github.com/sudosammy/knary"
 	GITHUBVERSION = "https://raw.githubusercontent.com/sudosammy/knary/master/VERSION"
 )
@@ -115,6 +115,9 @@ func main() {
 	}
 	if os.Getenv("LARK_WEBHOOK") != "" {
 		libknary.Printy("Posting to webhook: "+os.Getenv("LARK_WEBHOOK"), 1)
+	}
+	if os.Getenv("TELEGRAM_CHATID") != "" {
+		libknary.Printy("Posting to Telegram Chat ID: "+os.Getenv("TELEGRAM_CHATID"), 1)
 	}
 
 	// setup waitgroups for DNS/HTTP go routines
