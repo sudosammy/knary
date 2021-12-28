@@ -428,21 +428,21 @@ func HeartBeat(version string, firstrun bool) (bool, error) {
 
 	// print usage domains
 	if os.Getenv("HTTP") == "true" && (os.Getenv("TLS_CRT") == "" || os.Getenv("TLS_KEY") == "") {
-		for _, cdomain := range getDomains() {
+		for _, cdomain := range GetDomains() {
 			beatMsg += "Listening for http://*." + cdomain + " requests\n"
 		}
-	} else {
-		for _, cdomain := range getDomains() {
+	} else if (os.Getenv("HTTP") == "true" && (os.Getenv("TLS_CRT") != "" && os.Getenv("TLS_KEY") != "")) {
+		for _, cdomain := range GetDomains() {
 			beatMsg += "Listening for http(s)://*." + cdomain + " requests\n"
 		}
 	}
 	if os.Getenv("DNS") == "true" {
 		if os.Getenv("DNS_SUBDOMAIN") != "" {
-			for _, cdomain := range getDomains() {
+			for _, cdomain := range GetDomains() {
 				beatMsg += "Listening for *." + os.Getenv("DNS_SUBDOMAIN") + "." + cdomain + " DNS requests\n"
 			}
 		} else {
-			for _, cdomain := range getDomains() {
+			for _, cdomain := range GetDomains() {
 				beatMsg += "Listening for *." + cdomain + " DNS requests\n"
 			}
 		}

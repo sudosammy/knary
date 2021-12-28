@@ -3,6 +3,7 @@
 ## Sample Files
 * `default_env` - A recommended quick start configuration file with Let's Encrypt configuration.
 * `burp_env` - A recommended quick start configuration file if you are also using Burp Collaborator on the same server as knary.
+* `multidomain_env` - A recommended quick start configuration file if you are using knary with several domains.
 * `denylist.txt` - This is a good starting set of subdomains you should consider denying from notifying your webhook. Setting [DNS_SUBDOMAIN](#likely-recommended-optional-configurations) will cut down the noise to your knary too. Find & Replace `knary.tld` with your knary domain.
 * `zone_file.txt` - Although an uncommon configuration, this file demonstrates the proper format for configuring a Zone file for custom responses to DNS queries made to knary.
 
@@ -10,7 +11,7 @@
 * `DNS` Enable/Disable the DNS canary (true/false)
 * `HTTP` Enable/Disable the HTTP canary (true/false)
 * `BIND_ADDR` The IP address you want knary to listen on. Example input: `0.0.0.0` to bind to all addresses available
-* `CANARY_DOMAIN` The domain + TLD to match canary hits on. Example input: `mycanary.com` (knary will match `*.mycanary.com`)
+* `CANARY_DOMAIN` The domain + TLD to match canary hits on. Example input: `mycanary.com` (knary will match `*.mycanary.com`). Multiple domains can be provided comma-delimited. Example input: `mycanary.com,knarytwo.zyz,knary3.io`
 * `*_WEBHOOK` One (or many) webhooks for knary to alert. Refer to the [webhook section in the README](https://github.com/sudosammy/knary#supported-webhook-configurations) for options
 
 ## Recommended Optional Configurations

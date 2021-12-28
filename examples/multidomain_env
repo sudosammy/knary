@@ -1,0 +1,11 @@
+# RENAME ME TO .env
+DNS=true
+HTTP=true
+BIND_ADDR=0.0.0.0
+CANARY_DOMAIN=knary.tld,myknary.com,otherknary.io
+LETS_ENCRYPT=<your email address here>
+SLACK_WEBHOOK=<https://hooks.slack.com/services/...>
+
+DEBUG=false
+LOG_FILE=knary.log
+DENYLIST_FILE=denylist.txt

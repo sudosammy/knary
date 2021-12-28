@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"strconv"
 	"time"
 
 	"github.com/go-acme/lego/v4/certcrypto"
@@ -14,18 +15,35 @@ import (
 )
 
 // create domain list for certificates
-func getDomains() []string {
+func getDomainsForCert() []string {
 	var domainArray []string
-	for _, cdomain := range GetDomains() {
-		domainArray = append(domainArray, "*."+cdomain)
+	var numDomains = 0
 
-		if os.Getenv("BURP_DOMAIN") != "" {
-			domainArray = append(domainArray, "*."+cdomain)
-		}
+	for _, cdomain := range GetDomains() {
+		domainArray = append(domainArray, cdomain)
+		numDomains++
 
 		if os.Getenv("DNS_SUBDOMAIN") != "" {
-			domainArray = append(domainArray, "*."+os.Getenv("DNS_SUBDOMAIN")+"."+cdomain)
+			domainArray = append(domainArray, os.Getenv("DNS_SUBDOMAIN")+"."+cdomain)
+			numDomains++
 		}
+	}
+
+	if os.Getenv("BURP_DOMAIN") != "" {
+		domainArray = append(domainArray, os.Getenv("BURP_DOMAIN"))
+		numDomains++
+	}
+
+	if os.Getenv("DEBUG") == "true" {
+		Printy("Domains for SAN certificate: "+strconv.Itoa(numDomains), 3)
+	}
+	
+
+	if (numDomains > 100) {
+		msg := "Too many domains! Let's Encrypt only supports SAN certificates containing up to 100 domains & subdomains. Your configuration currently has: "+strconv.Itoa(numDomains)+". This may be due to configuring DNS_SUBDOMAIN which will double the number of SAN entries per knary domain."
+		logger("ERROR", msg)
+		GiveHead(2)
+		log.Fatal(msg)
 	}
 	return domainArray
 }

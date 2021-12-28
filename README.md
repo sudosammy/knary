@@ -4,9 +4,7 @@
 
 >Like "Canary" but more hipster, which means better 😎😎😎
 
-⚠️ **Note: Upgrading from version 2? You need to change your DNS setup to make use of new knary features. See step [#2 and #3](#setup) below. You may also want to configure [DNS_SUBDOMAIN](https://github.com/sudosammy/knary/tree/master/examples#likely-recommended-optional-configurations) to mimic how knary operated previously.** ⚠️
-
-knary is a canary token server that notifies a Slack/Discord/Teams/Lark channel (or other webhook) when incoming HTTP(S) or DNS requests match a given domain or any of its subdomains. It also supports functionality useful in offensive engagements including subdomain denylisting, working with Burp Collaborator, and easy TLS certificate creation.
+knary is a canary token server that notifies a Slack/Discord/Teams/Lark channel (or other webhook) when incoming HTTP(S) or DNS requests match a given domain or any of its subdomains. It also supports functionality useful in offensive engagements including subdomain allow/denylisting, working with Burp Collaborator, and easy TLS certificate creation.
 
 ![knary canary-ing](https://github.com/sudosammy/knary/raw/master/screenshots/canary.gif "knary canary-ing")
 
@@ -45,21 +43,28 @@ If your registry requires you to have multiple nameservers with different IP add
 
 ![knary go-ing](https://github.com/sudosammy/knary/raw/master/screenshots/run.png "knary go-ing")
 
-## Denying matches
+## Allowing or denying matches
 You **will** find systems that spam your knary even long after an engagement has ended. You will also find several DNS requests to mundane subdomains hitting your knary every day. To stop these from cluttering your notifications knary has two features:
 
-1. A simple text-based denylist (location specified with `DENYLIST_FILE`). Add the offending subdomains or IP addresses separated by a newline (case-insensitive):
+1. A simple text-based deny- and/or allowlist (location specified with `DENYLIST_FILE` or `ALLOWLIST_FILE`). Add the offending subdomains or IP addresses separated by a newline (case-insensitive):
 ```
 knary.tld
 www.knary.tld
 171.244.140.247
 test.dns.knary.tld
+engagement1337.knary.tld
 ```
-This would stop knary from alerting on `www.knary.tld` but not `another.www.knary.tld`. **Note:** wildcards are not supported. An entry of `*.knary.tld` will match that string exactly.
+If this were a denylist, it would stop knary from alerting on `www.knary.tld` but not `another.www.knary.tld`.
+
+If this were an allowlist, knary would alert on exact matches such as `engagement1337.knary.tld` and subdomain matches `another.engagement1337.knary.tld`.
+
+You can use both a deny- and allowlist simultaneously. The allowlist takes precedence.
+
+**Note:** wildcards are not supported. An entry of `*.knary.tld` will match that string exactly.
 
 2. The `DNS_SUBDOMAIN` configuration allows you to specify that knary should only alert on DNS hits that are `*.<DNS_SUBDOMAIN>.knary.tld`.
 
-A configuration of `DNS_SUBDOMAIN=dns` would stop knary from alerting on DNS hits to `blah.knary.tld` but not `blah.dns.knary.tld`. This configuration only affects DNS traffic. A HTTP request to `blah.knary.tld` would still notify you unless prevented by the denylist. Use a combination of both deny methods if you wish to prevent this.
+A configuration of `DNS_SUBDOMAIN=dns` would stop knary from alerting on DNS hits to `blah.knary.tld` but not `blah.dns.knary.tld`. This configuration only affects DNS traffic. A HTTP request to `blah.knary.tld` would still notify you unless prevented by an allow- or denylist.
 
 Sample configurations can be found [in the examples](https://github.com/sudosammy/knary/tree/master/examples) with common subdomains to deny.
 

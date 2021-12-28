@@ -74,7 +74,7 @@ func infoLog(ipaddr string, reverse string, name string) {
 func goSendMsg(ipaddr, reverse, name, record string) bool {
 	if os.Getenv("DNS_SUBDOMAIN") != "" {
 		found := false
-		for _, cdomain := range getDomains() {
+		for _, cdomain := range GetDomains() {
 			if stringContains(name, os.Getenv("DNS_SUBDOMAIN")+"."+cdomain) {
 				// disregard unless subdomain we want to report on
 				found = true
