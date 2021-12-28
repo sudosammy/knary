@@ -20,17 +20,17 @@ func getDomainsForCert() []string {
 	var numDomains = 0
 
 	for _, cdomain := range GetDomains() {
-		domainArray = append(domainArray, cdomain)
+		domainArray = append(domainArray, "*."+cdomain)
 		numDomains++
 
 		if os.Getenv("DNS_SUBDOMAIN") != "" {
-			domainArray = append(domainArray, os.Getenv("DNS_SUBDOMAIN")+"."+cdomain)
+			domainArray = append(domainArray, "*."+os.Getenv("DNS_SUBDOMAIN")+"."+cdomain)
 			numDomains++
 		}
 	}
 
 	if os.Getenv("BURP_DOMAIN") != "" {
-		domainArray = append(domainArray, os.Getenv("BURP_DOMAIN"))
+		domainArray = append(domainArray, "*."+os.Getenv("BURP_DOMAIN"))
 		numDomains++
 	}
 
