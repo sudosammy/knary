@@ -2,7 +2,7 @@
 DNS=true
 HTTP=true
 BIND_ADDR=0.0.0.0
-CANARY_DOMAIN=knary.tld,myknary.com,otherknary.io
+CANARY_DOMAIN=knary.tld, myknary.com,otherknary.io,otherknary.com, mydomain.xyz
 LETS_ENCRYPT=<your email address here>
 SLACK_WEBHOOK=<https://hooks.slack.com/services/...>
 

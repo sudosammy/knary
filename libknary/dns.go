@@ -206,7 +206,6 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 
 		case dns.TypeCNAME:
 			if ok, _ := isRoot(q.Name); ok {
-				//if strings.HasPrefix(strings.ToLower(q.Name), strings.ToLower(os.Getenv("CANARY_DOMAIN")+".")) {
 				// CNAME records cannot be returned for the root domain anyway.
 				return
 			}
@@ -236,7 +235,6 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 			}
 
 			if !foundInZone {
-				//could probably return the query here rather than doxxing the first value in the monitored set, yolo
 				_, suffix := returnSuffix(q.Name)
 				rr, _ := dns.NewRR(fmt.Sprintf("%s IN SOA %s %s (%s)", suffix, "ns."+suffix, "admin."+suffix, "2021041401 7200 3600 604800 300"))
 				m.Answer = append(m.Answer, rr)

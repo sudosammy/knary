@@ -26,8 +26,9 @@ type blacklist struct {
 // domains to monitor
 var domains []string
 
-func LoadDomains(domainlist string) error {
-	domains = strings.Split(domainlist, ",")
+func LoadDomains(domainList string) error {
+	prepareSplit := strings.ReplaceAll(domainList, " ", "")
+	domains = strings.Split(prepareSplit, ",")
 	return nil
 }
 
@@ -39,24 +40,20 @@ func GetFirstDomain() string {
 	return domains[0]
 }
 
-func returnSuffix(lookupval string) (bool, string) {
+func returnSuffix(lookupVal string) (bool, string) {
 	// we return bool for the http handleRequest()
 	// we return string for the dns SOA and NS responses
 	for _, suffix := range domains {
-		if stringContains(lookupval, suffix) || stringContains(lookupval, suffix+".") {
+		if stringContains(lookupVal, suffix) || stringContains(lookupVal, suffix+".") {
 			return true, suffix
 		}
 	}
 	return false, ""
 }
 
-func isRoot(lookupval string) (bool, error) {
-	if len(domains) == 0 {
-		//FU
-		return false, fmt.Errorf("no domains to check")
-	}
+func isRoot(lookupVal string) (bool, error) {
 	for _, prefix := range domains {
-		if strings.HasPrefix(strings.ToLower(lookupval), strings.ToLower(prefix+".")) {
+		if strings.HasPrefix(strings.ToLower(lookupVal), strings.ToLower(prefix+".")) {
 			return true, nil
 		}
 	}

@@ -3,7 +3,7 @@
 ## Sample Files
 * `default_env` - A recommended quick start configuration file with Let's Encrypt configuration.
 * `burp_env` - A recommended quick start configuration file if you are also using Burp Collaborator on the same server as knary.
-* `multidomain_env` - A recommended quick start configuration file if you are using knary with several domains.
+* `multidomain_env` - An example of how to specify multiple knary domains. Domains must be comma-delimited. Whitespace is stripped automatically.
 * `denylist.txt` - This is a good starting set of subdomains you should consider denying from notifying your webhook. Setting [DNS_SUBDOMAIN](#likely-recommended-optional-configurations) will cut down the noise to your knary too. Find & Replace `knary.tld` with your knary domain.
 * `zone_file.txt` - Although an uncommon configuration, this file demonstrates the proper format for configuring a Zone file for custom responses to DNS queries made to knary.
 

@@ -31,6 +31,7 @@ func main() {
 
 	err = libknary.LoadDomains(os.Getenv("CANARY_DOMAIN"))
 	if err != nil {
+		libknary.GiveHead(2)
 		log.Fatal(err)
 	}
 
