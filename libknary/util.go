@@ -33,7 +33,6 @@ func (a *blacklist) updateD(term string) bool {
 	}
 	item := standerdiseDenylistItem(term)
 	a.mutex.Lock()
-	//a.deny[item] = time.Now()
 	a.deny[item] = time.Now()
 	a.mutex.Unlock()
 	return true
@@ -41,6 +40,44 @@ func (a *blacklist) updateD(term string) bool {
 
 // search for a denied domain/IP
 func (a *blacklist) searchD(term string) bool {
+	item := standerdiseDenylistItem(term)
+	a.mutex.Lock()
+	defer a.mutex.Unlock()
+
+	if _, ok := a.deny[item]; ok {
+		return true // found!
+	}
+	return false
+}
+
+/*
+
+Allowlist WIP functions
+
+*/
+// map for allowlist
+type allowlist struct {
+	mutex sync.Mutex
+	deny  map[string]time.Time
+}
+
+var allowed = allowlist{deny: make(map[string]time.Time)}
+var allowCount = 0
+
+// add or update a denied domain/IP
+func (a *blacklist) updateA(term string) bool {
+	if term == "" {
+		return false // would happen if there's no X-Forwarded-For header
+	}
+	item := standerdiseDenylistItem(term)
+	a.mutex.Lock()
+	a.deny[item] = time.Now()
+	a.mutex.Unlock()
+	return true
+}
+
+// search for a denied domain/IP
+func (a *blacklist) searchA(term string) bool {
 	item := standerdiseDenylistItem(term)
 	a.mutex.Lock()
 	defer a.mutex.Unlock()
@@ -197,6 +234,39 @@ func LoadBlacklist() (bool, error) {
 	}
 
 	scanner := bufio.NewScanner(blklist)
+
+	for scanner.Scan() { // foreach denied item
+		if scanner.Text() != "" {
+			denied.updateD(scanner.Text())
+			blacklistCount++
+		}
+	}
+
+	Printy("Monitoring "+strconv.Itoa(blacklistCount)+" items in denylist", 1)
+	logger("INFO", "Monitoring "+strconv.Itoa(blacklistCount)+" items in denylist")
+	return true, nil
+}
+
+/*
+
+Allowlist WIP functions
+
+*/
+func LoadAllowlist() (bool, error) {
+	// load denylist file into struct on startup
+	if _, err := os.Stat(os.Getenv("ALLOWLIST_FILE")); os.IsNotExist(err) {
+		return false, err
+	}
+
+	alwlist, err := os.Open(os.Getenv("ALLOWLIST_FILE"))
+	defer alwlist.Close()
+
+	if err != nil {
+		Printy(err.Error()+" - ignoring", 3)
+		return false, err
+	}
+
+	scanner := bufio.NewScanner(alwlist)
 
 	for scanner.Scan() { // foreach denied item
 		if scanner.Text() != "" {

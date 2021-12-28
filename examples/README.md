@@ -17,6 +17,7 @@
 * `LETS_ENCRYPT` Enable Let's Encrypt management of your knary domain. If you do not configure this, or `TLS_*` as [detailed below](#optional-configurations), knary will only listen on port 80 and notify of HTTP hits. Example input: `myemailaddress@gmail.com`
 * `LOG_FILE` Location for a file that knary will log greppable and timestamped warnings/errors. Example input: `/var/log/knary.log` or `knary.log` for current working directory
 * `DENYLIST_FILE` Location for a file containing case-insensitive subdomains or IP addresses (separated by newlines) that should be ignored by knary and not logged or notified. Example input: `denylist.txt` 
+* `ALLOWLIST_FILE` Rather then denying certain matches, you can specify exact matches knary should alert on. This configuration takes precedence over a denylist. Location for a file containing case-insensitive subdomains (separated by newlines) that should trigger knary. Example input: `allowed.txt` 
 
 ## Likely Recommended Optional Configurations
 * `DNS_SUBDOMAIN` Tell knary to only notify on `*.<DNS_SUBDOMAIN>.<CANARY_DOMAIN>` DNS hits. This is useful if you your webhook is getting too noisy with DNS hits to your knary TLD. Setting this configuration will mimic how knary operated prior to version 3. Example input: `dns`
