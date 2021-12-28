@@ -4,7 +4,7 @@
 
 >Like "Canary" but more hipster, which means better 😎😎😎
 
-knary is a canary token server that notifies a Slack/Discord/Teams/Lark channel (or other webhook) when incoming HTTP(S) or DNS requests match a given domain or any of its subdomains. It also supports functionality useful in offensive engagements including subdomain allow/denylisting, working with Burp Collaborator, and easy TLS certificate creation.
+knary is a canary token server that notifies a Slack/Discord/Teams/Lark/Telegram channel (or other webhook) when incoming HTTP(S) or DNS requests match a given domain or any of its subdomains. It also supports functionality useful in offensive engagements including subdomain allow/denylisting, working with Burp Collaborator, and automatic TLS certificate creation with Let's Encrypt.
 
 ![knary canary-ing](https://github.com/sudosammy/knary/raw/master/screenshots/canary.gif "knary canary-ing")
 
@@ -23,23 +23,23 @@ __Prerequisite:__ You need Go >=1.16 to build knary.
 go get -u github.com/sudosammy/knary
 ```
 
-2. Set your chosen knary domain nameserver(s) to point to a subdomain under itself; such as `ns.knary.tld`. If required, set multiple nameserver records such as `ns1.knary.tld`, `ns2.knary.ltd`.
+**Important:** The specifics of how to perform the next two steps will depend on your domain registrar. Google `How to set Glue Record on <registrar name>` to get started. Ultimately, you need to configure your knary domain(s) to make use of itself as the nameserver (i.e. `ns1.knary.tld` and `ns2.knary.tld`) and configure Glue Records to point these nameservers back to your knary host. You may need to raise a support ticket to have this performed by your registrar. 
 
-3. Create a "Glue Record", sometimes referred to as "Nameserver Registration" or "Nameserver IP address" to point to your knary server. This is what it looks like in `name.com`:
+2. Set your chosen knary domain(s) nameserver(s) to point to a subdomain under itself; such as `ns.knary.tld`. If required, set multiple nameserver records such as `ns1` and `ns2`.
+
+3. Create a "Glue Record" (sometimes referred to as "Nameserver Registration" or "Nameserver IP address") to point to your knary server. This is what it looks like in `name.com`:
 
  ![Setting a glue record](https://github.com/sudosammy/knary/raw/master/screenshots/nameserver-ip.png "Setting a glue record")
 
-If your registry requires you to have multiple nameservers with different IP addresses, set the second nameserver to an IP address such as `8.8.8.8` or `1.1.1.1`. 
+If your registry requires you to have multiple nameservers with **different** IP addresses, set the second nameserver to an IP address such as `8.8.8.8` or `1.1.1.1`. 
 
-**Note:** You may need to raise a support ticket to have step #2 and #3 performed by your registrar. 
-
-4. This will take some time to propagate, so go setup your [webhook](#supported-webhook-configurations).
+4. This **will** take time to propagate, so go setup your [webhook(s)](#supported-webhook-configurations) while you wait. You can use [this tool](https://www.whatsmydns.net/#NS/) to check the propagation. Within a few hours you should see some DNS servers reflecting your knary domain as the nameserver.
 
 5. Create a `.env` file in the same directory as the knary binary and [configure](https://github.com/sudosammy/knary/tree/master/examples) it as necessary. You can also use environment variables to set these configurations. Environment variables will take precedence over the `.env` file.
 
-6. __Optional__ For accepting TLS (HTTPS) connections set the `LETS_ENCRYPT=<email address>` variable and knary will automagically manage wildcard certificates for you. Otherwise, you can specify the path to your own certificates with `TLS_CRT=<path>` and `TLS_KEY=<path>`.
+6. __Optional__ For accepting TLS (HTTPS) connections set the `LETS_ENCRYPT=<email address>` variable and knary will automagically manage wildcard certificates for you (see [OPSEC note](#opsec-notes) below). Otherwise, you can specify the path to your own certificates with `TLS_CRT=<path>` and `TLS_KEY=<path>`.
 
-7. Run the binary (probably in `screen`, `tmux`, or similar) and hope for output that looks something like this: 
+7. Run the binary (via the provided [Docker container](#knary-docker), or in `tmux` / `screen`) and hope for output that looks something like this: 
 
 ![knary go-ing](https://github.com/sudosammy/knary/raw/master/screenshots/run.png "knary go-ing")
 
@@ -70,6 +70,10 @@ Sample configurations can be found [in the examples](https://github.com/sudosamm
 
 ## knary Docker
 Using knary in a container is as simple as creating your `.env` file (or setting environment variables in the `docker-compose.yaml` file) and running `sudo docker compose up -d`
+
+## OPSEC notes
+* Let's Encrypt will dox all the domains you are using with knary (and your `DNS_SUBDOMAIN` and `BURP_DOMAIN` if you are using those configurations). This is due to these domains being included in the SAN certificate generated for you. A remote adversary can read the certificate and extract the list of domains within it. To avoid this, don't configure `LETS_ENCRYPT`. You can use self-signed certificates with `TLS_CRT=<path>` and `TLS_KEY=<path>`; however, many hosts will refuse to connect reducing your visibility of incoming HTTPS connections.
+* With enough effort, knary is likely fingerprint-able by a remote host. i.e. it's plausible an adversary could determine you are running knary on a given host. This is because knary is not an RFC compliant nameserver (because doing so involves dark magic) and it likely behaves in an unusual / unique manner when compared to other nameservers.
 
 ## Supported Webhook Configurations
 These are environment variables / `.env` file configurations. You can configure none, one, or many. Most common usage would be to configure one. Refer to [the examples](https://github.com/sudosammy/knary/tree/master/examples) for usage help.

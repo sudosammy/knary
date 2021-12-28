@@ -147,8 +147,7 @@ func handleRequest(conn net.Conn) bool {
 
 	// search for our host header
 	for _, header := range headers {
-		if ok, _ := containsSuffix(header); ok {
-			//if stringContains(header, os.Getenv("CANARY_DOMAIN")) {
+		if ok, _ := returnSuffix(header); ok {
 			// a match made in heaven
 			host := ""
 			query := ""

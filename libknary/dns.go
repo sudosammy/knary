@@ -237,7 +237,8 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 
 			if !foundInZone {
 				//could probably return the query here rather than doxxing the first value in the monitored set, yolo
-				rr, _ := dns.NewRR(fmt.Sprintf("%s IN SOA %s %s (%s)", GetFirstDomain(), "ns."+GetFirstDomain(), "admin."+GetFirstDomain(), "2021041401 7200 3600 604800 300"))
+				_, suffix := returnSuffix(q.Name)
+				rr, _ := dns.NewRR(fmt.Sprintf("%s IN SOA %s %s (%s)", suffix, "ns."+suffix, "admin."+suffix, "2021041401 7200 3600 604800 300"))
 				m.Answer = append(m.Answer, rr)
 			}
 
@@ -247,7 +248,8 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 			}
 
 			if !foundInZone {
-				rr, _ := dns.NewRR(fmt.Sprintf("%s IN NS %s", q.Name, "ns."+GetFirstDomain()))
+				_, suffix := returnSuffix(q.Name)
+				rr, _ := dns.NewRR(fmt.Sprintf("%s IN NS %s", q.Name, "ns."+suffix))
 				m.Answer = append(m.Answer, rr)
 			}
 		}

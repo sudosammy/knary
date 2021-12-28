@@ -23,7 +23,7 @@ type blacklist struct {
 	deny  map[string]time.Time
 }
 
-//domains to monitor
+// domains to monitor
 var domains []string
 
 func LoadDomains(domainlist string) error {
@@ -39,17 +39,15 @@ func GetFirstDomain() string {
 	return domains[0]
 }
 
-func containsSuffix(lookupval string) (bool, error) {
-	if len(domains) == 0 {
-		//FU
-		return false, fmt.Errorf("no domains to check")
-	}
+func returnSuffix(lookupval string) (bool, string) {
+	// we return bool for the http handleRequest()
+	// we return string for the dns SOA and NS responses
 	for _, suffix := range domains {
-		if strings.HasSuffix(strings.ToLower(lookupval), strings.ToLower(suffix)) {
-			return true, nil
+		if stringContains(lookupval, suffix) || stringContains(lookupval, suffix+".") {
+			return true, suffix
 		}
 	}
-	return false, nil
+	return false, ""
 }
 
 func isRoot(lookupval string) (bool, error) {
