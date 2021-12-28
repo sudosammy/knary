@@ -16,14 +16,16 @@ import (
 // create domain list for certificates
 func getDomains() []string {
 	var domainArray []string
-	domainArray = append(domainArray, "*."+os.Getenv("CANARY_DOMAIN"))
+	for _, cdomain := range GetDomains() {
+		domainArray = append(domainArray, "*."+cdomain)
 
-	if os.Getenv("BURP_DOMAIN") != "" {
-		domainArray = append(domainArray, "*."+os.Getenv("BURP_DOMAIN"))
-	}
+		if os.Getenv("BURP_DOMAIN") != "" {
+			domainArray = append(domainArray, "*."+cdomain)
+		}
 
-	if os.Getenv("DNS_SUBDOMAIN") != "" {
-		domainArray = append(domainArray, "*."+os.Getenv("DNS_SUBDOMAIN")+"."+os.Getenv("CANARY_DOMAIN"))
+		if os.Getenv("DNS_SUBDOMAIN") != "" {
+			domainArray = append(domainArray, "*."+os.Getenv("DNS_SUBDOMAIN")+"."+cdomain)
+		}
 	}
 	return domainArray
 }

@@ -29,6 +29,11 @@ func main() {
 		log.Fatal(err)
 	}
 
+	err = libknary.LoadDomains(os.Getenv("CANARY_DOMAIN"))
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	// start maintenance timers
 	libknary.StartMaintenance(VERSION, GITHUBVERSION, GITHUB)
 
@@ -36,7 +41,7 @@ func main() {
 	var EXT_IP string
 	if os.Getenv("EXT_IP") == "" {
 		// try to guess the glue record
-		res, err := libknary.GuessIP(os.Getenv("CANARY_DOMAIN"))
+		res, err := libknary.GuessIP(libknary.GetFirstDomain())
 
 		if err != nil {
 			libknary.Printy("Are you sure your DNS is configured correctly?", 2)
@@ -82,16 +87,24 @@ func main() {
 	go libknary.UsageStats(VERSION)
 
 	if os.Getenv("HTTP") == "true" && os.Getenv("LETS_ENCRYPT") == "" && (os.Getenv("TLS_CRT") == "" || os.Getenv("TLS_KEY") == "") {
-		libknary.Printy("Listening for http://*."+os.Getenv("CANARY_DOMAIN")+" requests", 1)
+		for _, cdomain := range libknary.GetDomains() {
+			libknary.Printy("Listening for http://*."+cdomain+" requests", 1)
+		}
 		libknary.Printy("Without LETS_ENCRYPT or TLS_* environment variables set you will only be able to make HTTP (port 80) requests to knary", 2)
 	} else if os.Getenv("HTTP") == "true" && (os.Getenv("LETS_ENCRYPT") != "" || os.Getenv("TLS_KEY") != "") {
-		libknary.Printy("Listening for http(s)://*."+os.Getenv("CANARY_DOMAIN")+" requests", 1)
+		for _, cdomain := range libknary.GetDomains() {
+			libknary.Printy("Listening for http(s)://*."+cdomain+" requests", 1)
+		}
 	}
 	if os.Getenv("DNS") == "true" {
-		if os.Getenv("DNS_SUBDOMAIN") != "" { 
-			libknary.Printy("Listening for *."+os.Getenv("DNS_SUBDOMAIN")+"."+os.Getenv("CANARY_DOMAIN")+" DNS requests", 1)
+		if os.Getenv("DNS_SUBDOMAIN") != "" {
+			for _, cdomain := range libknary.GetDomains() {
+				libknary.Printy("Listening for *."+os.Getenv("DNS_SUBDOMAIN")+"."+cdomain+" DNS requests", 1)
+			}
 		} else {
-			libknary.Printy("Listening for *."+os.Getenv("CANARY_DOMAIN")+" DNS requests", 1)
+			for _, cdomain := range libknary.GetDomains() {
+				libknary.Printy("Listening for *."+cdomain+" DNS requests", 1)
+			}
 		}
 	}
 	if os.Getenv("BURP_DOMAIN") != "" {
@@ -127,7 +140,9 @@ func main() {
 		wg.Add(1)
 		// https://bl.ocks.org/tianon/063c8083c215be29b83a
 		// There must be a better way to pass "EXT_IP" along without an anonymous function AND copied variable
-		dns.HandleFunc(os.Getenv("CANARY_DOMAIN")+".", func(w dns.ResponseWriter, r *dns.Msg) { libknary.HandleDNS(w, r, EXT_IP) })
+		for _, cdomain := range libknary.GetDomains() {
+			dns.HandleFunc(cdomain+".", func(w dns.ResponseWriter, r *dns.Msg) { libknary.HandleDNS(w, r, EXT_IP) })
+		}
 		go libknary.AcceptDNS(&wg)
 	}
 

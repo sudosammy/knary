@@ -23,6 +23,48 @@ type blacklist struct {
 	deny  map[string]time.Time
 }
 
+//domains to monitor
+var domains []string
+
+func LoadDomains(domainlist string) error {
+	domains = strings.Split(domainlist, ",")
+	return nil
+}
+
+func GetDomains() []string {
+	return domains
+}
+
+func GetFirstDomain() string {
+	return domains[0]
+}
+
+func containsSuffix(lookupval string) (bool, error) {
+	if len(domains) == 0 {
+		//FU
+		return false, fmt.Errorf("no domains to check")
+	}
+	for _, suffix := range domains {
+		if strings.HasSuffix(strings.ToLower(lookupval), strings.ToLower(suffix)) {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func isRoot(lookupval string) (bool, error) {
+	if len(domains) == 0 {
+		//FU
+		return false, fmt.Errorf("no domains to check")
+	}
+	for _, prefix := range domains {
+		if strings.HasPrefix(strings.ToLower(lookupval), strings.ToLower(prefix+".")) {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 var denied = blacklist{deny: make(map[string]time.Time)}
 var blacklistCount = 0
 
@@ -386,15 +428,23 @@ func HeartBeat(version string, firstrun bool) (bool, error) {
 
 	// print usage domains
 	if os.Getenv("HTTP") == "true" && (os.Getenv("TLS_CRT") == "" || os.Getenv("TLS_KEY") == "") {
-		beatMsg += "Listening for http://*." + os.Getenv("CANARY_DOMAIN") + " requests\n"
+		for _, cdomain := range getDomains() {
+			beatMsg += "Listening for http://*." + cdomain + " requests\n"
+		}
 	} else {
-		beatMsg += "Listening for http(s)://*." + os.Getenv("CANARY_DOMAIN") + " requests\n"
+		for _, cdomain := range getDomains() {
+			beatMsg += "Listening for http(s)://*." + cdomain + " requests\n"
+		}
 	}
 	if os.Getenv("DNS") == "true" {
-		if os.Getenv("DNS_SUBDOMAIN") != "" { 
-			beatMsg += "Listening for *." + os.Getenv("DNS_SUBDOMAIN")+"."+os.Getenv("CANARY_DOMAIN") + " DNS requests\n"
+		if os.Getenv("DNS_SUBDOMAIN") != "" {
+			for _, cdomain := range getDomains() {
+				beatMsg += "Listening for *." + os.Getenv("DNS_SUBDOMAIN") + "." + cdomain + " DNS requests\n"
+			}
 		} else {
-			beatMsg += "Listening for *." + os.Getenv("CANARY_DOMAIN") + " DNS requests\n"
+			for _, cdomain := range getDomains() {
+				beatMsg += "Listening for *." + cdomain + " DNS requests\n"
+			}
 		}
 	}
 	if os.Getenv("BURP_DOMAIN") != "" {
