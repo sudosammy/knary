@@ -2,9 +2,7 @@
 .env
 dev
 knary.log
-allowlist.txt
 allowed.txt
-denylist.txt
 denied.txt
 blacklist.txt
 zone.txt
