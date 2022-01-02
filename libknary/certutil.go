@@ -39,7 +39,7 @@ func getDomainsForCert() []string {
 	}
 
 	if numDomains > 100 {
-		msg := "Too many domains! Let's Encrypt only supports SAN certificates containing 100 domains & subdomains. Your configuration currently has: " + strconv.Itoa(numDomains) + ". This may be due to configuring DNS_SUBDOMAIN which will double the number of SAN entries per knary domain."
+		msg := "Too many domains! Let's Encrypt only supports SAN certificates containing 100 domains & subdomains. Your configuration currently has: " + strconv.Itoa(numDomains) + ". This may be due to configuring DNS_SUBDOMAIN which will double the number of SAN entries per CANARY_DOMAIN."
 		logger("ERROR", msg)
 		GiveHead(2)
 		log.Fatal(msg)
