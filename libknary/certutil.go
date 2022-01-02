@@ -4,8 +4,8 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strings"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-acme/lego/v4/certcrypto"
@@ -37,10 +37,9 @@ func getDomainsForCert() []string {
 	if os.Getenv("DEBUG") == "true" {
 		Printy("Domains for SAN certificate: "+strconv.Itoa(numDomains), 3)
 	}
-	
 
-	if (numDomains > 100) {
-		msg := "Too many domains! Let's Encrypt only supports SAN certificates containing 100 domains & subdomains. Your configuration currently has: "+strconv.Itoa(numDomains)+". This may be due to configuring DNS_SUBDOMAIN which will double the number of SAN entries per knary domain."
+	if numDomains > 100 {
+		msg := "Too many domains! Let's Encrypt only supports SAN certificates containing 100 domains & subdomains. Your configuration currently has: " + strconv.Itoa(numDomains) + ". This may be due to configuring DNS_SUBDOMAIN which will double the number of SAN entries per knary domain."
 		logger("ERROR", msg)
 		GiveHead(2)
 		log.Fatal(msg)

@@ -11,17 +11,10 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/blang/semver/v4"
 )
-
-// map for denylist
-type blacklist struct {
-	mutex sync.Mutex
-	deny  map[string]time.Time
-}
 
 // domains to monitor
 var domains []string
@@ -58,86 +51,6 @@ func isRoot(lookupVal string) (bool, error) {
 		}
 	}
 	return false, nil
-}
-
-var denied = blacklist{deny: make(map[string]time.Time)}
-var blacklistCount = 0
-
-// add or update a denied domain/IP
-func (a *blacklist) updateD(term string) bool {
-	if term == "" {
-		return false // would happen if there's no X-Forwarded-For header
-	}
-	item := standerdiseDenylistItem(term)
-	a.mutex.Lock()
-	a.deny[item] = time.Now()
-	a.mutex.Unlock()
-	return true
-}
-
-// search for a denied domain/IP
-func (a *blacklist) searchD(term string) bool {
-	item := standerdiseDenylistItem(term)
-	a.mutex.Lock()
-	defer a.mutex.Unlock()
-
-	if _, ok := a.deny[item]; ok {
-		return true // found!
-	}
-	return false
-}
-
-/*
-
-Allowlist WIP functions
-
-*/
-// map for allowlist
-type allowlist struct {
-	mutex sync.Mutex
-	deny  map[string]time.Time
-}
-
-var allowed = allowlist{deny: make(map[string]time.Time)}
-var allowCount = 0
-
-// add or update a denied domain/IP
-func (a *blacklist) updateA(term string) bool {
-	if term == "" {
-		return false // would happen if there's no X-Forwarded-For header
-	}
-	item := standerdiseDenylistItem(term)
-	a.mutex.Lock()
-	a.deny[item] = time.Now()
-	a.mutex.Unlock()
-	return true
-}
-
-// search for a denied domain/IP
-func (a *blacklist) searchA(term string) bool {
-	item := standerdiseDenylistItem(term)
-	a.mutex.Lock()
-	defer a.mutex.Unlock()
-
-	if _, ok := a.deny[item]; ok {
-		return true // found!
-	}
-	return false
-}
-
-func standerdiseDenylistItem(term string) string {
-	d := strings.ToLower(term) // lowercase
-	d = strings.TrimSpace(d)   // remove any surrounding whitespaces
-	var sTerm string
-
-	if IsIP(d) {
-		sTerm, _ = splitPort(d) // yeet port off IP
-	} else {
-		domain := strings.Split(d, ":")            // split on port number (if exists)
-		sTerm = strings.TrimSuffix(domain[0], ".") // remove trailing FQDN dot if present
-	}
-
-	return sTerm
 }
 
 // https://github.com/dsanader/govalidator/blob/master/validator.go
@@ -252,106 +165,6 @@ func CheckUpdate(version string, githubVersion string, githubURL string) (bool, 
 	return false, nil
 }
 
-func LoadBlacklist() (bool, error) {
-	if os.Getenv("BLACKLIST_FILE") != "" {
-		// deprecation warning
-		Printy("The environment variable \"DENYLIST_FILE\" has superseded \"BLACKLIST_FILE\". Please update your configuration.", 2)
-	}
-	// load denylist file into struct on startup
-	if _, err := os.Stat(os.Getenv("DENYLIST_FILE")); os.IsNotExist(err) {
-		return false, err
-	}
-
-	blklist, err := os.Open(os.Getenv("DENYLIST_FILE"))
-	defer blklist.Close()
-
-	if err != nil {
-		Printy(err.Error()+" - ignoring", 3)
-		return false, err
-	}
-
-	scanner := bufio.NewScanner(blklist)
-
-	for scanner.Scan() { // foreach denied item
-		if scanner.Text() != "" {
-			denied.updateD(scanner.Text())
-			blacklistCount++
-		}
-	}
-
-	Printy("Monitoring "+strconv.Itoa(blacklistCount)+" items in denylist", 1)
-	logger("INFO", "Monitoring "+strconv.Itoa(blacklistCount)+" items in denylist")
-	return true, nil
-}
-
-/*
-
-Allowlist WIP functions
-
-*/
-func LoadAllowlist() (bool, error) {
-	// load denylist file into struct on startup
-	if _, err := os.Stat(os.Getenv("ALLOWLIST_FILE")); os.IsNotExist(err) {
-		return false, err
-	}
-
-	alwlist, err := os.Open(os.Getenv("ALLOWLIST_FILE"))
-	defer alwlist.Close()
-
-	if err != nil {
-		Printy(err.Error()+" - ignoring", 3)
-		return false, err
-	}
-
-	scanner := bufio.NewScanner(alwlist)
-
-	for scanner.Scan() { // foreach denied item
-		if scanner.Text() != "" {
-			denied.updateD(scanner.Text())
-			blacklistCount++
-		}
-	}
-
-	Printy("Monitoring "+strconv.Itoa(blacklistCount)+" items in denylist", 1)
-	logger("INFO", "Monitoring "+strconv.Itoa(blacklistCount)+" items in denylist")
-	return true, nil
-}
-
-func checkLastHit() bool { // this runs once a day
-	for subdomain := range denied.deny {
-		expiryDate := denied.deny[subdomain].AddDate(0, 0, 14)
-
-		if time.Now().After(expiryDate) { // let 'em know it's old
-			msg := "Denied item `" + subdomain + "` hasn't had a hit in >14 days. Consider removing it."
-			go sendMsg(":wrench: " + msg + " Configure `DENYLIST_ALERTING` to supress.")
-			logger("INFO", msg)
-			Printy(msg, 1)
-		}
-	}
-
-	if os.Getenv("DEBUG") == "true" {
-		logger("INFO", "Checked denylist...")
-		Printy("Checked for old denylist items", 3)
-	}
-
-	return true
-}
-
-func inBlacklist(needles ...string) bool {
-	for _, needle := range needles {
-		if denied.searchD(needle) {
-			denied.updateD(needle) // found!
-
-			if os.Getenv("DEBUG") == "true" {
-				logger("INFO", "Found "+needle+" in denylist")
-				Printy("Found "+needle+" in denylist", 3)
-			}
-			return true
-		}
-	}
-	return false
-}
-
 func CheckTLSExpiry(days int) (bool, int) {
 	if os.Getenv("TLS_CRT") != "" && os.Getenv("TLS_KEY") != "" {
 		renew, expiry := needRenewal(days)
@@ -413,8 +226,19 @@ func HeartBeat(version string, firstrun bool) (bool, error) {
 		beatMsg += "Uptime: " + strconv.Itoa(day) + " days\n\n"
 	}
 
+	// print allowed items
+	beatMsg += strconv.Itoa(allowCount) + " allowed subdomains / IPs: \n"
+	if os.Getenv("ALLOWLIST_STRICT") == "true" {
+		beatMsg += "(Operating in strict mode) \n"
+	}
+	beatMsg += "------------------------\n"
+	for i := range allowed {
+		beatMsg += allowed[i].allow + "\n"
+	}
+	beatMsg += "------------------------\n\n"
+
 	// print denied items
-	beatMsg += strconv.Itoa(blacklistCount) + " denied subdomains / IPs: \n"
+	beatMsg += strconv.Itoa(denyCount) + " denied subdomains / IPs: \n"
 	beatMsg += "------------------------\n"
 	for subdomain := range denied.deny {
 		beatMsg += subdomain + "\n"
@@ -426,7 +250,7 @@ func HeartBeat(version string, firstrun bool) (bool, error) {
 		for _, cdomain := range GetDomains() {
 			beatMsg += "Listening for http://*." + cdomain + " requests\n"
 		}
-	} else if (os.Getenv("HTTP") == "true" && (os.Getenv("TLS_CRT") != "" && os.Getenv("TLS_KEY") != "")) {
+	} else if os.Getenv("HTTP") == "true" && (os.Getenv("TLS_CRT") != "" && os.Getenv("TLS_KEY") != "") {
 		for _, cdomain := range GetDomains() {
 			beatMsg += "Listening for http(s)://*." + cdomain + " requests\n"
 		}

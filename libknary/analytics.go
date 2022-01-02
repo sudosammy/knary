@@ -14,7 +14,11 @@ import (
 	This function collects very basic analytics to track knary usage.
 	It does NOT collect anything that could be tied back to you easily; however, does take a SHA256 hash of your knary domain name.
 	If you have any thoughts about knary you can contact me on Twitter: @sudosammy or GitHub: https://github.com/sudosammy/knary
+
+	You can make the following variable an empty string to sinkole analytics.
 */
+var trackingDomain = "https://knary.sam.ooo"
+
 type features struct {
 	DNS      bool `json:"dns"`
 	HTTP     bool `json:"http"`
@@ -29,6 +33,7 @@ type analy struct {
 	ID        string `json:"id"`
 	Version   string `json:"version"`
 	Status    int    `json:"day"`
+	Allowlist int    `json:"allowlist"`
 	Blacklist int    `json:"blacklist"`
 	Offset    int    `json:"offset"`
 	Timezone  string `json:"timezone"`
@@ -38,8 +43,6 @@ type analy struct {
 var day = 0
 
 func UsageStats(version string) bool {
-	trackingDomain := "https://knary.sam.ooo" // make this an empty string to sinkhole analytics
-
 	if os.Getenv("CANARY_DOMAIN") == "" || trackingDomain == "" {
 		return false
 	}
@@ -81,7 +84,8 @@ func UsageStats(version string) bool {
 		anonKnaryID,
 		version,
 		day,
-		blacklistCount,
+		allowCount,
+		denyCount,
 		(offset / 60 / 60),
 		zone,
 		features{

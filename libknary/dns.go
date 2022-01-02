@@ -89,7 +89,7 @@ func goSendMsg(ipaddr, reverse, name, record string) bool {
 		Printy("Got A question for: "+name, 3)
 	}
 
-	if inBlacklist(name, ipaddr) {
+	if !inAllowlist(name, ipaddr) || inBlacklist(name, ipaddr) {
 		return false
 	}
 

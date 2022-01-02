@@ -40,7 +40,7 @@ func sendMsg(msg string) {
 		msg = re.ReplaceAllString(msg, "")
 
 		jsonMsg := []byte(`{"chat_id": "` + os.Getenv("TELEGRAM_CHATID") + `", "text": "` + msg + `"}`)
-		_, err := http.Post("https://api.telegram.org/bot" + os.Getenv("TELEGRAM_BOT_TOKEN") + "/sendMessage", "application/json", bytes.NewBuffer(jsonMsg))
+		_, err := http.Post("https://api.telegram.org/bot"+os.Getenv("TELEGRAM_BOT_TOKEN")+"/sendMessage", "application/json", bytes.NewBuffer(jsonMsg))
 
 		if err != nil {
 			Printy(err.Error(), 2)

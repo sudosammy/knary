@@ -82,7 +82,8 @@ func main() {
 	red.Println(`|_____|`)
 	fmt.Println()
 
-	// load blacklist file, zone file & submit usage
+	// load lists, zone file & submit usage
+	libknary.LoadAllowlist()
 	libknary.LoadBlacklist()
 	libknary.LoadZone()
 	go libknary.UsageStats(VERSION)

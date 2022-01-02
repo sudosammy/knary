@@ -14,6 +14,9 @@ Redteamers use canaries to be notified when someone (or *something*) attempts to
 
 Defenders also use canaries as tripwires that can alert them of an attacker within their network by having the attacker announce themselves. If you are a defender, https://canarytokens.org might be what you’re looking for.
 
+## Key features
+* 
+
 ## Setup
 
 1. Download the [applicable 64-bit knary binary](https://github.com/sudosammy/knary/releases) __OR__ build knary from source:
@@ -44,27 +47,27 @@ If your registry requires you to have multiple nameservers with **different** IP
 ![knary go-ing](https://github.com/sudosammy/knary/raw/master/screenshots/run.png "knary go-ing")
 
 ## Allowing or denying matches
-You **will** find systems that spam your knary even long after an engagement has ended. You will also find several DNS requests to mundane subdomains hitting your knary every day. To stop these from cluttering your notifications knary has two features:
+You **will** find systems that spam your knary even long after an engagement has ended. You will also find several DNS requests to mundane subdomains hitting your knary every day. To stop these from cluttering your notifications knary has a few features:
 
-1. A simple text-based deny- and/or allowlist (location specified with `DENYLIST_FILE` or `ALLOWLIST_FILE`). Add the offending subdomains or IP addresses separated by a newline (case-insensitive):
+1. A simple text-based deny and/or allowlist (location specified with `DENYLIST_FILE` and/or `ALLOWLIST_FILE`). Add the subdomains or IP addresses separated by a newline (case-insensitive):
 ```
 knary.tld
 www.knary.tld
 171.244.140.247
 test.dns.knary.tld
-engagement1337.knary.tld
+sam.knary.tld
 ```
 If this were a denylist, it would stop knary from alerting on `www.knary.tld` but not `another.www.knary.tld`.
 
-If this were an allowlist, knary would alert on exact matches such as `engagement1337.knary.tld` and subdomain matches `another.engagement1337.knary.tld`.
+If this were an allowlist, knary would alert on exact matches (`sam.knary.tld`) and subdomain matches (`website1.sam.knary.tld`). Use `ALLOWLIST_STRICT=true` to prevent this fuzzy matching and only alert on hits to `sam.knary.tld`.
 
-You can use both a deny- and allowlist simultaneously. The allowlist takes precedence.
+You can use both a deny and allowlist simultaneously.
 
-**Note:** wildcards are not supported. An entry of `*.knary.tld` will match that string exactly.
+**Note:** wildcards in these files are not supported. An entry of `*.knary.tld` will match that string exactly.
 
-2. The `DNS_SUBDOMAIN` configuration allows you to specify that knary should only alert on DNS hits that are `*.<DNS_SUBDOMAIN>.knary.tld`.
+2. The `DNS_SUBDOMAIN` configuration allows you to specify a subdomain that knary must fuzzy match (i.e. `*.DNS_SUBDOMAIN.knary.tld`) before alerting on DNS hits. This configuration does not affect HTTP(S) requests and remains primarily to mimic legacy knary v2 functionality. **Consider using a deny/allowlist instead.**
 
-A configuration of `DNS_SUBDOMAIN=dns` would stop knary from alerting on DNS hits to `blah.knary.tld` but not `blah.dns.knary.tld`. This configuration only affects DNS traffic. A HTTP request to `blah.knary.tld` would still notify you unless prevented by an allow- or denylist.
+A configuration of `DNS_SUBDOMAIN=dns` would stop knary from alerting on DNS hits to `blah.knary.tld` but not `blah.dns.knary.tld`. A HTTP request to `blah.knary.tld` would still notify you unless prevented by an allow- or denylist.
 
 Sample configurations can be found [in the examples](https://github.com/sudosammy/knary/tree/master/examples) with common subdomains to deny.
 
