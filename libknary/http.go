@@ -210,7 +210,7 @@ func handleRequest(conn net.Conn) bool {
 			}
 
 			hostDomain := strings.TrimPrefix(strings.ToLower(host), "host:") // trim off the "Host:" section of header
-			if !inBlacklist(hostDomain, conn.RemoteAddr().String(), fwd) {
+			if inAllowlist(hostDomain, conn.RemoteAddr().String(), fwd) && !inBlacklist(hostDomain, conn.RemoteAddr().String(), fwd) {
 				var msg string
 				if cookie != "" {
 					msg = fmt.Sprintf("%s\n```Query: %s\n%s\n%s\nFrom: %s", host, query, userAgent, cookie, conn.RemoteAddr().String())

@@ -226,24 +226,28 @@ func HeartBeat(version string, firstrun bool) (bool, error) {
 		beatMsg += "Uptime: " + strconv.Itoa(day) + " days\n\n"
 	}
 
-	// print allowed items
-	beatMsg += strconv.Itoa(allowCount) + " allowed subdomains / IPs: \n"
-	if os.Getenv("ALLOWLIST_STRICT") == "true" {
-		beatMsg += "(Operating in strict mode) \n"
+	// print allowed items (if any)
+	if allowCount > 0 {
+		beatMsg += strconv.Itoa(allowCount) + " allowed subdomains / IPs: \n"
+		if os.Getenv("ALLOWLIST_STRICT") == "true" {
+			beatMsg += "(Operating in strict mode) \n"
+		}
+		beatMsg += "------------------------\n"
+		for i := range allowed {
+			beatMsg += allowed[i].allow + "\n"
+		}
+		beatMsg += "------------------------\n\n"
 	}
-	beatMsg += "------------------------\n"
-	for i := range allowed {
-		beatMsg += allowed[i].allow + "\n"
-	}
-	beatMsg += "------------------------\n\n"
 
-	// print denied items
-	beatMsg += strconv.Itoa(denyCount) + " denied subdomains / IPs: \n"
-	beatMsg += "------------------------\n"
-	for subdomain := range denied.deny {
-		beatMsg += subdomain + "\n"
+	// print denied items (if any)
+	if denyCount > 0 {
+		beatMsg += strconv.Itoa(denyCount) + " denied subdomains / IPs: \n"
+		beatMsg += "------------------------\n"
+		for subdomain := range denied.deny {
+			beatMsg += subdomain + "\n"
+		}
+		beatMsg += "------------------------\n\n"
 	}
-	beatMsg += "------------------------\n\n"
 
 	// print usage domains
 	if os.Getenv("HTTP") == "true" && (os.Getenv("TLS_CRT") == "" || os.Getenv("TLS_KEY") == "") {
