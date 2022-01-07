@@ -140,16 +140,15 @@ func inAllowlist(needles ...string) bool {
 				// strict matching. don't match subdomains
 				if needle == allowed[i].allow {
 					if os.Getenv("DEBUG") == "true" {
-						Printy(allowed[i].allow+" found in allowlist", 3)
+						Printy(needle+" matches allowlist", 3)
 					}
 					return true
 				}
 			} else {
 				// allow fuzzy matching
-				// technically, this could be bypassed with: knary.tld.permitted.knary.tld and
-				if stringContains(needle, allowed[i].allow) {
+				if strings.HasSuffix(needle, allowed[i].allow) {
 					if os.Getenv("DEBUG") == "true" {
-						Printy(allowed[i].allow+" found in allowlist", 3)
+						Printy(needle+" matches allowlist", 3)
 					}
 					return true
 				}

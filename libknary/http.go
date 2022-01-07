@@ -38,7 +38,7 @@ func PrepareRequest80() net.Listener {
 					} else {
 						// otherwise send it raw to the local knary port
 						r.URL.Host = p80
-						r.Header.Set("X-Forwarded-For", r.RemoteAddr) //add port version of x-fwded for
+						r.Header.Set("X-Forwarded-For", r.RemoteAddr)
 					}
 				},
 			})
@@ -198,7 +198,7 @@ func handleRequest(conn net.Conn) bool {
 					mult := strings.Split(val, ",")
 					if len(mult) > 1 {
 						for _, srcaddr := range mult {
-							if strings.Contains(srcaddr, ":") {
+							if strings.Contains(srcaddr, ":") { // this probs breaks IPv6
 								srcAndPort = append(srcAndPort, srcaddr)
 							}
 						}
@@ -212,16 +212,24 @@ func handleRequest(conn net.Conn) bool {
 			hostDomain := strings.TrimPrefix(strings.ToLower(host), "host:") // trim off the "Host:" section of header
 			if inAllowlist(hostDomain, conn.RemoteAddr().String(), fwd) && !inBlacklist(hostDomain, conn.RemoteAddr().String(), fwd) {
 				var msg string
+				var fromIP string
+				
+				if fwd != "" {
+					fromIP = fwd // use this when burp collab mode is active
+				} else {
+					fromIP = conn.RemoteAddr().String()
+				}
+
 				if cookie != "" {
-					msg = fmt.Sprintf("%s\n```Query: %s\n%s\n%s\nFrom: %s", host, query, userAgent, cookie, conn.RemoteAddr().String())
+					msg = fmt.Sprintf("%s\n```Query: %s\n%s\n%s\nFrom: %s", host, query, userAgent, cookie, fromIP)
 
 				} else {
-					msg = fmt.Sprintf("%s\n```Query: %s\n%s\nFrom: %s", host, query, userAgent, conn.RemoteAddr().String())
+					msg = fmt.Sprintf("%s\n```Query: %s\n%s\nFrom: %s", host, query, userAgent, fromIP)
 
 				}
 				go sendMsg(msg + "```")
 				if os.Getenv("DEBUG") == "true" {
-					logger("INFO", conn.RemoteAddr().String()+" - "+host)
+					logger("INFO", fromIP+" - "+host)
 				}
 			}
 		}
