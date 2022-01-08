@@ -78,7 +78,7 @@ func needRenewal(days int) (bool, int) {
 	certName := strings.TrimSuffix(filepath.Base(os.Getenv("TLS_CRT")), filepath.Ext(os.Getenv("TLS_CRT")))
 	certExt := filepath.Ext(os.Getenv("TLS_CRT"))
 
-	certsStorage := cmd.NewCertificatesStorage()
+	certsStorage := cmd.NewCertificatesStorage() // there's a bug here that forces certs to be in certs/
 	certificates, err := certsStorage.ReadCertificate(certName, certExt)
 	if err != nil {
 		logger("ERROR", err.Error())

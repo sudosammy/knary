@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strconv"
 	"sync"
 
 	"github.com/sudosammy/knary/libknary"
@@ -178,8 +177,7 @@ func main() {
 			wg.Add(1)
 			go libknary.AcceptRequest(ln443, &wg)
 			// check TLS expiry on first lauch of knary
-			_, expiry := libknary.CheckTLSExpiry(30)
-			libknary.Printy("TLS certificate expires in "+strconv.Itoa(expiry)+" days", 3)
+			_, _ = libknary.CheckTLSExpiry(30)
 		}
 	}
 

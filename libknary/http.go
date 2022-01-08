@@ -115,6 +115,7 @@ func PrepareRequest443() net.Listener {
 
 func AcceptRequest(ln net.Listener, wg *sync.WaitGroup) {
 	for {
+		// wg.Done() - end waitgroup on first hit to knary
 		conn, err := ln.Accept() // accept connections forever
 		if err != nil {
 			Printy(err.Error(), 2)

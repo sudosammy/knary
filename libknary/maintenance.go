@@ -10,7 +10,7 @@ func dailyTasks(version string, githubVersion string, githubURL string) bool {
 	// check for updates
 	CheckUpdate(version, githubVersion, githubURL)
 
-	// if blacklist alerting is enabled, flag any old blacklist items
+	// flag any denied items that haven't had a hit in >14 days
 	if os.Getenv("DENYLIST_ALERTING") != "false" {
 		checkLastHit()
 	}

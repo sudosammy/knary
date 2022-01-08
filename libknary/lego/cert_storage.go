@@ -20,6 +20,15 @@ import (
 	"golang.org/x/net/idna"
 )
 
+func init() {
+	if os.Getenv("CERT_LOCATION") != "" {
+		// TODO
+		// something to correctly set baseCertificatesFolderName & baseArchivesFolderName
+		// doesn't need to be a env var, being able to read TLS_* env variable would work for non-LE genned certs
+		// but then LE genned certs would still be put in certs/ ... Probably not an issue though.
+	}
+}
+
 var baseCertificatesFolderName = "certs"
 var baseArchivesFolderName = filepath.Join(baseCertificatesFolderName, "archives")
 
