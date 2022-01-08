@@ -25,14 +25,15 @@ func TLSmonitor(restart chan bool) {
 		for {
 			select {
 			// watch for events
-			case <-watcher.Events:
-				// trigger reload of certificates!
-				msg := "TLS key changed! The TLS listener will be restarted on next HTTPS request to knary."
-				logger("INFO", msg)
-				Printy(msg, 3)
-				go sendMsg(msg + "```")
+			case event := <-watcher.Events:
+				if event.Op&fsnotify.Write == fsnotify.Write { // trigger reload of certificates!
+					msg := "TLS key changed! The TLS listener will be restarted on next HTTPS request to knary."
+					logger("INFO", msg)
+					Printy(msg, 3)
+					go sendMsg(msg + "```")
 
-				restart <- true // TODO: why does notification have to come first here...
+					restart <- true // TODO: why does notification have to come first here...
+				}
 
 			// watch for errors
 			case err := <-watcher.Errors:
