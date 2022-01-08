@@ -130,11 +130,11 @@ func Accept443(ln net.Listener, wg *sync.WaitGroup, restart <-chan bool) {
 			ln.Close()           // close listener so we can restart it
 			ln443 := Listen443() // restart listener
 			go Accept443(ln443, wg, restart)
-			msg := "TLS server restarted."
+			msg := "TLS server successfully restarted."
 			logger("INFO", msg)
 			Printy(msg, 3)
-			go sendMsg(msg + "```")
-			return
+			go sendMsg(":lock: " + msg)
+			return // important
 
 		default:
 			conn, err := ln.Accept() // accept connections until channel says stop

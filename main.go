@@ -179,7 +179,7 @@ func main() {
 			go libknary.Accept443(ln443, &wg, restart)
 
 			_, _ = libknary.CheckTLSExpiry(30) // check TLS expiry on first lauch of knary
-			libknary.TLSmonitor(restart)       // monitor filesystem changes to the TLS cert to trigger a reboot
+			go libknary.TLSmonitor(restart)       // monitor filesystem changes to the TLS cert to trigger a reboot
 		}
 	}
 
