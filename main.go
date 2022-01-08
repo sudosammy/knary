@@ -166,18 +166,20 @@ func main() {
 	}
 
 	if os.Getenv("HTTP") == "true" {
-		ln80 := libknary.PrepareRequest80()
 		// HTTP
+		ln80 := libknary.Listen80()
 		wg.Add(1)
-		go libknary.AcceptRequest(ln80, &wg)
+		go libknary.Accept80(ln80)
 
 		if os.Getenv("TLS_CRT") != "" && os.Getenv("TLS_KEY") != "" {
 			// HTTPS
-			ln443 := libknary.PrepareRequest443()
+			restart := make(chan bool)
+			ln443 := libknary.Listen443()
 			wg.Add(1)
-			go libknary.AcceptRequest(ln443, &wg)
-			// check TLS expiry on first lauch of knary
-			_, _ = libknary.CheckTLSExpiry(30)
+			go libknary.Accept443(ln443, &wg, restart)
+
+			_, _ = libknary.CheckTLSExpiry(30) // check TLS expiry on first lauch of knary
+			libknary.TLSmonitor(restart)       // monitor filesystem changes to the TLS cert to trigger a reboot
 		}
 	}
 

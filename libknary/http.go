@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-func PrepareRequest80() net.Listener {
+func Listen80() net.Listener {
 	p80 := os.Getenv("BIND_ADDR") + ":80"
 
 	if os.Getenv("BURP_HTTP_PORT") != "" {
@@ -58,7 +58,17 @@ func PrepareRequest80() net.Listener {
 	return ln80
 }
 
-func PrepareRequest443() net.Listener {
+func Accept80(ln net.Listener) {
+	for {
+		conn, err := ln.Accept() // accept connections forever
+		if err != nil {
+			Printy(err.Error(), 2)
+		}
+		go handleRequest(conn)
+	}
+}
+
+func Listen443() net.Listener {
 	p443 := os.Getenv("BIND_ADDR") + ":443"
 
 	if os.Getenv("BURP_HTTPS_PORT") != "" {
@@ -113,14 +123,26 @@ func PrepareRequest443() net.Listener {
 	return ln443
 }
 
-func AcceptRequest(ln net.Listener, wg *sync.WaitGroup) {
+func Accept443(ln net.Listener, wg *sync.WaitGroup, restart <-chan bool) {
 	for {
-		// wg.Done() - end waitgroup on first hit to knary
-		conn, err := ln.Accept() // accept connections forever
-		if err != nil {
-			Printy(err.Error(), 2)
+		select {
+		case <-restart:
+			ln.Close()           // close listener so we can restart it
+			ln443 := Listen443() // restart listener
+			go Accept443(ln443, wg, restart)
+			msg := "TLS server restarted."
+			logger("INFO", msg)
+			Printy(msg, 3)
+			go sendMsg(msg + "```")
+			return
+
+		default:
+			conn, err := ln.Accept() // accept connections until channel says stop
+			if err != nil {
+				Printy(err.Error(), 2)
+			}
+			go handleRequest(conn)
 		}
-		go handleRequest(conn)
 	}
 }
 
@@ -214,7 +236,7 @@ func handleRequest(conn net.Conn) bool {
 			if inAllowlist(hostDomain, conn.RemoteAddr().String(), fwd) && !inBlacklist(hostDomain, conn.RemoteAddr().String(), fwd) {
 				var msg string
 				var fromIP string
-				
+
 				if fwd != "" {
 					fromIP = fwd // use this when burp collab mode is active
 				} else {
