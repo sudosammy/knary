@@ -1,52 +1,53 @@
 package libknary
 
-// Thanks https://medium.com/@skdomino/watch-this-file-watching-in-go-5b5a247cf71f
 // Eventually this will support deny/allowlists too
 
 import (
 	"log"
 	"os"
+	"path/filepath"
+	"time"
 
-	"github.com/fsnotify/fsnotify"
+	"github.com/radovskyb/watcher"
 )
 
 func TLSmonitor(restart chan bool) {
-	// creates a new file watcher
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		logger("ERROR", err.Error())
-		GiveHead(2)
-		log.Fatal(err)
-	}
-	defer watcher.Close()
-	done := make(chan bool)
+	w := watcher.New()
+
+	// get filepath of certificate store
+	certDir := filepath.Dir(os.Getenv("TLS_KEY"))
+
+	// Only notify write events.
+	w.FilterOps(watcher.Write)
 
 	go func() {
 		for {
 			select {
-			// watch for events
-			case event := <-watcher.Events:
-				if event.Op&fsnotify.Write == fsnotify.Write { // trigger reload of certificates!
-					msg := "TLS key changed! The TLS listener will be restarted on next HTTPS request to knary."
-					logger("INFO", msg)
-					Printy(msg, 3)
-					go sendMsg(msg + "```")
-
-					restart <- true // TODO: why does notification have to come first here...
+			case event := <-w.Event:
+				if event.Op == watcher.Write && event.IsDir() {
+					continue // skip on folder changes
 				}
-
-			// watch for errors
-			case err := <-watcher.Errors:
+				logger("INFO", "Server will reload on next HTTPS request to knary")
+				restart <- true
+			case err := <-w.Error:
 				logger("ERROR", err.Error())
-				Printy(err.Error(), 2)
+				GiveHead(2)
+				log.Fatal(err)
+			case <-w.Closed:
+				return
 			}
 		}
 	}()
 
-	if err := watcher.Add(os.Getenv("TLS_KEY")); err != nil {
+	// Watch the certificate directory for changes.
+	if err := w.Add(certDir); err != nil {
 		logger("ERROR", err.Error())
-		Printy(err.Error(), 2)
+		GiveHead(2)
+		log.Fatal(err)
 	}
 
-	<-done
+	// Start the watching process - it'll check for changes every 1000ms.
+	if err := w.Start(time.Millisecond * 1000); err != nil {
+		log.Fatalln(err)
+	}
 }
