@@ -310,7 +310,7 @@ func GuessIP(domain string) (string, error) {
 	// query the tld's nameserver for our knary domain and extract the glue record from additional information
 	kMsg := new(dns.Msg)
 	kMsg.SetQuestion(dns.Fqdn(domain), dns.TypeNS)
-	answ, _, err := new(dns.Client).Exchange(kMsg, tldDNS+":53")
+	answ, _, _ := new(dns.Client).Exchange(kMsg, tldDNS+":53")
 
 	if len(answ.Extra) == 0 {
 		return "", errors.New("No 'Additional' section in NS lookup for: " + domain + " with nameserver: " + tldDNS + " Have you configured a glue record for your domain? Has it propagated? You can set EXT_IP to bypass this but... do you know what you're doing?")

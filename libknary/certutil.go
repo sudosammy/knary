@@ -60,7 +60,7 @@ func loadMyUser() *cmd.Account {
 		account = &cmd.Account{Email: accountStorage.GetUserID(), Key: privateKey}
 	}
 
-	return &*account
+	return account
 }
 
 func registerAccount(client *lego.Client) *registration.Resource {

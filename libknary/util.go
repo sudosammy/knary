@@ -149,7 +149,7 @@ func CheckUpdate(version string, githubVersion string, githubURL string) (bool, 
 			return false, err
 		}
 
-		if running.LT(current) == true {
+		if running.LT(current) {
 			updMsg := "Your version of knary is *" + version + "* & the latest is *" + current.String() + "* - upgrade your binary here: " + githubURL
 			Printy(updMsg, 2)
 			logger("WARNING", updMsg)

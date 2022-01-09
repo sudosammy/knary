@@ -75,12 +75,11 @@ func LoadAllowlist() (bool, error) {
 	}
 
 	alwlist, err := os.Open(os.Getenv("ALLOWLIST_FILE"))
-	defer alwlist.Close()
-
 	if err != nil {
 		Printy(err.Error()+" - ignoring", 3)
 		return false, err
 	}
+	defer alwlist.Close()
 
 	scanner := bufio.NewScanner(alwlist)
 
@@ -107,12 +106,11 @@ func LoadBlacklist() (bool, error) {
 	}
 
 	blklist, err := os.Open(os.Getenv("DENYLIST_FILE"))
-	defer blklist.Close()
-
 	if err != nil {
 		Printy(err.Error()+" - ignoring", 3)
 		return false, err
 	}
+	defer blklist.Close()
 
 	scanner := bufio.NewScanner(blklist)
 
