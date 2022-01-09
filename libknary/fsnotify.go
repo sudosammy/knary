@@ -5,19 +5,17 @@ package libknary
 import (
 	"log"
 	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/radovskyb/watcher"
+	cmd "github.com/sudosammy/knary/libknary/lego"
 )
 
 func TLSmonitor(restart chan bool) {
 	w := watcher.New()
-
 	// get filepath of certificate store
-	certDir := filepath.Dir(os.Getenv("TLS_KEY"))
-
-	// Only notify write events.
+	certDir := cmd.GetCertPath()
+	// Only notify write events
 	w.FilterOps(watcher.Write)
 
 	go func() {
@@ -28,6 +26,9 @@ func TLSmonitor(restart chan bool) {
 					continue // skip on folder changes
 				}
 				logger("INFO", "Server will reload on next HTTPS request to knary")
+				if os.Getenv("DEBUG") == "true" {
+					Printy("Server will reload on next HTTPS request to knary", 3)
+				}
 				restart <- true
 			case err := <-w.Error:
 				logger("ERROR", err.Error())
@@ -39,15 +40,15 @@ func TLSmonitor(restart chan bool) {
 		}
 	}()
 
-	// Watch the certificate directory for changes.
+	// watch the certificate directory for changes.
 	if err := w.Add(certDir); err != nil {
 		logger("ERROR", err.Error())
 		GiveHead(2)
 		log.Fatal(err)
 	}
 
-	// Start the watching process - it'll check for changes every 1000ms.
-	if err := w.Start(time.Millisecond * 1000); err != nil {
+	// start the watching process - it'll check for changes every second.
+	if err := w.Start(time.Second * 1); err != nil {
 		log.Fatalln(err)
 	}
 }

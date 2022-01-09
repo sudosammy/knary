@@ -30,8 +30,8 @@ func NewAccountsStorage() *AccountsStorage {
 	email := os.Getenv("LETS_ENCRYPT")
 	return &AccountsStorage{
 		userID:          email,
-		accountFilePath: filepath.Join(baseCertificatesFolderName, "account.json"),
-		keyFilePath:     filepath.Join(baseCertificatesFolderName, "knary.key"),
+		accountFilePath: filepath.Join(GetCertPath(), "account.json"),
+		keyFilePath:     filepath.Join(GetCertPath(), "knary.key"),
 	}
 }
 
