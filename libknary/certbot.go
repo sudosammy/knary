@@ -136,7 +136,7 @@ func StartLetsEncrypt() string {
 			Printy("TLS private key found: "+certsStorage.GetFileName("*."+GetFirstDomain(), ".key"), 3)
 			Printy("TLS certificate found: "+certsStorage.GetFileName("*."+GetFirstDomain(), ".crt"), 3)
 		}
-		return cmd.SanitizedDomain(GetFirstDomain())
+		return cmd.SanitizedDomain("*." + GetFirstDomain())
 	}
 
 	if os.Getenv("DEBUG") == "true" {
