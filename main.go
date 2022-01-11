@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	VERSION       = "3.3.2"
+	VERSION       = "3.4.0"
 	GITHUB        = "https://github.com/sudosammy/knary"
 	GITHUBVERSION = "https://raw.githubusercontent.com/sudosammy/knary/master/VERSION"
 )
@@ -179,7 +179,7 @@ func main() {
 			go libknary.Accept443(ln443, &wg, restart)
 
 			_, _ = libknary.CheckTLSExpiry(30) // check TLS expiry on first lauch of knary
-			go libknary.TLSmonitor(restart)       // monitor filesystem changes to the TLS cert to trigger a reboot
+			go libknary.TLSmonitor(restart)    // monitor filesystem changes to the TLS cert to trigger a reboot
 		}
 	}
 

@@ -1,0 +1,29 @@
+version: 2.1
+orbs:
+  coveralls: coveralls/coveralls@1.0.6
+jobs:
+  build:
+    working_directory: ~/repo
+    docker:
+      - image: cimg/go:1.16
+      - image: cimg/go:1.17
+    parallelism: 2
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - go-mod-v4-{{ checksum "go.sum" }}
+      - run:
+          name: Install Dependencies
+          command: go get -u -t
+      - save_cache:
+          key: go-mod-v4-{{ checksum "go.sum" }}
+          paths:
+            - "/go/pkg/mod"
+      - run:
+          name: Run tests
+          command: go test -v ./...
+      - coveralls/upload
+      - run:
+          name: Run Go Vet
+          command: go vet ./...
