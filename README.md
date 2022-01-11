@@ -20,7 +20,7 @@ Defenders also use canaries as tripwires that can alert them of an attacker with
 
 __Prerequisite:__ You need Go >=1.16 to build knary.
 ```
-go get -u github.com/sudosammy/knary
+go install github.com/sudosammy/knary@latest
 ```
 
 **Important:** The specifics of how to perform the next two steps will depend on your domain registrar. Google `How to set Glue Record on <registrar name>` to get started. Ultimately, you need to configure your knary domain(s) to make use of itself as the nameserver (i.e. `ns1.knary.tld` and `ns2.knary.tld`) and configure Glue Records to point these nameservers back to your knary host. You may need to raise a support ticket to have this performed by your registrar. 
