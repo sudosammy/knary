@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-func PrepareRequest80() net.Listener {
+func Listen80() net.Listener {
 	p80 := os.Getenv("BIND_ADDR") + ":80"
 
 	if os.Getenv("BURP_HTTP_PORT") != "" {
@@ -38,7 +38,7 @@ func PrepareRequest80() net.Listener {
 					} else {
 						// otherwise send it raw to the local knary port
 						r.URL.Host = p80
-						r.Header.Set("X-Forwarded-For", r.RemoteAddr) //add port version of x-fwded for
+						r.Header.Set("X-Forwarded-For", r.RemoteAddr)
 					}
 				},
 			})
@@ -58,7 +58,17 @@ func PrepareRequest80() net.Listener {
 	return ln80
 }
 
-func PrepareRequest443() net.Listener {
+func Accept80(ln net.Listener) {
+	for {
+		conn, err := ln.Accept() // accept connections forever
+		if err != nil {
+			Printy(err.Error(), 2)
+		}
+		go handleRequest(conn)
+	}
+}
+
+func Listen443() net.Listener {
 	p443 := os.Getenv("BIND_ADDR") + ":443"
 
 	if os.Getenv("BURP_HTTPS_PORT") != "" {
@@ -113,13 +123,26 @@ func PrepareRequest443() net.Listener {
 	return ln443
 }
 
-func AcceptRequest(ln net.Listener, wg *sync.WaitGroup) {
+func Accept443(ln net.Listener, wg *sync.WaitGroup, restart <-chan bool) {
 	for {
-		conn, err := ln.Accept() // accept connections forever
-		if err != nil {
-			Printy(err.Error(), 2)
+		select {
+		case <-restart:
+			ln.Close()           // close listener so we can restart it
+			ln443 := Listen443() // restart listener
+			go Accept443(ln443, wg, restart)
+			msg := "HTTPS / TLS server successfully reloaded."
+			logger("INFO", msg)
+			Printy(msg, 3)
+			go sendMsg(":lock: " + msg)
+			return // important
+
+		default:
+			conn, err := ln.Accept() // accept connections until channel says stop
+			if err != nil {
+				Printy(err.Error(), 2)
+			}
+			go handleRequest(conn)
 		}
-		go handleRequest(conn)
 	}
 }
 
@@ -147,7 +170,7 @@ func handleRequest(conn net.Conn) bool {
 
 	// search for our host header
 	for _, header := range headers {
-		if stringContains(header, os.Getenv("CANARY_DOMAIN")) {
+		if ok, _ := returnSuffix(header); ok {
 			// a match made in heaven
 			host := ""
 			query := ""
@@ -198,7 +221,7 @@ func handleRequest(conn net.Conn) bool {
 					mult := strings.Split(val, ",")
 					if len(mult) > 1 {
 						for _, srcaddr := range mult {
-							if strings.Contains(srcaddr, ":") {
+							if strings.Contains(srcaddr, ":") { // this probs breaks IPv6
 								srcAndPort = append(srcAndPort, srcaddr)
 							}
 						}
@@ -210,18 +233,26 @@ func handleRequest(conn net.Conn) bool {
 			}
 
 			hostDomain := strings.TrimPrefix(strings.ToLower(host), "host:") // trim off the "Host:" section of header
-			if !inBlacklist(hostDomain, conn.RemoteAddr().String(), fwd) {
+			if inAllowlist(hostDomain, conn.RemoteAddr().String(), fwd) && !inBlacklist(hostDomain, conn.RemoteAddr().String(), fwd) {
 				var msg string
+				var fromIP string
+
+				if fwd != "" {
+					fromIP = fwd // use this when burp collab mode is active
+				} else {
+					fromIP = conn.RemoteAddr().String()
+				}
+
 				if cookie != "" {
-					msg = fmt.Sprintf("%s\n```Query: %s\n%s\n%s\nFrom: %s", host, query, userAgent, cookie, conn.RemoteAddr().String())
+					msg = fmt.Sprintf("%s\n```Query: %s\n%s\n%s\nFrom: %s", host, query, userAgent, cookie, fromIP)
 
 				} else {
-					msg = fmt.Sprintf("%s\n```Query: %s\n%s\nFrom: %s", host, query, userAgent, conn.RemoteAddr().String())
+					msg = fmt.Sprintf("%s\n```Query: %s\n%s\nFrom: %s", host, query, userAgent, fromIP)
 
 				}
 				go sendMsg(msg + "```")
 				if os.Getenv("DEBUG") == "true" {
-					logger("INFO", conn.RemoteAddr().String()+" - "+host)
+					logger("INFO", fromIP+" - "+host)
 				}
 			}
 		}

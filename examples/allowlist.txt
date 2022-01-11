@@ -1,0 +1,5 @@
+sam.knary.tld
+bob.knary.tld
+alice.knary.tld
+eve.knary.tld
+pea.knary.tld

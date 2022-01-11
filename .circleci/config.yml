@@ -1,0 +1,35 @@
+version: 2.1
+orbs:
+  coveralls: coveralls/coveralls@1.0.6
+jobs:
+  build:
+    working_directory: ~/repo
+    docker:
+      - image: cimg/go:1.16-node
+      - image: cimg/go:1.17-node
+    parallelism: 2
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - go-mod-v4-{{ checksum "go.sum" }}
+      - run:
+          name: Install Dependencies
+          command: go get -u -t
+      - run:
+          name: Install gcov2lcov
+          command: go install github.com/jandelgado/gcov2lcov@latest
+      - save_cache:
+          key: go-mod-v4-{{ checksum "go.sum" }}
+          paths:
+            - "/go/pkg/mod"
+      - run:
+          name: Run tests
+          command: go test -v -coverprofile=coverage.out ./...
+      - run:
+          name: Convert Coverage Profile to Coveralls
+          command: mkdir coverage && gcov2lcov -infile=coverage.out -outfile=coverage/lcov.info
+      - coveralls/upload
+      - run:
+          name: Run Go Vet
+          command: go vet ./...

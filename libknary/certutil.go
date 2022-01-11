@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -14,16 +15,34 @@ import (
 )
 
 // create domain list for certificates
-func getDomains() []string {
+func getDomainsForCert() []string {
 	var domainArray []string
-	domainArray = append(domainArray, "*."+os.Getenv("CANARY_DOMAIN"))
+	var numDomains = 0
+
+	for _, cdomain := range GetDomains() {
+		domainArray = append(domainArray, "*."+cdomain)
+		numDomains++
+
+		if os.Getenv("DNS_SUBDOMAIN") != "" {
+			domainArray = append(domainArray, "*."+os.Getenv("DNS_SUBDOMAIN")+"."+cdomain)
+			numDomains++
+		}
+	}
 
 	if os.Getenv("BURP_DOMAIN") != "" {
 		domainArray = append(domainArray, "*."+os.Getenv("BURP_DOMAIN"))
+		numDomains++
 	}
 
-	if os.Getenv("DNS_SUBDOMAIN") != "" {
-		domainArray = append(domainArray, "*."+os.Getenv("DNS_SUBDOMAIN")+"."+os.Getenv("CANARY_DOMAIN"))
+	if os.Getenv("DEBUG") == "true" {
+		Printy("Domains for SAN certificate: "+strconv.Itoa(numDomains), 3)
+	}
+
+	if numDomains > 100 {
+		msg := "Too many domains! Let's Encrypt only supports SAN certificates containing 100 domains & subdomains. Your configuration currently has: " + strconv.Itoa(numDomains) + ". This may be due to configuring DNS_SUBDOMAIN which will double the number of SAN entries per CANARY_DOMAIN."
+		logger("ERROR", msg)
+		GiveHead(2)
+		log.Fatal(msg)
 	}
 	return domainArray
 }
@@ -41,7 +60,7 @@ func loadMyUser() *cmd.Account {
 		account = &cmd.Account{Email: accountStorage.GetUserID(), Key: privateKey}
 	}
 
-	return &*account
+	return account
 }
 
 func registerAccount(client *lego.Client) *registration.Resource {

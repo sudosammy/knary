@@ -2,6 +2,8 @@
 .env
 dev
 knary.log
+allowed.txt
+denied.txt
 blacklist.txt
 zone.txt
 knary.exe

@@ -79,14 +79,16 @@ func TestCheckUpdate(t *testing.T) {
 
 func TestLoadBlackList(t *testing.T) {
 	createFile()
+	f := openFile()
+
 	//case 1 when env variable is not even set
 	val, err := LoadBlacklist()
 	if val == true && err == nil {
-		t.Errorf("Expected to error out since BLACKLIST_FILE env variable not set")
+		t.Errorf("Expected to error out since DENYLIST_FILE env variable not set")
 	}
 
 	//second case env variable set but file not there
-	os.Setenv("BLACKLIST_FILE", "somerandomshit.txt")
+	os.Setenv("DENYLIST_FILE", "somerandomshit.txt")
 	val, err = LoadBlacklist()
 
 	if val == true && err == nil {
@@ -94,14 +96,15 @@ func TestLoadBlackList(t *testing.T) {
 	}
 
 	//third case, everything in place including env var and blacklist filename
-	os.Setenv("BLACKLIST_FILE", "blacklist_test.txt")
+	os.Setenv("DENYLIST_FILE", "blacklist_test.txt")
 	val, err = LoadBlacklist()
 
 	if val == false {
 		t.Errorf("Expected file to load without any errors, BUT got: %s", err)
 	}
-	deleteFile()
 
+	f.Close()
+	deleteFile()
 }
 
 func TestStringContains(t *testing.T) {
@@ -143,8 +146,16 @@ func writeDataToFile(data string, f *os.File) {
 	}
 }
 
-func createFile() *os.File {
+func createFile() {
 	f, err := os.Create("blacklist_test.txt")
+	if err != nil {
+		panic(err)
+	}
+	f.Close()
+}
+
+func openFile() *os.File {
+	f, err := os.OpenFile("blacklist_test.txt", os.O_WRONLY, 0666)
 	if err != nil {
 		panic(err)
 	}
@@ -159,9 +170,9 @@ func deleteFile() {
 }
 
 func TestInBlacklist(t *testing.T) {
-	os.Setenv("BLACKLIST_FILE", "blacklist_test.txt")
-	f := createFile()
-	defer f.Close()
+	os.Setenv("DENYLIST_FILE", "blacklist_test.txt")
+	createFile()
+	f := openFile()
 	LoadBlacklist()
 	dom := "mycanary.com"
 	//first test is for empty blacklist file
@@ -199,6 +210,7 @@ func TestInBlacklist(t *testing.T) {
 	if val == true {
 		t.Errorf("Expected false since it shouldnt match dns.mycanary.com when blacklist says mycanary.com")
 	}
-	deleteFile()
 
+	f.Close()
+	deleteFile()
 }

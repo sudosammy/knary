@@ -1,12 +1,10 @@
 # knary - A simple HTTP(S) and DNS Canary
 
-[![Build Status](https://travis-ci.org/sudosammy/knary.svg?branch=master)](https://travis-ci.org/sudosammy/knary)  [![Coverage Status](https://coveralls.io/repos/github/sudosammy/knary/badge.svg?branch=master)](https://coveralls.io/github/sudosammy/knary?branch=master)
+[![Build Status](https://circleci.com/gh/sudosammy/knary/tree/master.svg?style=svg)](https://circleci.com/gh/sudosammy/knary/tree/master)  [![Coverage Status](https://coveralls.io/repos/github/sudosammy/knary/badge.svg?branch=master)](https://coveralls.io/github/sudosammy/knary?branch=master)
 
 >Like "Canary" but more hipster, which means better 😎😎😎
 
-⚠️ **Note: Upgrading from version 2? You need to change your DNS setup to make use of new knary features. See step [#2 and #3](#setup) below. You may also want to configure [DNS_SUBDOMAIN](https://github.com/sudosammy/knary/tree/master/examples#likely-recommended-optional-configurations) to mimic how knary operated previously.** ⚠️
-
-knary is a canary token server that notifies a Slack/Discord/Teams/Lark channel (or other webhook) when incoming HTTP(S) or DNS requests match a given domain or any of its subdomains. It also supports functionality useful in offensive engagements including subdomain denylisting, working with Burp Collaborator, and easy TLS certificate creation.
+knary is a canary token server that notifies a Slack/Discord/Teams/Lark/Telegram channel (or other webhook) when incoming HTTP(S) or DNS requests match a given domain or any of its subdomains. It also supports functionality useful in offensive engagements including subdomain allow/denylisting, working with Burp Collaborator, and automatic TLS certificate creation with Let's Encrypt.
 
 ![knary canary-ing](https://github.com/sudosammy/knary/raw/master/screenshots/canary.gif "knary canary-ing")
 
@@ -22,49 +20,58 @@ Defenders also use canaries as tripwires that can alert them of an attacker with
 
 __Prerequisite:__ You need Go >=1.16 to build knary.
 ```
-go get -u github.com/sudosammy/knary
+go install github.com/sudosammy/knary@latest
 ```
 
-2. Set your chosen knary domain nameserver(s) to point to a subdomain under itself; such as `ns.knary.tld`. If required, set multiple nameserver records such as `ns1.knary.tld`, `ns2.knary.ltd`.
+**Important:** The specifics of how to perform the next two steps will depend on your domain registrar. Google `How to set Glue Record on <registrar name>` to get started. Ultimately, you need to configure your knary domain(s) to make use of itself as the nameserver (i.e. `ns1.knary.tld` and `ns2.knary.tld`) and configure Glue Records to point these nameservers back to your knary host. You may need to raise a support ticket to have this performed by your registrar. 
 
-3. Create a "Glue Record", sometimes referred to as "Nameserver Registration" or "Nameserver IP address" to point to your knary server. This is what it looks like in `name.com`:
+2. Set your chosen knary domain(s) nameserver(s) to point to a subdomain under itself; such as `ns.knary.tld`. If required, set multiple nameserver records such as `ns1` and `ns2`.
+
+3. Create a "Glue Record" (sometimes referred to as "Nameserver Registration" or "Nameserver IP address") to point to your knary server. This is what it looks like in `name.com`:
 
  ![Setting a glue record](https://github.com/sudosammy/knary/raw/master/screenshots/nameserver-ip.png "Setting a glue record")
 
-If your registry requires you to have multiple nameservers with different IP addresses, set the second nameserver to an IP address such as `8.8.8.8` or `1.1.1.1`. 
+If your registry requires you to have multiple nameservers with **different** IP addresses, set the second nameserver to an IP address such as `8.8.8.8` or `1.1.1.1`. 
 
-**Note:** You may need to raise a support ticket to have step #2 and #3 performed by your registrar. 
-
-4. This will take some time to propagate, so go setup your [webhook](#supported-webhook-configurations).
+4. This **will** take time to propagate, so go setup your [webhook(s)](#supported-webhook-configurations) while you wait. You can use [this tool](https://www.whatsmydns.net/#NS/) to check the propagation. Within a few hours you should see some DNS servers reflecting your knary domain as the nameserver.
 
 5. Create a `.env` file in the same directory as the knary binary and [configure](https://github.com/sudosammy/knary/tree/master/examples) it as necessary. You can also use environment variables to set these configurations. Environment variables will take precedence over the `.env` file.
 
-6. __Optional__ For accepting TLS (HTTPS) connections set the `LETS_ENCRYPT=<email address>` variable and knary will automagically manage wildcard certificates for you. Otherwise, you can specify the path to your own certificates with `TLS_CRT=<path>` and `TLS_KEY=<path>`.
+6. __Optional__ For accepting TLS (HTTPS) connections set the `LETS_ENCRYPT=<email address>` variable and knary will automagically manage wildcard certificates for you (see [OPSEC note](#opsec-notes) below). Otherwise, you can specify the path to your own certificates with `TLS_CRT=<path>` and `TLS_KEY=<path>`.
 
-7. Run the binary (probably in `screen`, `tmux`, or similar) and hope for output that looks something like this: 
+7. Run the binary (via the provided [Docker container](#knary-docker), or in `tmux` / `screen`) and hope for output that looks something like this: 
 
 ![knary go-ing](https://github.com/sudosammy/knary/raw/master/screenshots/run.png "knary go-ing")
 
-## Denying matches
-You **will** find systems that spam your knary even long after an engagement has ended. You will also find several DNS requests to mundane subdomains hitting your knary every day. To stop these from cluttering your notifications knary has two features:
+## Allowing or denying matches
+You **will** find systems that spam your knary even long after an engagement has ended. You will also find several DNS requests to mundane subdomains hitting your knary every day. To stop these from cluttering your notifications knary has a few features:
 
-1. A simple text-based denylist (location specified with `DENYLIST_FILE`). Add the offending subdomains or IP addresses separated by a newline (case-insensitive):
+1. A simple text-based deny and/or allowlist (location specified with `DENYLIST_FILE` and/or `ALLOWLIST_FILE`). Add the subdomains or IP addresses separated by a newline (case-insensitive):
 ```
 knary.tld
 www.knary.tld
 171.244.140.247
 test.dns.knary.tld
+sam.knary.tld
 ```
-This would stop knary from alerting on `www.knary.tld` but not `another.www.knary.tld`. **Note:** wildcards are not supported. An entry of `*.knary.tld` will match that string exactly.
+If this were a denylist, it would stop knary from alerting on `www.knary.tld` but not `another.www.knary.tld`.
 
-2. The `DNS_SUBDOMAIN` configuration allows you to specify that knary should only alert on DNS hits that are `*.<DNS_SUBDOMAIN>.knary.tld`.
+If this were an allowlist, knary would alert on exact matches (`sam.knary.tld`) and subdomain matches (`website1.sam.knary.tld`). Use `ALLOWLIST_STRICT=true` to prevent this fuzzy matching and only alert on hits to `sam.knary.tld`.
 
-A configuration of `DNS_SUBDOMAIN=dns` would stop knary from alerting on DNS hits to `blah.knary.tld` but not `blah.dns.knary.tld`. This configuration only affects DNS traffic. A HTTP request to `blah.knary.tld` would still notify you unless prevented by the denylist. Use a combination of both deny methods if you wish to prevent this.
+You can use both a deny and allowlist simultaneously. **Note:** wildcards in these files are not supported. An entry of `*.knary.tld` will match that string exactly.
+
+2. The `DNS_SUBDOMAIN` configuration allows you to specify a subdomain that knary must fuzzy match (i.e. `*.DNS_SUBDOMAIN.knary.tld`) before alerting on DNS hits. This configuration does not affect HTTP(S) requests and remains primarily to mimic legacy knary v2 functionality. **Consider using a deny/allowlist instead.**
+
+A configuration of `DNS_SUBDOMAIN=dns` would stop knary from alerting on DNS hits to `blah.knary.tld` but not `blah.dns.knary.tld`. A HTTP request to `blah.knary.tld` would still notify you unless prevented by an allow- or denylist.
 
 Sample configurations can be found [in the examples](https://github.com/sudosammy/knary/tree/master/examples) with common subdomains to deny.
 
 ## knary Docker
 Using knary in a container is as simple as creating your `.env` file (or setting environment variables in the `docker-compose.yaml` file) and running `sudo docker compose up -d`
+
+## OPSEC notes
+* Let's Encrypt will dox all the domains you are using with knary (and your `DNS_SUBDOMAIN` and `BURP_DOMAIN` if you are using those configurations). This is due to these domains being included in the SAN certificate generated for you. A remote adversary can read the certificate and extract the list of domains within it. To avoid this, don't configure `LETS_ENCRYPT`. You can use self-signed certificates with `TLS_CRT=<path>` and `TLS_KEY=<path>`; however, many hosts will refuse to connect reducing your visibility of incoming HTTPS connections.
+* With enough effort, knary is likely fingerprint-able by a remote host. i.e. it's plausible an adversary could determine you are running knary on a given host. This is because knary is not an RFC compliant nameserver (because doing so involves dark magic) and it likely behaves in an unusual / unique manner when compared to other nameservers.
 
 ## Supported Webhook Configurations
 These are environment variables / `.env` file configurations. You can configure none, one, or many. Most common usage would be to configure one. Refer to [the examples](https://github.com/sudosammy/knary/tree/master/examples) for usage help.
@@ -76,3 +83,5 @@ These are environment variables / `.env` file configurations. You can configure 
 * `PUSHOVER_USER` The user token of the Pushover user you want knary to notify
 * `LARK_WEBHOOK` The full URL of the [webhook](https://www.feishu.cn/hc/en-US/articles/360024984973-Bot-Use-bots-in-groups) for the Lark/Feishu bot you want knary to notify
 * `LARK_SECRET` The [secret token](https://www.feishu.cn/hc/en-US/articles/360024984973-Bot-Use-bots-in-groups) used to sign messages to your Lark/Feishu bot
+* `TELEGRAM_CHATID` The [Telegram Bot](https://core.telegram.org/bots) chat ID you want knary to notify
+* `TELEGRAM_BOT_TOKEN` The Telegram Bot token

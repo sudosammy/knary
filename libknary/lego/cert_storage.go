@@ -20,19 +20,36 @@ import (
 	"golang.org/x/net/idna"
 )
 
-var baseCertificatesFolderName = "certs"
-var baseArchivesFolderName = filepath.Join(baseCertificatesFolderName, "archives")
-
-// CertificatesStorage a certificates storage.
-//
-// rootPath:
+// GetCertPath():
 //     /knary/certs/
 //                └── root certificates directory
 //
-// archivePath:
+// archive file path:
 //     /knary/certs/archives/
 //                    └── archived certificates directory
 //
+func GetCertPath() string {
+	var certFolderName string
+
+	if !filepath.IsAbs(os.Getenv("TLS_CRT")) {
+		pwd, err := os.Getwd()
+		if err != nil {
+			log.Fatalf(err.Error())
+		}
+
+		path, err := filepath.Abs(filepath.Join(pwd, os.Getenv("TLS_CRT")))
+		if err != nil {
+			log.Fatalf(err.Error())
+		}
+
+		certFolderName = filepath.Dir(path)
+	} else {
+		certFolderName = filepath.Dir(os.Getenv("TLS_CRT"))
+	}
+
+	return certFolderName
+}
+
 type CertificatesStorage struct {
 	rootPath    string
 	archivePath string
@@ -42,8 +59,8 @@ type CertificatesStorage struct {
 // NewCertificatesStorage create a new certificates storage.
 func NewCertificatesStorage() *CertificatesStorage {
 	return &CertificatesStorage{
-		rootPath:    filepath.Join(baseCertificatesFolderName),
-		archivePath: filepath.Join(baseArchivesFolderName),
+		rootPath:    GetCertPath(),
+		archivePath: filepath.Join(GetCertPath(), "archives"),
 		pem:         true,
 	}
 }
@@ -128,11 +145,10 @@ func (s *CertificatesStorage) ReadCertificate(domain, extension string) ([]*x509
 }
 
 func (s *CertificatesStorage) WriteFile(domain, extension string, data []byte) error {
-	var baseFileName string
-	baseFileName = SanitizedDomain(domain)
+	baseFileName := SanitizedDomain(domain)
 	filePath := filepath.Join(s.rootPath, baseFileName+extension)
 
-	return ioutil.WriteFile(filePath, data, 400)
+	return ioutil.WriteFile(filePath, data, 0400)
 }
 
 func (s *CertificatesStorage) MoveToArchive(domain string) error {

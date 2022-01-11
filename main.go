@@ -8,14 +8,13 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strconv"
 	"sync"
 
 	"github.com/sudosammy/knary/libknary"
 )
 
 const (
-	VERSION       = "3.3.1"
+	VERSION       = "3.4.0"
 	GITHUB        = "https://github.com/sudosammy/knary"
 	GITHUBVERSION = "https://raw.githubusercontent.com/sudosammy/knary/master/VERSION"
 )
@@ -29,6 +28,12 @@ func main() {
 		log.Fatal(err)
 	}
 
+	err = libknary.LoadDomains(os.Getenv("CANARY_DOMAIN"))
+	if err != nil {
+		libknary.GiveHead(2)
+		log.Fatal(err)
+	}
+
 	// start maintenance timers
 	libknary.StartMaintenance(VERSION, GITHUBVERSION, GITHUB)
 
@@ -36,7 +41,7 @@ func main() {
 	var EXT_IP string
 	if os.Getenv("EXT_IP") == "" {
 		// try to guess the glue record
-		res, err := libknary.GuessIP(os.Getenv("CANARY_DOMAIN"))
+		res, err := libknary.GuessIP(libknary.GetFirstDomain())
 
 		if err != nil {
 			libknary.Printy("Are you sure your DNS is configured correctly?", 2)
@@ -76,22 +81,31 @@ func main() {
 	red.Println(`|_____|`)
 	fmt.Println()
 
-	// load blacklist file, zone file & submit usage
+	// load lists, zone file & submit usage
+	libknary.LoadAllowlist()
 	libknary.LoadBlacklist()
 	libknary.LoadZone()
 	go libknary.UsageStats(VERSION)
 
 	if os.Getenv("HTTP") == "true" && os.Getenv("LETS_ENCRYPT") == "" && (os.Getenv("TLS_CRT") == "" || os.Getenv("TLS_KEY") == "") {
-		libknary.Printy("Listening for http://*."+os.Getenv("CANARY_DOMAIN")+" requests", 1)
+		for _, cdomain := range libknary.GetDomains() {
+			libknary.Printy("Listening for http://*."+cdomain+" requests", 1)
+		}
 		libknary.Printy("Without LETS_ENCRYPT or TLS_* environment variables set you will only be able to make HTTP (port 80) requests to knary", 2)
 	} else if os.Getenv("HTTP") == "true" && (os.Getenv("LETS_ENCRYPT") != "" || os.Getenv("TLS_KEY") != "") {
-		libknary.Printy("Listening for http(s)://*."+os.Getenv("CANARY_DOMAIN")+" requests", 1)
+		for _, cdomain := range libknary.GetDomains() {
+			libknary.Printy("Listening for http(s)://*."+cdomain+" requests", 1)
+		}
 	}
 	if os.Getenv("DNS") == "true" {
-		if os.Getenv("DNS_SUBDOMAIN") != "" { 
-			libknary.Printy("Listening for *."+os.Getenv("DNS_SUBDOMAIN")+"."+os.Getenv("CANARY_DOMAIN")+" DNS requests", 1)
+		if os.Getenv("DNS_SUBDOMAIN") != "" {
+			for _, cdomain := range libknary.GetDomains() {
+				libknary.Printy("Listening for *."+os.Getenv("DNS_SUBDOMAIN")+"."+cdomain+" DNS requests", 1)
+			}
 		} else {
-			libknary.Printy("Listening for *."+os.Getenv("CANARY_DOMAIN")+" DNS requests", 1)
+			for _, cdomain := range libknary.GetDomains() {
+				libknary.Printy("Listening for *."+cdomain+" DNS requests", 1)
+			}
 		}
 	}
 	if os.Getenv("BURP_DOMAIN") != "" {
@@ -116,6 +130,9 @@ func main() {
 	if os.Getenv("LARK_WEBHOOK") != "" {
 		libknary.Printy("Posting to webhook: "+os.Getenv("LARK_WEBHOOK"), 1)
 	}
+	if os.Getenv("TELEGRAM_CHATID") != "" {
+		libknary.Printy("Posting to Telegram Chat ID: "+os.Getenv("TELEGRAM_CHATID"), 1)
+	}
 
 	// setup waitgroups for DNS/HTTP go routines
 	var wg sync.WaitGroup // there isn't actually any clean exit option, so we can just wait forever
@@ -124,7 +141,9 @@ func main() {
 		wg.Add(1)
 		// https://bl.ocks.org/tianon/063c8083c215be29b83a
 		// There must be a better way to pass "EXT_IP" along without an anonymous function AND copied variable
-		dns.HandleFunc(os.Getenv("CANARY_DOMAIN")+".", func(w dns.ResponseWriter, r *dns.Msg) { libknary.HandleDNS(w, r, EXT_IP) })
+		for _, cdomain := range libknary.GetDomains() {
+			dns.HandleFunc(cdomain+".", func(w dns.ResponseWriter, r *dns.Msg) { libknary.HandleDNS(w, r, EXT_IP) })
+		}
 		go libknary.AcceptDNS(&wg)
 	}
 
@@ -147,19 +166,20 @@ func main() {
 	}
 
 	if os.Getenv("HTTP") == "true" {
-		ln80 := libknary.PrepareRequest80()
 		// HTTP
+		ln80 := libknary.Listen80()
 		wg.Add(1)
-		go libknary.AcceptRequest(ln80, &wg)
+		go libknary.Accept80(ln80)
 
 		if os.Getenv("TLS_CRT") != "" && os.Getenv("TLS_KEY") != "" {
 			// HTTPS
-			ln443 := libknary.PrepareRequest443()
+			restart := make(chan bool)
+			ln443 := libknary.Listen443()
 			wg.Add(1)
-			go libknary.AcceptRequest(ln443, &wg)
-			// check TLS expiry on first lauch of knary
-			_, expiry := libknary.CheckTLSExpiry(30)
-			libknary.Printy("TLS certificate expires in "+strconv.Itoa(expiry)+" days", 3)
+			go libknary.Accept443(ln443, &wg, restart)
+
+			_, _ = libknary.CheckTLSExpiry(30) // check TLS expiry on first lauch of knary
+			go libknary.TLSmonitor(restart)    // monitor filesystem changes to the TLS cert to trigger a reboot
 		}
 	}
 

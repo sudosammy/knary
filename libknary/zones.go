@@ -24,12 +24,11 @@ func LoadZone() (bool, error) {
 	}
 
 	zlist, err := os.Open(os.Getenv("ZONE_FILE"))
-	defer zlist.Close()
-
 	if err != nil {
 		Printy(err.Error()+" - ignoring", 3)
 		return false, err
 	}
+	defer zlist.Close()
 
 	// https://pkg.go.dev/github.com/miekg/dns#ZoneParser
 	zp := dns.NewZoneParser(bufio.NewReader(zlist), "", "")

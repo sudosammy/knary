@@ -4,10 +4,15 @@ go 1.16
 
 require (
 	github.com/blang/semver/v4 v4.0.0
-	github.com/fatih/color v1.10.0
-	github.com/go-acme/lego/v4 v4.3.1
-	github.com/joho/godotenv v1.3.0
-	github.com/miekg/dns v1.1.41
-	golang.org/x/net v0.0.0-20210410081132-afb366fc7cd1
-	golang.org/x/sys v0.0.0-20210412220455-f1c623a9e750 // indirect
+	github.com/cenkalti/backoff/v4 v4.1.2 // indirect
+	github.com/fatih/color v1.13.0
+	github.com/go-acme/lego/v4 v4.5.3
+	github.com/joho/godotenv v1.4.0
+	github.com/mattn/go-colorable v0.1.12 // indirect
+	github.com/miekg/dns v1.1.45
+	github.com/radovskyb/watcher v1.0.7
+	golang.org/x/crypto v0.0.0-20211215153901-e495a2d5b3d3 // indirect
+	golang.org/x/net v0.0.0-20220111093109-d55c255bac03
+	golang.org/x/sys v0.0.0-20220111092808-5a964db01320 // indirect
+	golang.org/x/tools v0.1.8 // indirect
 )

@@ -72,17 +72,24 @@ func infoLog(ipaddr string, reverse string, name string) {
 }
 
 func goSendMsg(ipaddr, reverse, name, record string) bool {
-	if os.Getenv("DNS_SUBDOMAIN") != "" &&
-		!stringContains(name, os.Getenv("DNS_SUBDOMAIN")+"."+os.Getenv("CANARY_DOMAIN")) {
-		// disregard unless subdomain we want to report on
-		return false
+	if os.Getenv("DNS_SUBDOMAIN") != "" {
+		found := false
+		for _, cdomain := range GetDomains() {
+			if stringContains(name, os.Getenv("DNS_SUBDOMAIN")+"."+cdomain) {
+				// disregard unless subdomain we want to report on
+				found = true
+			}
+		}
+		if !found {
+			return false
+		}
 	}
 
 	if os.Getenv("DEBUG") == "true" {
-		Printy("Got A question for: " + name, 3)
+		Printy("Got A question for: "+name, 3)
 	}
 
-	if inBlacklist(name, ipaddr) {
+	if !inAllowlist(name, ipaddr) || inBlacklist(name, ipaddr) {
 		return false
 	}
 
@@ -198,7 +205,7 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 			}
 
 		case dns.TypeCNAME:
-			if strings.HasPrefix(strings.ToLower(q.Name), strings.ToLower(os.Getenv("CANARY_DOMAIN")+".")) {
+			if ok, _ := isRoot(q.Name); ok {
 				// CNAME records cannot be returned for the root domain anyway.
 				return
 			}
@@ -228,7 +235,8 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 			}
 
 			if !foundInZone {
-				rr, _ := dns.NewRR(fmt.Sprintf("%s IN SOA %s %s (%s)", os.Getenv("CANARY_DOMAIN"), "ns."+os.Getenv("CANARY_DOMAIN"), "admin."+os.Getenv("CANARY_DOMAIN"), "2021041401 7200 3600 604800 300"))
+				_, suffix := returnSuffix(q.Name)
+				rr, _ := dns.NewRR(fmt.Sprintf("%s IN SOA %s %s (%s)", suffix, "ns."+suffix, "admin."+suffix, "2021041401 7200 3600 604800 300"))
 				m.Answer = append(m.Answer, rr)
 			}
 
@@ -238,7 +246,8 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 			}
 
 			if !foundInZone {
-				rr, _ := dns.NewRR(fmt.Sprintf("%s IN NS %s", q.Name, "ns."+os.Getenv("CANARY_DOMAIN")))
+				_, suffix := returnSuffix(q.Name)
+				rr, _ := dns.NewRR(fmt.Sprintf("%s IN NS %s", q.Name, "ns."+suffix))
 				m.Answer = append(m.Answer, rr)
 			}
 		}
@@ -301,7 +310,7 @@ func GuessIP(domain string) (string, error) {
 	// query the tld's nameserver for our knary domain and extract the glue record from additional information
 	kMsg := new(dns.Msg)
 	kMsg.SetQuestion(dns.Fqdn(domain), dns.TypeNS)
-	answ, _, err := new(dns.Client).Exchange(kMsg, tldDNS+":53")
+	answ, _, _ := new(dns.Client).Exchange(kMsg, tldDNS+":53")
 
 	if len(answ.Extra) == 0 {
 		return "", errors.New("No 'Additional' section in NS lookup for: " + domain + " with nameserver: " + tldDNS + " Have you configured a glue record for your domain? Has it propagated? You can set EXT_IP to bypass this but... do you know what you're doing?")
@@ -311,9 +320,9 @@ func GuessIP(domain string) (string, error) {
 		if IsIP(t.A.String()) {
 			return t.A.String(), nil
 		} else {
-			return "", errors.New("Couldn't get glue record for " + os.Getenv("CANARY_DOMAIN") + ". Have you configured a glue record for your domain? Has it propagated? You can set EXT_IP to bypass this but... do you know what you're doing?")
+			return "", errors.New("Couldn't get glue record for " + domain + ". Have you configured a glue record for your domain? Has it propagated? You can set EXT_IP to bypass this but... do you know what you're doing?")
 		}
 	}
 
-	return "", errors.New("Couldn't find glue record for " + os.Getenv("CANARY_DOMAIN") + ". You can set EXT_IP to bypass this but... do you know what you're doing?")
+	return "", errors.New("Couldn't find glue record for " + domain + ". You can set EXT_IP to bypass this but... do you know what you're doing?")
 }
