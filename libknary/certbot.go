@@ -139,8 +139,8 @@ func StartLetsEncrypt() {
 		}
 
 		// Set TLS_CRT and TLS_KEY to our LE generated certs
-		os.Setenv("TLS_CRT", filepath.Join(cmd.GetCertPath()+cmd.SanitizedDomain("*."+GetFirstDomain())+".crt"))
-		os.Setenv("TLS_KEY", filepath.Join(cmd.GetCertPath()+cmd.SanitizedDomain("*."+GetFirstDomain())+".key"))
+		os.Setenv("TLS_CRT", filepath.Join(cmd.GetCertPath(), cmd.SanitizedDomain("*."+GetFirstDomain())+".crt"))
+		os.Setenv("TLS_KEY", filepath.Join(cmd.GetCertPath(), cmd.SanitizedDomain("*."+GetFirstDomain())+".key"))
 
 		return
 	}
@@ -166,8 +166,8 @@ func StartLetsEncrypt() {
 	certsStorage.SaveResource(certificates)
 
 	// Set TLS_CRT and TLS_KEY to our LE generated certs
-	os.Setenv("TLS_CRT", filepath.Join(cmd.GetCertPath()+cmd.SanitizedDomain(certificates.Domain)+".crt"))
-	os.Setenv("TLS_KEY", filepath.Join(cmd.GetCertPath()+cmd.SanitizedDomain(certificates.Domain)+".key"))
+	os.Setenv("TLS_CRT", filepath.Join(cmd.GetCertPath(), cmd.SanitizedDomain(certificates.Domain)+".crt"))
+	os.Setenv("TLS_KEY", filepath.Join(cmd.GetCertPath(), cmd.SanitizedDomain(certificates.Domain)+".key"))
 }
 
 func renewError(msg string) {
