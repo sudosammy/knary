@@ -50,7 +50,7 @@ func GetCertPath() string {
 			log.Fatalf(err.Error())
 		}
 
-		certFolderName = filepath.Dir(path)
+		certFolderName = path
 	} else {
 		certFolderName = filepath.Dir(certPath)
 	}
