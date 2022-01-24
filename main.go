@@ -10,7 +10,7 @@ import (
 	"os"
 	"sync"
 
-	"github.com/sudosammy/knary/libknary"
+	"github.com/sudosammy/knary/v3/libknary"
 )
 
 const (
