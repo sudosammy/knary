@@ -92,14 +92,14 @@ func (s *AccountsStorage) GetPrivateKey(keyType certcrypto.KeyType) crypto.Priva
 	accKeyPath := s.keyFilePath
 
 	if _, err := os.Stat(accKeyPath); os.IsNotExist(err) {
-		log.Printf("No key found for account %s. Generating a %s key.", s.userID, keyType)
+		// log.Printf("No key found for account %s. Generating a %s key.", s.userID, keyType)
 
 		privateKey, err := generatePrivateKey(accKeyPath, keyType)
 		if err != nil {
 			log.Fatalf("Could not generate RSA private account key for account %s: %v", s.userID, err)
 		}
 
-		log.Printf("Saved key to %s", accKeyPath)
+		// log.Printf("Saved key to %s", accKeyPath)
 		return privateKey
 	}
 
