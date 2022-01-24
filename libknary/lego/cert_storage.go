@@ -30,21 +30,29 @@ import (
 //
 func GetCertPath() string {
 	var certFolderName string
+	var certPath string
 
-	if !filepath.IsAbs(os.Getenv("TLS_CRT")) {
+	if os.Getenv("TLS_CRT") == "" || os.Getenv("TLS_KEY") == "" {
+		// this is the default LE config
+		certPath = "./certs" // put LE certs in ./certs/* dir. if it doesn't exist, it'll be created by StartLetsEncrypt()
+	} else {
+		certPath = filepath.Dir(os.Getenv("TLS_CRT"))
+	}
+
+	if !filepath.IsAbs(certPath) {
 		pwd, err := os.Getwd()
 		if err != nil {
 			log.Fatalf(err.Error())
 		}
 
-		path, err := filepath.Abs(filepath.Join(pwd, os.Getenv("TLS_CRT")))
+		path, err := filepath.Abs(filepath.Join(pwd, certPath))
 		if err != nil {
 			log.Fatalf(err.Error())
 		}
 
-		certFolderName = filepath.Dir(path)
+		certFolderName = path
 	} else {
-		certFolderName = filepath.Dir(os.Getenv("TLS_CRT"))
+		certFolderName = certPath
 	}
 
 	return certFolderName

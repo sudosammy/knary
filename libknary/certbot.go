@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/go-acme/lego/v4/certcrypto"
@@ -65,7 +66,7 @@ func (d *DNSProvider) CleanUp(domain, token, keyAuth string) error {
 	return nil
 }
 
-func StartLetsEncrypt() string {
+func StartLetsEncrypt() {
 	// check if folder structure is correct
 	cmd.CreateFolderStructure()
 
@@ -136,7 +137,12 @@ func StartLetsEncrypt() string {
 			Printy("TLS private key found: "+certsStorage.GetFileName("*."+GetFirstDomain(), ".key"), 3)
 			Printy("TLS certificate found: "+certsStorage.GetFileName("*."+GetFirstDomain(), ".crt"), 3)
 		}
-		return cmd.SanitizedDomain("*." + GetFirstDomain())
+
+		// Set TLS_CRT and TLS_KEY to our LE generated certs
+		os.Setenv("TLS_CRT", filepath.Join(cmd.GetCertPath(), cmd.SanitizedDomain("*."+GetFirstDomain())+".crt"))
+		os.Setenv("TLS_KEY", filepath.Join(cmd.GetCertPath(), cmd.SanitizedDomain("*."+GetFirstDomain())+".key"))
+
+		return
 	}
 
 	if os.Getenv("DEBUG") == "true" {
@@ -158,7 +164,10 @@ func StartLetsEncrypt() string {
 	}
 
 	certsStorage.SaveResource(certificates)
-	return cmd.SanitizedDomain(certificates.Domain)
+
+	// Set TLS_CRT and TLS_KEY to our LE generated certs
+	os.Setenv("TLS_CRT", filepath.Join(cmd.GetCertPath(), cmd.SanitizedDomain(certificates.Domain)+".crt"))
+	os.Setenv("TLS_KEY", filepath.Join(cmd.GetCertPath(), cmd.SanitizedDomain(certificates.Domain)+".key"))
 }
 
 func renewError(msg string) {

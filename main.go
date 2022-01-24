@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	VERSION       = "3.4.0"
+	VERSION       = "3.4.1"
 	GITHUB        = "https://github.com/sudosammy/knary"
 	GITHUBVERSION = "https://raw.githubusercontent.com/sudosammy/knary/master/VERSION"
 )
@@ -149,11 +149,7 @@ func main() {
 
 	// generate a let's encrypt certificate
 	if os.Getenv("LETS_ENCRYPT") != "" && os.Getenv("HTTP") == "true" && os.Getenv("DNS") == "true" && (os.Getenv("TLS_CRT") == "" || os.Getenv("TLS_KEY") == "") {
-		certName := libknary.StartLetsEncrypt()
-		// out of this we need to set TLS_CRT and TLS_KEY
-		// TODO make these not rely on hardcoded paths
-		os.Setenv("TLS_CRT", "certs/"+certName+".crt")
-		os.Setenv("TLS_KEY", "certs/"+certName+".key")
+		libknary.StartLetsEncrypt()
 		libknary.Printy("Let's Encrypt certificate is loaded", 1)
 
 	} else if os.Getenv("LETS_ENCRYPT") != "" && (os.Getenv("HTTP") != "true" || os.Getenv("DNS") != "true") {
