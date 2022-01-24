@@ -1,4 +1,4 @@
-module github.com/sudosammy/knary
+module github.com/sudosammy/knary/v3
 
 go 1.16
 

@@ -13,7 +13,7 @@ import (
 	"github.com/go-acme/lego/v4/challenge/dns01"
 	"github.com/go-acme/lego/v4/lego"
 	"github.com/go-acme/lego/v4/platform/config/env"
-	cmd "github.com/sudosammy/knary/libknary/lego"
+	cmd "github.com/sudosammy/knary/v3/libknary/lego"
 )
 
 // Config is used to configure the creation of the DNSProvider.
@@ -128,27 +128,28 @@ func StartLetsEncrypt() {
 	}
 
 	certsStorage := cmd.NewCertificatesStorage()
+	firstDomain := GetFirstDomain()
 
 	// should only request certs if currently none exist
-	if fileExists(certsStorage.GetFileName("*."+GetFirstDomain(), ".key")) &&
-		fileExists(certsStorage.GetFileName("*."+GetFirstDomain(), ".crt")) {
+	if fileExists(certsStorage.GetFileName("*."+firstDomain, ".key")) &&
+		fileExists(certsStorage.GetFileName("*."+firstDomain, ".crt")) {
 
 		if os.Getenv("DEBUG") == "true" {
-			Printy("TLS private key found: "+certsStorage.GetFileName("*."+GetFirstDomain(), ".key"), 3)
-			Printy("TLS certificate found: "+certsStorage.GetFileName("*."+GetFirstDomain(), ".crt"), 3)
+			Printy("TLS private key found: "+certsStorage.GetFileName("*."+firstDomain, ".key"), 3)
+			Printy("TLS certificate found: "+certsStorage.GetFileName("*."+firstDomain, ".crt"), 3)
 		}
 
 		// Set TLS_CRT and TLS_KEY to our LE generated certs
-		os.Setenv("TLS_CRT", filepath.Join(cmd.GetCertPath(), cmd.SanitizedDomain("*."+GetFirstDomain())+".crt"))
-		os.Setenv("TLS_KEY", filepath.Join(cmd.GetCertPath(), cmd.SanitizedDomain("*."+GetFirstDomain())+".key"))
+		os.Setenv("TLS_CRT", filepath.Join(cmd.GetCertPath(), cmd.SanitizedDomain("*."+firstDomain)+".crt"))
+		os.Setenv("TLS_KEY", filepath.Join(cmd.GetCertPath(), cmd.SanitizedDomain("*."+firstDomain)+".key"))
 
 		return
 	}
 
 	if os.Getenv("DEBUG") == "true" {
 		Printy("No existing certificates found at:", 3)
-		Printy(certsStorage.GetFileName("*."+GetFirstDomain(), ".key"), 2)
-		Printy(certsStorage.GetFileName("*."+GetFirstDomain(), ".crt"), 2)
+		Printy(certsStorage.GetFileName("*."+firstDomain, ".key"), 2)
+		Printy(certsStorage.GetFileName("*."+firstDomain, ".crt"), 2)
 		Printy("Let's Encrypt ourselves some new ones!", 3)
 	}
 
@@ -166,8 +167,8 @@ func StartLetsEncrypt() {
 	certsStorage.SaveResource(certificates)
 
 	// Set TLS_CRT and TLS_KEY to our LE generated certs
-	os.Setenv("TLS_CRT", filepath.Join(cmd.GetCertPath(), cmd.SanitizedDomain(certificates.Domain)+".crt"))
-	os.Setenv("TLS_KEY", filepath.Join(cmd.GetCertPath(), cmd.SanitizedDomain(certificates.Domain)+".key"))
+	os.Setenv("TLS_CRT", filepath.Join(cmd.GetCertPath(), cmd.SanitizedDomain("*."+firstDomain)+".crt"))
+	os.Setenv("TLS_KEY", filepath.Join(cmd.GetCertPath(), cmd.SanitizedDomain("*."+firstDomain)+".key"))
 }
 
 func renewError(msg string) {
@@ -204,12 +205,12 @@ func renewLetsEncrypt() {
 	}
 	client.Challenge.SetDNS01Provider(knaryDNS)
 
-	certDomains := getDomainsForCert()
+	//certDomains := getDomainsForCert()
 	certsStorage := cmd.NewCertificatesStorage()
 
 	var privateKey crypto.PrivateKey
 
-	keyBytes, errR := certsStorage.ReadFile(certDomains[0], ".key")
+	keyBytes, errR := certsStorage.ReadFile("*."+GetFirstDomain(), ".key")
 	if errR != nil {
 		renewError(errR.Error())
 	}
@@ -219,7 +220,7 @@ func renewLetsEncrypt() {
 		renewError(errR.Error())
 	}
 
-	pemBundle, errR := certsStorage.ReadFile(certDomains[0], ".pem")
+	pemBundle, errR := certsStorage.ReadFile("*."+GetFirstDomain(), ".pem")
 	if errR != nil {
 		renewError(errR.Error())
 	}
@@ -249,7 +250,7 @@ func renewLetsEncrypt() {
 	if os.Getenv("DEBUG") == "true" {
 		Printy("Archiving old certificates", 3)
 	}
-	err = certsStorage.MoveToArchive(certDomains[0])
+	err = certsStorage.MoveToArchive("*." + GetFirstDomain())
 	if err != nil {
 		msg := "There was an error moving the old certificates to the archive folder. Did you delete the folder? I'll overwrite the old certificates instead. See the log for more information."
 		go sendMsg(":warning: " + msg)
