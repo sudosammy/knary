@@ -94,7 +94,12 @@ func StartLetsEncrypt() {
 		GiveHead(2)
 		log.Fatal(err)
 	}
-	client.Challenge.SetDNS01Provider(knaryDNS)
+
+	if os.Getenv("DNS_RESOLVER") != "" {
+		client.Challenge.SetDNS01Provider(knaryDNS, dns01.AddRecursiveNameservers([]string{os.Getenv("DNS_RESOLVER")}))
+	} else {
+		client.Challenge.SetDNS01Provider(knaryDNS)
+	}
 
 	// if we're an existing user, loadMyUser would have populated cmd.Account with our Registration details
 	currentReg, err := client.Registration.QueryRegistration()
