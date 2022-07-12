@@ -38,6 +38,7 @@ If you are running Burp Collaborator on the same server as knary, you will need 
 * `DENYLIST_ALERTING` By default knary will alert on items in the denylist that haven't triggered in >14 days. Set to `false` to disable this behaviour
 * `DNS_SUBDOMAIN` Tell knary to only notify on `*.<DNS_SUBDOMAIN>.<CANARY_DOMAIN>` DNS hits. This is useful if you your webhook is getting too noisy with DNS hits to your knary TLD and you do not maintain an allow or denylist. Setting this configuration will mimic how knary operated prior to version 3. Example input: `dns`
 * `ZONE_FILE` knary supports responding to DNS requests based on an RFC 1034/1035 compliant zone file. Example input: `zone_file.txt`
+* `DNS_RESOLVER` Tell cerbot to use a specific DNS server for checking the acme challenge. 
 
 ## Note about editing configuration and Let's Encrypt
 If you have previously been running knary with Let's Encrypt and have now configured Burp Collaborator or `DNS_SUBDOMAIN`, you should delete the files in the `certs/` folder so that knary can re-generate certificates that include these subdomains as a SAN. Otherwise knary may exhibit strange behaviour / failures when attempting to renew the certificate.
