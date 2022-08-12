@@ -232,8 +232,11 @@ func handleRequest(conn net.Conn) bool {
 				}
 			}
 
+			// take off the header name for the user agent
+			userAgent = strings.TrimPrefix(userAgent, "User-Agent:")
 			hostDomain := strings.TrimPrefix(strings.ToLower(host), "host:") // trim off the "Host:" section of header
-			if inAllowlist(hostDomain, conn.RemoteAddr().String(), fwd) && !inBlacklist(hostDomain, conn.RemoteAddr().String(), fwd) {
+
+			if inAllowlist(hostDomain, conn.RemoteAddr().String(), fwd) && !inBlacklist(hostDomain, conn.RemoteAddr().String(), fwd) && inAllowlist(userAgent) && !inBlacklist(userAgent) {
 				var msg string
 				var fromIP string
 
