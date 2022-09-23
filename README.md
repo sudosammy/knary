@@ -46,7 +46,7 @@ If your registry requires you to have multiple nameservers with **different** IP
 ## Allowing or denying matches
 You **will** find systems that spam your knary even long after an engagement has ended. You will also find several DNS requests to mundane subdomains hitting your knary every day. To stop these from cluttering your notifications knary has a few features:
 
-1. A simple text-based deny and/or allowlist (location specified with `DENYLIST_FILE` and/or `ALLOWLIST_FILE`). Add the subdomains or IP addresses separated by a newline (case-insensitive):
+1. A simple text-based deny and/or allowlist (location specified with `DENYLIST_FILE` and/or `ALLOWLIST_FILE`). Add the subdomains, IP addresses, or User-Agents separated by a newline (case-insensitive):
 ```
 knary.tld
 www.knary.tld
