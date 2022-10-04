@@ -18,7 +18,7 @@ Defenders also use canaries as tripwires that can alert them of an attacker with
 
 1. Download the [applicable 64-bit knary binary](https://github.com/sudosammy/knary/releases) __OR__ build knary from source:
 
-__Prerequisite:__ You need Go >=1.16 to build knary.
+__Prerequisite:__ You need Go >=1.18 to build knary.
 ```
 go install github.com/sudosammy/knary/v3@latest
 ```
