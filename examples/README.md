@@ -30,6 +30,7 @@ If you are running Burp Collaborator on the same server as knary, you will need 
 * `BURP_INT_IP` __Optional__ The internal IP address that Burp Collaborator is bound to. In most cases this will be `127.0.0.1` (which is the default); however, if you run knary in Docker you may need to set this to the Burp Collaborator IP address reachable from within the knary container
 
 ## Optional Configurations
+* `FULL_HTTP_REQUEST` Set to `true` to display the full request made to knary, otherwise use the default mininal set
 * `TLS_*` (CRT/KEY). If you're not using the `LETS_ENCRYPT` configuration use these environment variables to configure the location of your certificate and private key for accepting TLS (HTTPS) requests. Example input `TLS_KEY=certs/knary.key`
 * `DEBUG` Enable/Disable displaying incoming requests in the terminal and some additional info. Default disabled (true/false)
 * `ALLOWLIST_STRICT` Set to `true` to prevent fuzzy matching on allowlist items and only alert on exact matches

@@ -247,12 +247,19 @@ func handleRequest(conn net.Conn) bool {
 				}
 
 				if cookie != "" {
-					msg = fmt.Sprintf("%s\n```Query: %s\n%s\n%s\nFrom: %s", host, query, userAgent, cookie, fromIP)
-
+					if os.Getenv("FULL_HTTP_REQUEST") != "" {
+						msg = fmt.Sprintf("%s\n```Query: %s\n%s\n%s\nFrom: %s\n\n---------- FULL REQUEST ----------\n%s\n----------------------------------", host, query, userAgent, cookie, fromIP, response)
+					} else {
+						msg = fmt.Sprintf("%s\n```Query: %s\n%s\n%s\nFrom: %s", host, query, userAgent, cookie, fromIP)
+					}
 				} else {
-					msg = fmt.Sprintf("%s\n```Query: %s\n%s\nFrom: %s", host, query, userAgent, fromIP)
-
+					if os.Getenv("FULL_HTTP_REQUEST") != "" {
+						msg = fmt.Sprintf("%s\n```Query: %s\n%s\nFrom: %s\n\n---------- FULL REQUEST ----------\n%s\n----------------------------------", host, query, userAgent, fromIP, response)
+					} else {
+						msg = fmt.Sprintf("%s\n```Query: %s\n%s\nFrom: %s", host, query, userAgent, fromIP)
+					}
 				}
+				
 				go sendMsg(msg + "```")
 				if os.Getenv("DEBUG") == "true" {
 					logger("INFO", fromIP+" - "+host)
