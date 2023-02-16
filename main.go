@@ -5,6 +5,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/miekg/dns"
 
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -14,12 +15,19 @@ import (
 )
 
 const (
-	VERSION       = "3.4.2"
+	VERSION       = "3.4.3"
 	GITHUB        = "https://github.com/sudosammy/knary"
 	GITHUBVERSION = "https://raw.githubusercontent.com/sudosammy/knary/master/VERSION"
 )
 
 func main() {
+	var help = flag.Bool("help", false, "Show help")
+	flag.Parse()
+	if *help {
+		libknary.Printy("Find all configuration options and example .env files here: "+GITHUB+"/tree/master/examples", 3)
+		os.Exit(0)
+	}
+
 	// load enviro variables
 	err := godotenv.Load()
 	if os.Getenv("CANARY_DOMAIN") == "" {
