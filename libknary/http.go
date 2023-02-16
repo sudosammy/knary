@@ -232,8 +232,11 @@ func handleRequest(conn net.Conn) bool {
 				}
 			}
 
+			// take off the header name for the user agent
+			userAgent = strings.TrimPrefix(strings.ToLower(userAgent), "user-agent:")
 			hostDomain := strings.TrimPrefix(strings.ToLower(host), "host:") // trim off the "Host:" section of header
-			if inAllowlist(hostDomain, conn.RemoteAddr().String(), fwd) && !inBlacklist(hostDomain, conn.RemoteAddr().String(), fwd) {
+
+			if inAllowlist(hostDomain, conn.RemoteAddr().String(), fwd) && !inBlacklist(hostDomain, conn.RemoteAddr().String(), fwd) && inAllowlist(userAgent) && !inBlacklist(userAgent) {
 				var msg string
 				var fromIP string
 
@@ -244,12 +247,19 @@ func handleRequest(conn net.Conn) bool {
 				}
 
 				if cookie != "" {
-					msg = fmt.Sprintf("%s\n```Query: %s\n%s\n%s\nFrom: %s", host, query, userAgent, cookie, fromIP)
-
+					if os.Getenv("FULL_HTTP_REQUEST") != "" {
+						msg = fmt.Sprintf("%s\n```Query: %s\n%s\n%s\nFrom: %s\n\n---------- FULL REQUEST ----------\n%s\n----------------------------------", host, query, userAgent, cookie, fromIP, response)
+					} else {
+						msg = fmt.Sprintf("%s\n```Query: %s\n%s\n%s\nFrom: %s", host, query, userAgent, cookie, fromIP)
+					}
 				} else {
-					msg = fmt.Sprintf("%s\n```Query: %s\n%s\nFrom: %s", host, query, userAgent, fromIP)
-
+					if os.Getenv("FULL_HTTP_REQUEST") != "" {
+						msg = fmt.Sprintf("%s\n```Query: %s\n%s\nFrom: %s\n\n---------- FULL REQUEST ----------\n%s\n----------------------------------", host, query, userAgent, fromIP, response)
+					} else {
+						msg = fmt.Sprintf("%s\n```Query: %s\n%s\nFrom: %s", host, query, userAgent, fromIP)
+					}
 				}
+				
 				go sendMsg(msg + "```")
 				if os.Getenv("DEBUG") == "true" {
 					logger("INFO", fromIP+" - "+host)
