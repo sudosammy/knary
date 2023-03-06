@@ -11,8 +11,6 @@ require (
 	github.com/mattn/go-colorable v0.1.12 // indirect
 	github.com/miekg/dns v1.1.45
 	github.com/radovskyb/watcher v1.0.7
-	golang.org/x/crypto v0.0.0-20211215153901-e495a2d5b3d3 // indirect
-	golang.org/x/net v0.0.0-20220111093109-d55c255bac03
-	golang.org/x/sys v0.0.0-20220111092808-5a964db01320 // indirect
-	golang.org/x/tools v0.1.8 // indirect
+	golang.org/x/crypto v0.1.0 // indirect
+	golang.org/x/net v0.1.0
 )
