@@ -12,5 +12,5 @@ require (
 	github.com/miekg/dns v1.1.45
 	github.com/radovskyb/watcher v1.0.7
 	golang.org/x/crypto v0.1.0 // indirect
-	golang.org/x/net v0.1.0
+	golang.org/x/net v0.7.0
 )
