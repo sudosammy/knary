@@ -86,7 +86,7 @@ func goSendMsg(ipaddr, reverse, name, record string) bool {
 	}
 
 	if os.Getenv("DEBUG") == "true" {
-		Printy("Got A question for: "+name, 3)
+		Printy("Got "+record+" question for: "+name, 3)
 	}
 
 	if !inAllowlist(name, ipaddr) || inBlacklist(name, ipaddr) {
@@ -118,7 +118,10 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 		// search zone file and append response if found
 		zoneResponse, foundInZone := inZone(q.Name, q.Qtype)
 		if foundInZone {
-			m.Answer = append(m.Answer, zoneResponse)
+			for _, element := range zoneResponse {
+				m.Answer = append(m.Answer, element)
+			}
+			//m.Answer = append(m.Answer, zoneResponse)
 		}
 
 		// catch requests to pass through to burp

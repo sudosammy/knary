@@ -6,6 +6,7 @@ allowed.txt
 denied.txt
 blacklist.txt
 zone.txt
+zones.txt
 knary.exe
 certs/*.json
 certs/*.crt
