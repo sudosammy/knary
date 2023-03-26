@@ -4,13 +4,13 @@
 
 >Like "Canary" but more hipster, which means better 😎😎😎
 
-knary is a canary token server that notifies a Slack/Discord/Teams/Lark/Telegram channel (or other webhook) when incoming HTTP(S) or DNS requests match a given domain or any of its subdomains. It also supports functionality useful in offensive engagements including subdomain allow/denylisting, working with Burp Collaborator, and automatic TLS certificate creation with Let's Encrypt.
+knary is a canary token server that notifies a Slack/Discord/Teams/Lark/Telegram channel (or other webhook) when incoming HTTP(S) or DNS requests match a given domain or any of its subdomains. It also supports functionality useful in offensive engagements including subdomain allow/denylisting, working with Burp Collaborator, and automatic TLS certificate management with Let's Encrypt.
 
 ![knary canary-ing](https://github.com/sudosammy/knary/raw/master/screenshots/canary.gif "knary canary-ing")
 
 ## Why is this useful?
 
-Redteamers use canaries to be notified when someone (or *something*) attempts to interact with a server they control. Canaries help provide visibility over processes that were previously unknown. They can help find areas to probe for RFI or SSRF vulnerabilities, disclose previously unknown servers, provide evidence of an intercepting device, or just announce someone interacting with your server.
+Offensive security teams use canaries to be notified when someone (or *something*) attempts to interact with a server they control. Canaries help provide visibility over processes that were previously unknown. They can help find areas to probe for RFI or SSRF vulnerabilities, disclose previously unknown servers, provide evidence of an intercepting device, or announce someone interacting with your server.
 
 Defenders also use canaries as tripwires that can alert them of an attacker within their network by having the attacker announce themselves. If you are a defender, https://canarytokens.org might be what you’re looking for.
 
@@ -23,7 +23,9 @@ __Prerequisite:__ You need Go >=1.18 to build knary.
 go install github.com/sudosammy/knary/v3@latest
 ```
 
-**Important:** The specifics of how to perform the next two steps will depend on your domain registrar. Google `How to set Glue Record on <registrar name>` to get started. Ultimately, you need to configure your knary domain(s) to make use of itself as the nameserver (i.e. `ns1.knary.tld` and `ns2.knary.tld`) and configure Glue Records to point these nameservers back to your knary host. You may need to raise a support ticket to have this performed by your registrar. 
+See [here](#inbound-firewall-requirements) for guidance on which ports to open for knary.
+
+**Important:** The specifics of how to perform the next two steps will depend on your domain registrar. Google `How to set Glue Record on <registrar name>` to get started. Ultimately, you need to configure your knary domain(s) to make use of itself as the nameserver (i.e. `ns1.knary.tld` and `ns2.knary.tld`) and configure a Glue Record to point these nameservers back to your knary host IP address. You may need to raise a support ticket to have this performed by your registrar. 
 
 2. Set your chosen knary domain(s) nameserver(s) to point to a subdomain under itself; such as `ns.knary.tld`. If required, set multiple nameserver records such as `ns1` and `ns2`.
 
@@ -33,7 +35,7 @@ go install github.com/sudosammy/knary/v3@latest
 
 If your registry requires you to have multiple nameservers with **different** IP addresses, set the second nameserver to an IP address such as `8.8.8.8` or `1.1.1.1`. 
 
-4. This **will** take time to propagate, so go setup your [webhook(s)](#supported-webhook-configurations) while you wait. You can use [this tool](https://www.whatsmydns.net/#NS/) to check the propagation. Within a few hours you should see some DNS servers reflecting your knary domain as the nameserver.
+4. This **will** take time to propagate (often several hours), so go setup your [webhook(s)](#supported-webhook-configurations) while you wait. You can use [this tool](https://www.whatsmydns.net/#NS/) to check the propagation. If you can't see at least some DNS servers reflecting your knary domain as the nameserver after 12 hours, you've done something wrong.
 
 5. Create a `.env` file in the same directory as the knary binary and [configure](https://github.com/sudosammy/knary/tree/master/examples) it as necessary. You can also use environment variables to set these configurations. Environment variables will take precedence over the `.env` file.
 
@@ -42,6 +44,15 @@ If your registry requires you to have multiple nameservers with **different** IP
 7. Run the binary (via the provided [Docker container](#knary-docker), or in `tmux` / `screen`) and hope for output that looks something like this: 
 
 ![knary go-ing](https://github.com/sudosammy/knary/raw/master/screenshots/run.png "knary go-ing")
+
+## Inbound Firewall Requirements
+In its most common configuration, knary will bind to these ports. You must permit connections from **any** IP address to these ports on your knary host.
+
+| Port | Reason |
+| --------| -------- |
+| 53 tcp & udp | DNS |
+| 80 tcp | HTTP |
+| 443 tcp | HTTPS |
 
 ## Allowing or denying matches
 You **will** find systems that spam your knary even long after an engagement has ended. You will also find several DNS requests to mundane subdomains hitting your knary every day. To stop these from cluttering your notifications knary has a few features:
