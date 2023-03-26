@@ -6,13 +6,13 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"github.com/go-acme/lego/v4/certcrypto"
 	"github.com/go-acme/lego/v4/certificate"
 	"github.com/go-acme/lego/v4/challenge/dns01"
 	"github.com/go-acme/lego/v4/lego"
-	"github.com/go-acme/lego/v4/platform/config/env"
 	cmd "github.com/sudosammy/knary/v3/libknary/lego"
 )
 
@@ -25,10 +25,34 @@ type Config struct {
 
 // NewDefaultConfig returns a default configuration for the DNSProvider.
 func NewDefaultConfig() *Config {
+	var confTTL int
+	var confTimeout time.Duration
+	var confPoll time.Duration
+
+	if value, ok := os.LookupEnv("CERTBOT_TTL"); ok {
+		confTTL, _ = strconv.Atoi(value)
+	} else {
+		confTTL = 120
+	}
+
+	if value, ok := os.LookupEnv("CERTBOT_PROPAGATION_TIMEOUT"); ok {
+		timeVal, _ := strconv.Atoi(value)
+		confTimeout = time.Duration(timeVal) * time.Second
+	} else {
+		confTimeout = 60 * time.Second
+	}
+
+	if value, ok := os.LookupEnv("CERTBOT_POLLING_INTERVAL"); ok {
+		timeVal, _ := strconv.Atoi(value)
+		confPoll = time.Duration(timeVal) * time.Second
+	} else {
+		confPoll = 2 * time.Second
+	}
+
 	return &Config{
-		TTL:                env.GetOrDefaultInt("CERTBOT_TTL", 120),
-		PropagationTimeout: env.GetOrDefaultSecond("CERTBOT_PROPAGATION_TIMEOUT", 1*time.Minute),
-		PollingInterval:    env.GetOrDefaultSecond("CERTBOT_POLLING_INTERVAL", 2*time.Second),
+		TTL:                confTTL,
+		PropagationTimeout: confTimeout,
+		PollingInterval:    confPoll,
 	}
 }
 

@@ -121,7 +121,6 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 			for _, element := range zoneResponse {
 				m.Answer = append(m.Answer, element)
 			}
-			//m.Answer = append(m.Answer, zoneResponse)
 		}
 
 		// catch requests to pass through to burp

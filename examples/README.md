@@ -34,12 +34,17 @@ If you are running Burp Collaborator on the same server as knary, you will need 
 * `TLS_*` (CRT/KEY). If you're not using the `LETS_ENCRYPT` configuration use these environment variables to configure the location of your certificate and private key for accepting TLS (HTTPS) requests. Example input `TLS_KEY=certs/knary.key`
 * `DEBUG` Enable/Disable displaying incoming requests in the terminal and some additional info. Default disabled (true/false)
 * `ALLOWLIST_STRICT` Set to `true` to prevent fuzzy matching on allowlist items and only alert on exact matches
-* `LE_ENV` Set to `staging` to use the Let's Encrypt's staging environment. Useful if you are testing configurations with Let's Encrypt and do not want to hit the rate limit
 * `EXT_IP` The IP address the DNS canary will answer `A` questions with. By default knary will use the nameserver glue record. Setting this option will overrule that behaviour
 * `DENYLIST_ALERTING` By default knary will alert on items in the denylist that haven't triggered in >14 days. Set to `false` to disable this behaviour
 * `DNS_SUBDOMAIN` Tell knary to only notify on `*.<DNS_SUBDOMAIN>.<CANARY_DOMAIN>` DNS hits. This is useful if you your webhook is getting too noisy with DNS hits to your knary TLD and you do not maintain an allow or denylist. Setting this configuration will mimic how knary operated prior to version 3. Example input: `dns`
 * `ZONE_FILE` knary supports responding to DNS requests based on an RFC 1034/1035 compliant zone file. Example input: `zone_file.txt`
-* `DNS_RESOLVER` Tell cerbot to use a specific DNS server for checking the acme challenge. 
+
+## Optional Let's Encrypt Configurations
+* `LE_ENV` Set to `staging` to use the Let's Encrypt's staging environment. Useful if you are testing configurations with Let's Encrypt and do not want to hit the rate limit
+* `DNS_RESOLVER` Tell certbot to use a specific DNS server for checking the acme challenge
+<!-- * `CERTBOT_TTL` The TTL of the TXT record created for validation of the certbot acme challenge. Default `120` seconds
+* `CERTBOT_PROPAGATION_TIMEOUT` Seconds to attempt validation of a new certbot acme challenge.  Default `60` seconds
+* `CERTBOT_POLLING_INTERVAL` Frequency of attempts to validate a new certbot acme challenge up-to the value of `CERTBOT_PROPAGATION_TIMEOUT`. Default `2` seconds -->
 
 ## Note about editing configuration and Let's Encrypt
 If you have previously been running knary with Let's Encrypt and have now configured Burp Collaborator or `DNS_SUBDOMAIN`, you should delete the files in the `certs/` folder so that knary can re-generate certificates that include these subdomains as a SAN. Otherwise knary may exhibit strange behaviour / failures when attempting to renew the certificate.
