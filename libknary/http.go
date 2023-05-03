@@ -180,7 +180,6 @@ func handleRequest(conn net.Conn) bool {
 
 			for _, header := range headers {
 				if stringContains(header, "Host") {
-					host = header
 					host = strings.TrimRight(header, "\r\n") + ":"
 					// using a reverse proxy, set ports back to the actual received ones
 					if os.Getenv("BURP_HTTP_PORT") != "" || os.Getenv("BURP_HTTPS_PORT") != "" {
@@ -259,7 +258,7 @@ func handleRequest(conn net.Conn) bool {
 						msg = fmt.Sprintf("%s\n```Query: %s\n%s\nFrom: %s", host, query, userAgent, fromIP)
 					}
 				}
-				
+
 				go sendMsg(msg + "```")
 				if os.Getenv("DEBUG") == "true" {
 					logger("INFO", fromIP+" - "+host)
