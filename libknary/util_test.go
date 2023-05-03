@@ -124,7 +124,7 @@ func TestStringContains(t *testing.T) {
 	}
 }
 
-//simply clear the contents of a particular file
+// simply clear the contents of a particular file
 // in this case blacklist_test.txt
 func clearFileContent(file string) {
 	testFile, err := os.OpenFile(file, os.O_RDWR, 0666)
@@ -137,7 +137,7 @@ func clearFileContent(file string) {
 	testFile.Seek(0, 0)
 }
 
-//write some specific data to some specific file !
+// write some specific data to some specific file !
 func writeDataToFile(data string, f *os.File) {
 	entry := []byte(data)
 	_, err := f.Write(entry)
@@ -179,7 +179,7 @@ func TestInBlacklist(t *testing.T) {
 	val := inBlacklist()
 
 	if val == true {
-		t.Errorf("Expected false since file is emtpy, Got true(there is a match)")
+		t.Errorf("Expected false since file is empty, Got true(there is a match)")
 	}
 
 	//second test is for an actual entry

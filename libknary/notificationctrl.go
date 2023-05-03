@@ -177,7 +177,7 @@ func checkLastHit() bool { // this runs once a day
 
 		if time.Now().After(expiryDate) { // let 'em know it's old
 			msg := "Denied item `" + subdomain + "` hasn't had a hit in >14 days. Consider removing it."
-			go sendMsg(":wrench: " + msg + " Configure `DENYLIST_ALERTING` to supress.")
+			go sendMsg(":wrench: " + msg + " Configure `DENYLIST_ALERTING` to suppress.")
 			logger("INFO", msg)
 			Printy(msg, 1)
 		}
