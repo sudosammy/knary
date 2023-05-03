@@ -11,7 +11,7 @@ import (
 	"os"
 	"sync"
 
-	"github.com/sudosammy/knary/v3/libknary"
+	"github.com/sudosammy/knary/libknary"
 )
 
 const (
@@ -21,11 +21,16 @@ const (
 )
 
 func main() {
-	var help = flag.Bool("help", false, "Show help")
+	var help = flag.Bool("h", false, "Show help")
+	var version = flag.Bool("v", false, "Show version")
 	flag.Parse()
 	if *help {
 		libknary.Printy("Version: "+VERSION, 1)
 		libknary.Printy("Find all configuration options and example .env files here: "+GITHUB+"/tree/master/examples", 3)
+		os.Exit(0)
+	}
+	if *version {
+		libknary.Printy("Version: "+VERSION, 1)
 		os.Exit(0)
 	}
 

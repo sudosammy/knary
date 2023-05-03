@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/radovskyb/watcher"
-	cmd "github.com/sudosammy/knary/v3/libknary/lego"
+	cmd "github.com/sudosammy/knary/libknary/lego"
 )
 
 func TLSmonitor(restart chan bool) {

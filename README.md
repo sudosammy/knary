@@ -20,7 +20,7 @@ Defenders also use canaries as tripwires that can alert them of an attacker with
 
 __Prerequisite:__ You need Go >=1.18 to build knary.
 ```
-go install github.com/sudosammy/knary/v3@latest
+go install github.com/sudosammy/knary@latest
 ```
 
 See [here](#inbound-firewall-requirements) for guidance on which ports to open for knary.
