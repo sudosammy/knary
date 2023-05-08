@@ -1,5 +1,6 @@
 .DS_Store
 .env
+stress.sh
 dev
 knary.log
 allowed.txt
