@@ -119,7 +119,11 @@ func CheckUpdate(version string, githubVersion string, githubURL string) (bool, 
 		updFail := "Could not check for updates: " + err.Error()
 		Printy(updFail, 2)
 		logger("WARNING", updFail)
-		go sendMsg(":warning: " + updFail)
+
+		if os.Getenv("NO_UPDATES_ALERT") == "true" {
+			go sendMsg(":warning: " + updFail)
+		}
+
 		return false, err
 	}
 
@@ -132,7 +136,11 @@ func CheckUpdate(version string, githubVersion string, githubURL string) (bool, 
 		updFail := "Could not check for updates: " + err.Error()
 		Printy(updFail, 2)
 		logger("WARNING", updFail)
-		go sendMsg(":warning: " + updFail)
+
+		if os.Getenv("NO_UPDATES_ALERT") == "true" {
+			go sendMsg(":warning: " + updFail)
+		}
+
 		return false, err
 	}
 
@@ -153,7 +161,11 @@ func CheckUpdate(version string, githubVersion string, githubURL string) (bool, 
 			updMsg := "Your version of knary is *" + version + "* & the latest is *" + current.String() + "* - upgrade your binary here: " + githubURL
 			Printy(updMsg, 2)
 			logger("WARNING", updMsg)
-			go sendMsg(":warning: " + updMsg)
+
+			if os.Getenv("NO_UPDATES_ALERT") == "true" {
+				go sendMsg(":warning: " + updMsg)
+			}
+
 			return true, nil
 		}
 	}
@@ -180,7 +192,11 @@ func CheckTLSExpiry(days int) (bool, int) {
 			certMsg := "The TLS certificate for `" + os.Getenv("CANARY_DOMAIN") + "` expires in " + strconv.Itoa(expiry) + " days."
 			Printy(certMsg, 2)
 			logger("WARNING", certMsg)
-			go sendMsg(":lock: " + certMsg)
+
+			if os.Getenv("NO_CERT_EXPIRY_ALERT") == "true" {
+				go sendMsg(":lock: " + certMsg)
+			}
+
 			return true, expiry
 		}
 

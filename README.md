@@ -1,6 +1,6 @@
 # knary - A simple HTTP(S) and DNS Canary
 
-[![Build Status](https://circleci.com/gh/sudosammy/knary/tree/master.svg?style=svg)](https://circleci.com/gh/sudosammy/knary/tree/master)  [![Coverage Status](https://coveralls.io/repos/github/sudosammy/knary/badge.svg?branch=master)](https://coveralls.io/github/sudosammy/knary?branch=master)
+[![Build Status](https://circleci.com/gh/sudosammy/knary/tree/master.svg?style=svg)](https://circleci.com/gh/sudosammy/knary/tree/master)  [![Go Report Card](https://goreportcard.com/badge/github.com/sudosammy/knary)](https://goreportcard.com/report/github.com/sudosammy/knary)  [![Coverage Status](https://coveralls.io/repos/github/sudosammy/knary/badge.svg?branch=master)](https://coveralls.io/github/sudosammy/knary?branch=master)
 
 >Like "Canary" but more hipster, which means better 😎😎😎
 

@@ -21,15 +21,17 @@ const (
 )
 
 func main() {
-	var help = flag.Bool("h", false, "Show help")
-	var version = flag.Bool("v", false, "Show version")
-	flag.Parse()
-	if *help {
+	var helpS = flag.Bool("h", false, "Show help")
+	var help = flag.Bool("help", false, "")
+	var versionS = flag.Bool("v", false, "Show version")
+	var version = flag.Bool("version", false, "")
+	flag.Parse() // https://github.com/golang/go/issues/35761
+	if *help || *helpS {
 		libknary.Printy("Version: "+VERSION, 1)
 		libknary.Printy("Find all configuration options and example .env files here: "+GITHUB+"/tree/master/examples", 3)
 		os.Exit(0)
 	}
-	if *version {
+	if *version || *versionS {
 		libknary.Printy("Version: "+VERSION, 1)
 		os.Exit(0)
 	}
@@ -74,7 +76,7 @@ func main() {
 
 		EXT_IP = res
 	} else {
-		// test that user inputed a valid IP addr.
+		// test that user inputted a valid IP addr.
 		if !libknary.IsIP(os.Getenv("EXT_IP")) {
 			libknary.Printy("Couldn't parse EXT_IP. Are you sure it's a valid IP address?", 2)
 			return
@@ -188,12 +190,12 @@ func main() {
 			wg.Add(1)
 			go libknary.Accept443(ln443, &wg, restart)
 
-			_, _ = libknary.CheckTLSExpiry(30) // check TLS expiry on first lauch of knary
+			_, _ = libknary.CheckTLSExpiry(30) // check TLS expiry on first launch of knary
 			go libknary.TLSmonitor(restart)    // monitor filesystem changes to the TLS cert to trigger a reboot
 		}
 	}
 
-	// these go after all the screen prining for neatness
+	// these go after all the screen printing for neatness
 	libknary.CheckUpdate(VERSION, GITHUBVERSION, GITHUB)
 	libknary.HeartBeat(VERSION, true)
 

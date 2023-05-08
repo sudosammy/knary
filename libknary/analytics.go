@@ -7,37 +7,63 @@ import (
 	"encoding/json"
 	"net/http"
 	"os"
+	"runtime"
+	"strconv"
 	"time"
 )
 
 /*
-	This function collects very basic analytics to track knary usage.
-	It does NOT collect anything that could be tied back to you easily; however, does take a SHA256 hash of your knary domain name.
-	If you have any thoughts about knary you can contact me on Twitter: @sudosammy or GitHub: https://github.com/sudosammy/knary
+This function collects basic telemetry to track knary usage.
+It does NOT collect anything that could be tied back to you easily; however, does take a SHA256 hash of your knary domain name.
+If you have any thoughts about knary you can contact me on Twitter: @sudosammy or GitHub: https://github.com/sudosammy/knary
 
-	You can make the following variable an empty string to sinkole analytics.
+You can make the following variable an empty string to sinkhole analytics.
 */
-var trackingDomain = "https://knary.sam.ooo"
+var trackingDomain = "http://knary.sam.ooo"
 
 type features struct {
-	DNS      bool `json:"dns"`
-	HTTP     bool `json:"http"`
-	BURP     bool `json:"burp"`
+	DEBUG             bool `json:"debug"`
+	DNS               bool `json:"dns"`
+	DNS_SUBDOMAIN     bool `json:"dns_subdomain"` // True/False
+	HTTP              bool `json:"http"`
+	HTTP_FULL         bool `json:"full_http_request"`
+	BURP              bool `json:"burp"`
+	ALLOW             int  `json:"allowlist"` // Count of items in
+	ALLOW_STRICT      bool `json:"allowlist_strict"`
+	DENY              int  `json:"denylist"` // Count of items in
+	LE                bool `json:"lets_encrypt"`
+	TLS               bool `json:"tls_certs"`
+	LOGS              bool `json:"logs"`
+	ZONE_FILE         int  `json:"zone_file"` // Count of items in
+	DENYLIST_ALERTING bool `json:"no_denylist_alert"`
+	NO_HEARTBEAT      bool `json:"no_heartbeat"`
+	NO_UPDATES        bool `json:"no_update_alert"`
+	NO_CERT_EXPIRY    bool `json:"no_cert_expiry_alert"`
+}
+
+type webhooks struct {
 	SLACK    bool `json:"slack"`
 	DISCORD  bool `json:"discord"`
 	PUSHOVER bool `json:"pushover"`
 	TEAMS    bool `json:"teams"`
+	LARK     bool `json:"lark"`
+	TELEGRAM bool `json:"telegram"`
 }
 
 type analy struct {
 	ID        string `json:"id"`
-	Version   string `json:"version"`
-	Status    int    `json:"day"`
-	Allowlist int    `json:"allowlist"`
-	Blacklist int    `json:"blacklist"`
-	Offset    int    `json:"offset"`
-	Timezone  string `json:"timezone"`
+	Timestamp string `json:"timestamp"`
+	basicInfo `json:"basic"`
 	features  `json:"features"`
+	webhooks  `json:"webhooks"`
+}
+
+type basicInfo struct {
+	OS       string `json:"os"`
+	Uptime   int    `json:"uptime"`
+	Version  string `json:"version"`
+	Offset   int    `json:"offset"`
+	Timezone string `json:"tz"`
 }
 
 var day = 0
@@ -47,55 +73,118 @@ func UsageStats(version string) bool {
 		return false
 	}
 
-	// a unique & desensitised ID
 	knaryID := sha256.New()
 	_, _ = knaryID.Write([]byte(os.Getenv("CANARY_DOMAIN")))
 	anonKnaryID := hex.EncodeToString(knaryID.Sum(nil))
 
-	zone, offset := time.Now().Zone() // timezone
+	ts := time.Now().UTC() // UTC timestamp
+	utcTimestamp := ts.Format("2006-01-02 15:04:05")
+	tz, offset := time.Now().Zone() // local timezone
 
-	day++ // track how long knary has been running for
+	day++ // keep track of uptime
+	debug, _ := strconv.ParseBool(os.Getenv("DEBUG"))
+	dnsKnary, _ := strconv.ParseBool(os.Getenv("DNS"))
+	httpKnary, _ := strconv.ParseBool(os.Getenv("HTTP"))
+	fullHttp, _ := strconv.ParseBool(os.Getenv("FULL_HTTP_REQUEST"))
+	allowStrict, _ := strconv.ParseBool(os.Getenv("ALLOWLIST_STRICT"))
+	denylistAlertingInverted, _ := strconv.ParseBool(os.Getenv("DENYLIST_ALERTING"))
+	denylistAlerting := !denylistAlertingInverted
+	heartbeat, _ := strconv.ParseBool(os.Getenv("NO_HEARTBEAT_ALERT"))
+	checkUpdates, _ := strconv.ParseBool(os.Getenv("NO_UPDATES_ALERT"))
+	checkCertExpiry, _ := strconv.ParseBool(os.Getenv("NO_CERT_EXPIRY_ALERT"))
 
-	// disgusting
-	dns, https, burp, slack, discord, pushover, teams := false, false, false, false, false, false, false
-	if os.Getenv("DNS") == "true" {
-		dns = true
+	dnsSubdomain := false
+	if len(os.Getenv("DNS_SUBDOMAIN")) > 0 {
+		dnsSubdomain = true
 	}
-	if os.Getenv("HTTP") == "true" {
-		https = true
-	}
-	if os.Getenv("BURP_DOMAIN") == "true" {
+
+	burp := false
+	if len(os.Getenv("BURP_DOMAIN")) > 0 {
 		burp = true
 	}
-	if os.Getenv("SLACK_WEBHOOK") != "" {
+
+	letsEnc := false
+	if len(os.Getenv("LETS_ENCRYPT")) > 0 {
+		letsEnc = true
+	}
+
+	tlsCerts := false
+	if len(os.Getenv("TLS_CRT")) > 0 {
+		tlsCerts = true
+	}
+
+	logFile := false
+	if len(os.Getenv("LOG_FILE")) > 0 {
+		logFile = true
+	}
+
+	// webhooks
+	slack := false
+	if len(os.Getenv("SLACK_WEBHOOK")) > 0 {
 		slack = true
 	}
-	if os.Getenv("DISCORD_WEBHOOK") != "" {
+
+	discord := false
+	if len(os.Getenv("DISCORD_WEBHOOK")) > 0 {
 		discord = true
 	}
-	if os.Getenv("PUSHOVER_USER") != "" {
+
+	pushover := false
+	if len(os.Getenv("PUSHOVER_TOKEN")) > 0 {
 		pushover = true
 	}
-	if os.Getenv("TEAMS_WEBHOOK") != "" {
+
+	teams := false
+	if len(os.Getenv("TEAMS_WEBHOOK")) > 0 {
 		teams = true
+	}
+
+	lark := false
+	if len(os.Getenv("LARK_WEBHOOK")) > 0 {
+		lark = true
+	}
+
+	telegram := false
+	if len(os.Getenv("TELEGRAM_CHATID")) > 0 {
+		telegram = true
 	}
 
 	jsonValues, err := json.Marshal(&analy{
 		anonKnaryID,
-		version,
-		day,
-		allowCount,
-		denyCount,
-		(offset / 60 / 60),
-		zone,
+		utcTimestamp,
+		basicInfo{
+			runtime.GOOS,
+			day,
+			version,
+			(offset / 60 / 60),
+			tz,
+		},
 		features{
-			dns,
-			https,
+			debug,
+			dnsKnary,
+			dnsSubdomain,
+			httpKnary,
+			fullHttp,
 			burp,
+			allowCount,
+			allowStrict,
+			denyCount,
+			letsEnc,
+			tlsCerts,
+			logFile,
+			zoneCounter,
+			denylistAlerting,
+			heartbeat,
+			checkUpdates,
+			checkCertExpiry,
+		},
+		webhooks{
 			slack,
 			discord,
 			pushover,
 			teams,
+			lark,
+			telegram,
 		},
 	})
 

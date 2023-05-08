@@ -30,14 +30,19 @@ If you are running Burp Collaborator on the same server as knary, you will need 
 * `BURP_INT_IP` __Optional__ The internal IP address that Burp Collaborator is bound to. In most cases this will be `127.0.0.1` (which is the default); however, if you run knary in Docker you may need to set this to the Burp Collaborator IP address reachable from within the knary container
 
 ## Optional Configurations
-* `FULL_HTTP_REQUEST` Set to `true` to display the full request made to knary, otherwise use the default mininal set
+* `FULL_HTTP_REQUEST` Enable/Disable displaying the full HTTP request made to knary on hits. Default false (true/false)
 * `TLS_*` (CRT/KEY). If you're not using the `LETS_ENCRYPT` configuration use these environment variables to configure the location of your certificate and private key for accepting TLS (HTTPS) requests. Example input `TLS_KEY=certs/knary.key`
-* `DEBUG` Enable/Disable displaying incoming requests in the terminal and some additional info. Default disabled (true/false)
+* `DEBUG` Enable/Disable displaying incoming requests in the terminal and some additional info. Default false (true/false)
 * `ALLOWLIST_STRICT` Set to `true` to prevent fuzzy matching on allowlist items and only alert on exact matches
-* `EXT_IP` The IP address the DNS canary will answer `A` questions with. By default knary will use the nameserver glue record. Setting this option will overrule that behaviour
-* `DENYLIST_ALERTING` By default knary will alert on items in the denylist that haven't triggered in >14 days. Set to `false` to disable this behaviour
+* `EXT_IP` The IP address the DNS canary will answer `A` questions with. By default knary will use the nameserver glue record. Setting this option will override that behaviour
 * `DNS_SUBDOMAIN` Tell knary to only notify on `*.<DNS_SUBDOMAIN>.<CANARY_DOMAIN>` DNS hits. This is useful if you your webhook is getting too noisy with DNS hits to your knary TLD and you do not maintain an allow or denylist. Setting this configuration will mimic how knary operated prior to version 3. Example input: `dns`
 * `ZONE_FILE` knary supports responding to DNS requests based on an RFC 1034/1035 compliant zone file. Example input: `zone_file.txt`
+
+## Optional Posting Configurations
+* `NO_HEARTBEAT_ALERT` Set to `true` to disable the weekly heartbeat message that notifies webhooks that knary is operating as expected
+* `NO_UPDATES_ALERT` Set to `true` to disable the messages that notify webhooks of available updates to the knary binary. This does not prevent these messages from being logged if `LOG_FILE` is set. This is not recommended
+* `NO_CERT_EXPIRY_ALERT` Set to `true` to disable the daily certificate expiry checks that notifies webhooks when certificates are close to expiring. This does not prevent these messages from being logged if `LOG_FILE` is set. This is not recommended
+* `DENYLIST_ALERTING` By default knary will alert on items in the denylist that haven't triggered in >14 days. Set to `false` to disable this behaviour
 
 ## Optional Let's Encrypt Configurations
 * `LE_ENV` Set to `staging` to use the Let's Encrypt's staging environment. Useful if you are testing configurations with Let's Encrypt and do not want to hit the rate limit

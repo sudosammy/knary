@@ -37,7 +37,9 @@ func StartMaintenance(version string, githubVersion string, githubURL string) {
 			case <-dailyTicker.C:
 				dailyTasks(version, githubVersion, githubURL)
 			case <-hbTicker.C:
-				HeartBeat(version, false)
+				if os.Getenv("NO_HEARTBEAT_ALERT") == "true" {
+					HeartBeat(version, false)
+				}
 			case <-quit:
 				dailyTicker.Stop()
 				hbTicker.Stop()
