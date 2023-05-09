@@ -19,7 +19,7 @@ If you have any thoughts about knary you can contact me on Twitter: @sudosammy o
 
 You can make the following variable an empty string to sinkhole analytics.
 */
-var trackingDomain = "http://knary.sam.ooo"
+var trackingDomain = "https://knary.sam.ooo"
 
 type features struct {
 	DEBUG             bool `json:"debug"`
