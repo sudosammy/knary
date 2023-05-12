@@ -78,7 +78,7 @@ func UsageStats(version string) bool {
 	anonKnaryID := hex.EncodeToString(knaryID.Sum(nil))
 
 	ts := time.Now().UTC() // UTC timestamp
-	utcTimestamp := ts.Format("2006-01-02 15:04:05")
+	utcTimestamp := ts.Format("2006-01-02 15:04")
 	tz, offset := time.Now().Zone() // local timezone
 
 	day++ // keep track of uptime
