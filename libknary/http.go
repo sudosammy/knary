@@ -18,6 +18,7 @@ func Listen80() net.Listener {
 	p80 := os.Getenv("BIND_ADDR") + ":80"
 
 	if os.Getenv("BURP_HTTP_PORT") != "" {
+		//isDeprecated("BURP_*", "REVERSE_PROXY_*", "3.5.0")
 		p80 = "127.0.0.1:8880" // set local port that knary will listen on as the client of the reverse proxy
 
 		// to support our container friends - let the player choose the IP Burp is bound to

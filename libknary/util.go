@@ -327,3 +327,10 @@ func fileExists(file string) bool {
 	}
 	return true
 }
+
+// func isDeprecated(old string, new string, version string) {
+// 	msg := "`" + old + "`" + " is deprecated. It will be removed in `" + version + "`. Change to: `" + new + "`"
+// 	logger("WARNING", msg)
+// 	Printy(msg, 3)
+// 	go sendMsg(":warning: " + msg)
+// }
