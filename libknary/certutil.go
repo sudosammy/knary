@@ -34,6 +34,11 @@ func getDomainsForCert() []string {
 		numDomains++
 	}
 
+	if os.Getenv("REVERSE_PROXY_DOMAIN") != "" {
+		domainArray = append(domainArray, "*."+os.Getenv("REVERSE_PROXY_DOMAIN"))
+		numDomains++
+	}
+
 	if os.Getenv("DEBUG") == "true" {
 		Printy("Domains for SAN certificate: "+strconv.Itoa(numDomains), 3)
 	}

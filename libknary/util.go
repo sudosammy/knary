@@ -287,7 +287,10 @@ func HeartBeat(version string, firstrun bool) (bool, error) {
 		}
 	}
 	if os.Getenv("BURP_DOMAIN") != "" {
-		beatMsg += "Working in collaborator compatibility mode on subdomain *." + os.Getenv("BURP_DOMAIN") + "\n"
+		beatMsg += "(Deprecated) Working in collaborator compatibility mode on subdomain *." + os.Getenv("BURP_DOMAIN") + "\n"
+	}
+	if os.Getenv("REVERSE_PROXY_DOMAIN") != "" {
+		beatMsg += "Reverse proxy enabled on requests to: *." + os.Getenv("REVERSE_PROXY_DOMAIN") + "\n"
 	}
 	beatMsg += "```"
 
@@ -328,9 +331,9 @@ func fileExists(file string) bool {
 	return true
 }
 
-// func isDeprecated(old string, new string, version string) {
-// 	msg := "`" + old + "`" + " is deprecated. It will be removed in `" + version + "`. Change to: `" + new + "`"
-// 	logger("WARNING", msg)
-// 	Printy(msg, 3)
-// 	go sendMsg(":warning: " + msg)
-// }
+func IsDeprecated(old string, new string, version string) {
+	msg := "`" + old + "`" + " is deprecated. It will be removed in `" + version + "`. Change to: `" + new + "`"
+	logger("WARNING", msg)
+	Printy(msg, 3)
+	go sendMsg(":warning: " + msg)
+}

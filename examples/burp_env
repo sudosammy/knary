@@ -12,7 +12,14 @@ LOG_FILE=knary.log
 #ALLOWLIST_FILE=allowlist.txt
 #DENYLIST_FILE=denylist.txt
 
+# Deprecated in favour of the reverse proxy configuration shown below
 BURP_DOMAIN=<burp.knary.tld>
 BURP_DNS_PORT=8053
 BURP_HTTP_PORT=8080
 BURP_HTTPS_PORT=8433
+
+# Recommended configuration
+#REVERSE_PROXY_DOMAIN=<burp.knary.tld>
+#REVERSE_PROXY_HTTP=127.0.0.1:8080
+#REVERSE_PROXY_HTTPS=127.0.0.1:8433
+#REVERSE_PROXY_DNS=127.0.0.1:8053

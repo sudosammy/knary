@@ -1,0 +1,21 @@
+# RENAME ME TO .env
+DNS=true
+HTTP=true
+BIND_ADDR=0.0.0.0
+CANARY_DOMAIN=<knary.tld>
+LETS_ENCRYPT=<your email address here>
+SLACK_WEBHOOK=<https://hooks.slack.com/services/...>
+
+DEBUG=false
+LOG_FILE=knary.log
+
+#ALLOWLIST_FILE=allowlist.txt
+#DENYLIST_FILE=denylist.txt
+
+# This example demonstrates hosting files on *.web.knary.tld from an internal webserver, for example:
+# python3 -m http.server 8080
+REVERSE_PROXY_DOMAIN=<web.knary.tld>
+REVERSE_PROXY_HTTP=127.0.0.1:8080
+#REVERSE_PROXY_HTTPS=127.0.0.1:8433
+#REVERSE_PROXY_DNS=127.0.0.1:8053
+

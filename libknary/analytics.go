@@ -28,6 +28,7 @@ type features struct {
 	HTTP              bool `json:"http"`
 	HTTP_FULL         bool `json:"full_http_request"`
 	BURP              bool `json:"burp"`
+	REV_PROXY         bool `json:"reverse_proxy"`
 	ALLOW             int  `json:"allowlist"` // Count of items in
 	ALLOW_STRICT      bool `json:"allowlist_strict"`
 	DENY              int  `json:"denylist"` // Count of items in
@@ -103,6 +104,11 @@ func UsageStats(version string) bool {
 		burp = true
 	}
 
+	revProxy := false
+	if len(os.Getenv("REVERSE_PROXY_DOMAIN")) > 0 {
+		revProxy = true
+	}
+
 	letsEnc := false
 	if len(os.Getenv("LETS_ENCRYPT")) > 0 {
 		letsEnc = true
@@ -166,6 +172,7 @@ func UsageStats(version string) bool {
 			httpKnary,
 			fullHttp,
 			burp,
+			revProxy,
 			allowCount,
 			allowStrict,
 			denyCount,

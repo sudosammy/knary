@@ -125,11 +125,22 @@ func main() {
 		}
 	}
 	if os.Getenv("BURP_DOMAIN") != "" {
-		libknary.Printy("Working in collaborator compatibility mode on subdomain *."+os.Getenv("BURP_DOMAIN"), 1)
+		libknary.IsDeprecated("BURP_*", "REVERSE_PROXY_*", "3.5.0")
+		libknary.Printy("(Deprecated) Working in collaborator compatibility mode on subdomain *."+os.Getenv("BURP_DOMAIN"), 1)
 
 		if os.Getenv("BURP_DNS_PORT") == "" || os.Getenv("BURP_HTTP_PORT") == "" || os.Getenv("BURP_HTTPS_PORT") == "" {
 			libknary.Printy("Not all Burp Collaborator settings are set. This might cause errors.", 2)
 		}
+	}
+	if os.Getenv("REVERSE_PROXY_DOMAIN") != "" {
+		libknary.Printy("Proxying enabled on requests to: *."+os.Getenv("REVERSE_PROXY_DOMAIN"), 1)
+
+		if os.Getenv("REVERSE_PROXY_HTTP") == "" || os.Getenv("REVERSE_PROXY_HTTPS") == "" || os.Getenv("REVERSE_PROXY_DNS") == "" {
+			libknary.Printy("Not all reverse proxy settings are set. This might cause errors.", 2)
+		}
+	}
+	if os.Getenv("REVERSE_PROXY_DOMAIN") != "" && os.Getenv("BURP_DOMAIN") != "" {
+		libknary.Printy("Configuring both BURP_* and REVERSE_PROXY_* is not supported and may break things!", 2)
 	}
 	if os.Getenv("SLACK_WEBHOOK") != "" {
 		libknary.Printy("Posting to webhook: "+os.Getenv("SLACK_WEBHOOK"), 1)

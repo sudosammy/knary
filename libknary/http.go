@@ -17,8 +17,7 @@ import (
 func Listen80() net.Listener {
 	p80 := os.Getenv("BIND_ADDR") + ":80"
 
-	if os.Getenv("BURP_HTTP_PORT") != "" {
-		//isDeprecated("BURP_*", "REVERSE_PROXY_*", "3.5.0")
+	if os.Getenv("BURP_HTTP_PORT") != "" || os.Getenv("REVERSE_PROXY_HTTP") != "" {
 		p80 = "127.0.0.1:8880" // set local port that knary will listen on as the client of the reverse proxy
 
 		// to support our container friends - let the player choose the IP Burp is bound to
@@ -33,11 +32,16 @@ func Listen80() net.Listener {
 			e := http.ListenAndServe(os.Getenv("BIND_ADDR")+":80", &httputil.ReverseProxy{
 				Director: func(r *http.Request) {
 					r.URL.Scheme = "http"
-					// if the incoming request has the burp suffix send it to collab
+					// burp config
 					if strings.HasSuffix(r.Host, os.Getenv("BURP_DOMAIN")) {
 						r.URL.Host = burpIP + ":" + os.Getenv("BURP_HTTP_PORT")
+
+						// reverse proxy config
+					} else if strings.HasSuffix(r.Host, os.Getenv("REVERSE_PROXY_DOMAIN")) {
+						r.URL.Host = os.Getenv("REVERSE_PROXY_HTTP")
+
+						// else send it raw to the local knary port
 					} else {
-						// otherwise send it raw to the local knary port
 						r.URL.Host = p80
 						r.Header.Set("X-Forwarded-For", r.RemoteAddr)
 					}
@@ -72,7 +76,7 @@ func Accept80(ln net.Listener) {
 func Listen443() net.Listener {
 	p443 := os.Getenv("BIND_ADDR") + ":443"
 
-	if os.Getenv("BURP_HTTPS_PORT") != "" {
+	if os.Getenv("BURP_HTTPS_PORT") != "" || os.Getenv("REVERSE_PROXY_HTTPS") != "" {
 		p443 = "127.0.0.1:8843" // set local port that knary will listen on as the client of the reverse proxy
 
 		// to support our container friends - let the player choose the IP Burp is bound to
@@ -90,11 +94,16 @@ func Listen443() net.Listener {
 					},
 					Director: func(r *http.Request) {
 						r.URL.Scheme = "https"
-						//if the incoming request has the burp suffix send it to collab
+						// burp config
 						if strings.HasSuffix(r.Host, os.Getenv("BURP_DOMAIN")) {
 							r.URL.Host = burpIP + ":" + os.Getenv("BURP_HTTPS_PORT")
+
+							// reverse proxy config
+						} else if strings.HasSuffix(r.Host, os.Getenv("REVERSE_PROXY_DOMAIN")) {
+							r.URL.Host = os.Getenv("REVERSE_PROXY_HTTPS")
+
+							// else send it raw to the local knary port
 						} else {
-							//otherwise send it raw to the local knary port
 							r.URL.Host = p443
 							r.Header.Set("X-Forwarded-For", r.RemoteAddr)
 						}
@@ -183,7 +192,9 @@ func handleRequest(conn net.Conn) bool {
 				if stringContains(header, "Host") {
 					host = strings.TrimRight(header, "\r\n") + ":"
 					// using a reverse proxy, set ports back to the actual received ones
-					if os.Getenv("BURP_HTTP_PORT") != "" || os.Getenv("BURP_HTTPS_PORT") != "" {
+					if os.Getenv("BURP_HTTP_PORT") != "" || os.Getenv("BURP_HTTPS_PORT") != "" ||
+						os.Getenv("REVERSE_PROXY_HTTP") != "" || os.Getenv("REVERSE_PROXY_HTTPS") != "" {
+
 						if lPort == 8880 {
 							host = host + "80"
 						} else if lPort == 8843 {

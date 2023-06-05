@@ -3,6 +3,7 @@
 ## Sample Files
 * `default_env` - A recommended quick start configuration file with Let's Encrypt configuration
 * `burp_env` - A recommended quick start configuration file if you are also using Burp Collaborator on the same server as knary
+* `reverse_env` - An example configuration demonstrating knary proxying requests to `*.web.knary.tld` to port `8080` on the same server
 * `multidomain_env` - An example of how to specify multiple knary domains. Domains must be comma-delimited. Whitespace is stripped automatically
 * `allowlist.txt` - This is an example allowlist showing how knary could be used with your team's names. This has the added benefit of allowing your team to configure [keyword notifications](https://slack.com/intl/en-au/help/articles/201355156-Configure-your-Slack-notifications#keyword-notifications) in Slack
 * `denylist.txt` - If you are not going to use an allowlist, this is a good starting set of subdomains you should consider denying. Setting [DNS_SUBDOMAIN](#optional-configurations) will cut down the noise to your knary too. Find & Replace `knary.tld` with your knary domain
@@ -21,13 +22,20 @@
 * `ALLOWLIST_FILE` Location for a file containing case-insensitive subdomains or IP addresses (separated by newlines) that should trigger a notification for knary (unless also included in the denylist). Example input: `allowlist.txt`
 * `DENYLIST_FILE` Location for a file containing case-insensitive subdomains or IP addresses (separated by newlines) that should be ignored by knary and not logged or notified. Example input: `denylist.txt` 
 
-## Burp Collaborator Configuration
+## Burp Collaborator Configuration (Deprecated in favour of REVERSE_PROXY_*)
 If you are running Burp Collaborator on the same server as knary, you will need to configure the following.
-* `BURP_DOMAIN` The domain + TLD to match Collaborator hits on (e.g. `burp.knary.tld`).
+* `BURP_DOMAIN` The FQDN suffix to match Collaborator hits on (e.g. `burp.knary.tld`). This will forward anything `*.burp.knary.tld` to Collaborator.
 * `BURP_DNS_PORT` Local Burp Collaborator DNS port. This can't be `53` because knary listens on that one! Change Collaborator config to be something like `8053`, and set this to `8053`
 * `BURP_HTTP_PORT` Much like the above - set to `8080` (or whatever you set the Burp HTTP port to be)
 * `BURP_HTTPS_PORT` Much like the above - set to `8443` (or whatever you set the Burp HTTPS port to be)
 * `BURP_INT_IP` __Optional__ The internal IP address that Burp Collaborator is bound to. In most cases this will be `127.0.0.1` (which is the default); however, if you run knary in Docker you may need to set this to the Burp Collaborator IP address reachable from within the knary container
+
+## Reverse Proxy Configuration
+You can specify any FQDN to operate as a HTTP(s) and/or DNS reverse proxy. The proxied system will need to support TLS to proxy HTTPS requests. **Note:** Proxied requests will **not** trigger the knary. This can be used to operate Burp Collaborator alongside knary.
+* `REVERSE_PROXY_DOMAIN` The FQDN suffix to match requests that knary should proxy. Example input `burp.knary.tld` would forward anything `*.burp.knary.tld` to the proxied system
+* `REVERSE_PROXY_HTTP` The IP address and port running the service you want to proxy plaintext HTTP requests to. Example input `127.0.0.1:8000`
+* `REVERSE_PROXY_HTTPS` __Optional__ The IP address and port running the service you want to proxy encrypted HTTPS requests to. Example input `127.0.0.1:8443`
+* `REVERSE_PROXY_DNS` __Optional__ The IP address and port running the service you want to proxy DNS requests to. Example input `127.0.0.1:8053`
 
 ## Optional Configurations
 * `FULL_HTTP_REQUEST` Enable/Disable displaying the full HTTP request made to knary on hits. Default false (true/false)
