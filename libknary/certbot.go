@@ -13,7 +13,7 @@ import (
 	"github.com/go-acme/lego/v4/certificate"
 	"github.com/go-acme/lego/v4/challenge/dns01"
 	"github.com/go-acme/lego/v4/lego"
-	cmd "github.com/sudosammy/knary/libknary/lego"
+	cmd "github.com/sudosammy/knary/v3/libknary/lego"
 )
 
 // Config is used to configure the creation of the DNSProvider.

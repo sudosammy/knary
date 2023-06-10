@@ -11,11 +11,11 @@ import (
 	"os"
 	"sync"
 
-	"github.com/sudosammy/knary/libknary"
+	"github.com/sudosammy/knary/v3/libknary"
 )
 
 const (
-	VERSION       = "3.4.5"
+	VERSION       = "3.4.6"
 	GITHUB        = "https://github.com/sudosammy/knary"
 	GITHUBVERSION = "https://raw.githubusercontent.com/sudosammy/knary/master/VERSION"
 )

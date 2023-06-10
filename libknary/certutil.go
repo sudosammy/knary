@@ -11,7 +11,7 @@ import (
 	"github.com/go-acme/lego/v4/certcrypto"
 	"github.com/go-acme/lego/v4/lego"
 	"github.com/go-acme/lego/v4/registration"
-	cmd "github.com/sudosammy/knary/libknary/lego"
+	cmd "github.com/sudosammy/knary/v3/libknary/lego"
 )
 
 // create domain list for certificates

@@ -1,6 +1,6 @@
 # knary - A simple HTTP(S) and DNS Canary
 
-[![Build Status](https://circleci.com/gh/sudosammy/knary/tree/master.svg?style=svg)](https://circleci.com/gh/sudosammy/knary/tree/master)  [![Go Report Card](https://goreportcard.com/badge/github.com/sudosammy/knary)](https://goreportcard.com/report/github.com/sudosammy/knary)  [![Coverage Status](https://coveralls.io/repos/github/sudosammy/knary/badge.svg?branch=master)](https://coveralls.io/github/sudosammy/knary?branch=master)
+[![Build Status](https://circleci.com/gh/sudosammy/knary/tree/master.svg?style=svg)](https://circleci.com/gh/sudosammy/knary/tree/master)  [![Go Report Card](https://goreportcard.com/badge/github.com/sudosammy/knary/v3)](https://goreportcard.com/report/github.com/sudosammy/knary/v3)  [![Coverage Status](https://coveralls.io/repos/github/sudosammy/knary/badge.svg?branch=master)](https://coveralls.io/github/sudosammy/knary?branch=master)
 
 >Like "Canary" but more hipster, which means better 😎😎😎
 
@@ -20,7 +20,7 @@ Defenders also use canaries as tripwires that can alert them of an attacker with
 
 __Prerequisite:__ You need Go >=1.18 to build knary.
 ```
-go install github.com/sudosammy/knary@latest
+go install github.com/sudosammy/knary/v3@latest
 ```
 
 See [here](#inbound-firewall-requirements) for guidance on which ports to open for knary.
