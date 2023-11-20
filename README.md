@@ -18,7 +18,7 @@ Defenders also use canaries as tripwires that can alert them of an attacker with
 
 1. Download the [applicable 64-bit knary binary](https://github.com/sudosammy/knary/releases) __OR__ build knary from source:
 
-__Prerequisite:__ You need Go >=1.18 to build knary.
+__Prerequisite:__ You need Go >=1.20 to build knary.
 ```
 go install github.com/sudosammy/knary/v3@latest
 ```
@@ -69,7 +69,7 @@ If this were a denylist, it would stop knary from alerting on `www.knary.tld` bu
 
 If this were an allowlist, knary would alert on exact matches (`sam.knary.tld`) and subdomain matches (`website1.sam.knary.tld`). Use `ALLOWLIST_STRICT=true` to prevent this fuzzy matching and only alert on hits to `sam.knary.tld`.
 
-You can use both a deny and allowlist simultaneously. **Note:** wildcards in these files are not supported. An entry of `*.knary.tld` will match that string exactly.
+You can use both a deny and allowlist simultaneously, note the denylist always has the higher order of precedence. For example, a request to a subdomain that matches the allowlist, would still be denied if the User-Agent matches something in the denylist. **Note:** wildcards in these files are not supported. An entry of `*.knary.tld` will match that string exactly.
 
 2. The `DNS_SUBDOMAIN` configuration allows you to specify a subdomain that knary must fuzzy match (i.e. `*.DNS_SUBDOMAIN.knary.tld`) before alerting on DNS hits. This configuration does not affect HTTP(S) requests and remains primarily to mimic legacy knary v2 functionality. **Consider using a deny/allowlist instead.**
 

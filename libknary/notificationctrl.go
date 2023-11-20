@@ -34,20 +34,18 @@ func (a *blacklist) updateD(term string) bool {
 	if term == "" {
 		return false // would happen if there's no X-Forwarded-For header
 	}
-	item := standerdiseListItem(term)
 	a.mutex.Lock()
-	a.deny[item] = time.Now()
+	a.deny[term] = time.Now()
 	a.mutex.Unlock()
 	return true
 }
 
 // search for a denied domain/IP
 func (a *blacklist) searchD(term string) bool {
-	item := standerdiseListItem(term)
 	a.mutex.Lock()
 	defer a.mutex.Unlock()
 
-	if _, ok := a.deny[item]; ok {
+	if _, ok := a.deny[term]; ok {
 		return true // found!
 	}
 	return false
@@ -116,7 +114,7 @@ func LoadBlacklist() (bool, error) {
 
 	for scanner.Scan() { // foreach denied item
 		if scanner.Text() != "" {
-			denied.updateD(scanner.Text())
+			denied.updateD(standerdiseListItem(scanner.Text()))
 			denyCount++
 		}
 	}
@@ -138,6 +136,7 @@ func inAllowlist(needles ...string) bool {
 				// strict matching. don't match subdomains
 				if needle == allowed[i].allow {
 					if os.Getenv("DEBUG") == "true" {
+						logger("INFO", "Found "+needle+" in allowlist (strict mode)")
 						Printy(needle+" matches allowlist", 3)
 					}
 					return true
@@ -146,6 +145,7 @@ func inAllowlist(needles ...string) bool {
 				// allow fuzzy matching
 				if strings.HasSuffix(needle, allowed[i].allow) {
 					if os.Getenv("DEBUG") == "true" {
+						logger("INFO", "Found "+needle+" in allowlist")
 						Printy(needle+" matches allowlist", 3)
 					}
 					return true
@@ -158,6 +158,7 @@ func inAllowlist(needles ...string) bool {
 
 func inBlacklist(needles ...string) bool {
 	for _, needle := range needles {
+		needle := standerdiseListItem(needle)
 		if denied.searchD(needle) {
 			denied.updateD(needle) // found!
 

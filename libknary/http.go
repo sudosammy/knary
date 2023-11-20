@@ -156,6 +156,12 @@ func Accept443(ln net.Listener, wg *sync.WaitGroup, restart <-chan bool) {
 	}
 }
 
+func httpRespond(conn net.Conn) bool {
+	conn.Write([]byte(" ")) // necessary as a 0 byte response triggers some clients to resend the request
+	conn.Close()            // v. important lol
+	return true
+}
+
 func handleRequest(conn net.Conn) bool {
 	// set timeout for reading responses
 	_ = conn.SetDeadline(time.Now().Add(time.Second * time.Duration(2))) // 2 seconds
@@ -243,43 +249,49 @@ func handleRequest(conn net.Conn) bool {
 				}
 			}
 
-			// take off the header name for the user agent
-			userAgent = strings.TrimPrefix(strings.ToLower(userAgent), "user-agent:")
-			hostDomain := strings.TrimPrefix(strings.ToLower(host), "host:") // trim off the "Host:" section of header
+			// take off the headers for the allow/denylist search
+			searchUserAgent := strings.TrimPrefix(strings.ToLower(userAgent), "user-agent:")
+			searchDomain := strings.TrimPrefix(strings.ToLower(host), "host:") // trim off the "Host:" section of header
 
-			if inAllowlist(hostDomain, conn.RemoteAddr().String(), fwd) && !inBlacklist(hostDomain, conn.RemoteAddr().String(), fwd) && inAllowlist(userAgent) && !inBlacklist(userAgent) {
-				var msg string
-				var fromIP string
+			// these conditionals were bugged in <=3.4.6 whereby subdomains/ips in the allowlist weren't allowed unless the user-agent was ALSO in the allowlist
+			// it should be easier to grok now
+			if inBlacklist(searchUserAgent, searchDomain, conn.RemoteAddr().String(), fwd) { // inBlacklist returns false on empty/unused denylists
+				return httpRespond(conn)
+			}
 
-				if fwd != "" {
-					fromIP = fwd // use this when burp collab mode is active
+			if !inAllowlist(searchUserAgent, searchDomain, conn.RemoteAddr().String(), fwd) { // inAllowlist returns true on empty/unused allowlists
+				return httpRespond(conn)
+			}
+
+			var msg string
+			var fromIP string
+
+			if fwd != "" {
+				fromIP = fwd // use this when burp collab mode is active
+			} else {
+				fromIP = conn.RemoteAddr().String()
+			}
+
+			if cookie != "" {
+				if os.Getenv("FULL_HTTP_REQUEST") != "" {
+					msg = fmt.Sprintf("%s\n```Query: %s\n%s\n%s\nFrom: %s\n\n---------- FULL REQUEST ----------\n%s\n----------------------------------", host, query, userAgent, cookie, fromIP, response)
 				} else {
-					fromIP = conn.RemoteAddr().String()
+					msg = fmt.Sprintf("%s\n```Query: %s\n%s\n%s\nFrom: %s", host, query, userAgent, cookie, fromIP)
 				}
-
-				if cookie != "" {
-					if os.Getenv("FULL_HTTP_REQUEST") != "" {
-						msg = fmt.Sprintf("%s\n```Query: %s\n%s\n%s\nFrom: %s\n\n---------- FULL REQUEST ----------\n%s\n----------------------------------", host, query, userAgent, cookie, fromIP, response)
-					} else {
-						msg = fmt.Sprintf("%s\n```Query: %s\n%s\n%s\nFrom: %s", host, query, userAgent, cookie, fromIP)
-					}
+			} else {
+				if os.Getenv("FULL_HTTP_REQUEST") != "" {
+					msg = fmt.Sprintf("%s\n```Query: %s\n%s\nFrom: %s\n\n---------- FULL REQUEST ----------\n%s\n----------------------------------", host, query, userAgent, fromIP, response)
 				} else {
-					if os.Getenv("FULL_HTTP_REQUEST") != "" {
-						msg = fmt.Sprintf("%s\n```Query: %s\n%s\nFrom: %s\n\n---------- FULL REQUEST ----------\n%s\n----------------------------------", host, query, userAgent, fromIP, response)
-					} else {
-						msg = fmt.Sprintf("%s\n```Query: %s\n%s\nFrom: %s", host, query, userAgent, fromIP)
-					}
+					msg = fmt.Sprintf("%s\n```Query: %s\n%s\nFrom: %s", host, query, userAgent, fromIP)
 				}
+			}
 
-				go sendMsg(msg + "```")
-				if os.Getenv("DEBUG") == "true" {
-					logger("INFO", fromIP+" - "+host)
-				}
+			go sendMsg(msg + "```")
+			if os.Getenv("DEBUG") == "true" {
+				logger("INFO", fromIP+" - "+host)
 			}
 		}
 	}
 
-	conn.Write([]byte(" ")) // necessary as a 0 byte response triggers some clients to resend the request
-	conn.Close()            // v. important lol
-	return true
+	return httpRespond(conn)
 }
