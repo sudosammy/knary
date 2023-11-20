@@ -244,7 +244,7 @@ func HeartBeat(version string, firstrun bool) (bool, error) {
 
 	// print allowed items (if any)
 	if allowCount > 0 {
-		beatMsg += strconv.Itoa(allowCount) + " allowed subdomains / IPs: \n"
+		beatMsg += strconv.Itoa(allowCount) + " allowed subdomains, User-Agents, IPs: \n"
 		if os.Getenv("ALLOWLIST_STRICT") == "true" {
 			beatMsg += "(Operating in strict mode) \n"
 		}
@@ -257,7 +257,7 @@ func HeartBeat(version string, firstrun bool) (bool, error) {
 
 	// print denied items (if any)
 	if denyCount > 0 {
-		beatMsg += strconv.Itoa(denyCount) + " denied subdomains / User-Agents / IPs: \n"
+		beatMsg += strconv.Itoa(denyCount) + " denied subdomains, User-Agents, IPs: \n"
 		beatMsg += "------------------------\n"
 		for subdomain := range denied.deny {
 			beatMsg += subdomain + "\n"

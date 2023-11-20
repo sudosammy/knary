@@ -89,7 +89,11 @@ func goSendMsg(ipaddr, reverse, name, record string) bool {
 		Printy("Got "+record+" question for: "+name, 3)
 	}
 
-	if !inAllowlist(name, ipaddr) || inBlacklist(name, ipaddr) {
+	if inBlacklist(name, ipaddr) {
+		return false // we check denylist first for consistent 'order of precedence' with the HTTP allow/denylist checking
+	}
+
+	if !inAllowlist(name, ipaddr) {
 		return false
 	}
 
