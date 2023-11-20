@@ -21,13 +21,14 @@ import (
 )
 
 // GetCertPath():
-//     /knary/certs/
-//                └── root certificates directory
+//
+//	/knary/certs/
+//	           └── root certificates directory
 //
 // archive file path:
-//     /knary/certs/archives/
-//                    └── archived certificates directory
 //
+//	/knary/certs/archives/
+//	               └── archived certificates directory
 func GetCertPath() string {
 	var certFolderName string
 	var certPath string

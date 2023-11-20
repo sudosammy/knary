@@ -5,7 +5,7 @@ jobs:
   build:
     working_directory: ~/repo
     docker:
-      - image: cimg/go:1.18-node
+      - image: cimg/go:1.20-node
     parallelism: 3
     steps:
       - checkout

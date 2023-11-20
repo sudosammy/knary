@@ -7,8 +7,8 @@ import (
 	"time"
 )
 
-//code for 3 functions below here is taken and modified from
-//here: https://github.com/miekg/dns/blob/67373879ce327b5fd112d9301d0a4d62bad6b904/server_test.go
+// code for 3 functions below here is taken and modified from
+// here: https://github.com/miekg/dns/blob/67373879ce327b5fd112d9301d0a4d62bad6b904/server_test.go
 func GokuServer(w dns.ResponseWriter, req *dns.Msg) {
 	m := new(dns.Msg)
 	m.SetReply(req)
