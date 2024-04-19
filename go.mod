@@ -11,7 +11,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/miekg/dns v1.1.58
 	github.com/radovskyb/watcher v1.0.7
-	golang.org/x/net v0.22.0
+	golang.org/x/net v0.23.0
 )
 
 require (
