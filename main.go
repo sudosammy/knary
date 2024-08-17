@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	VERSION       = "3.4.8"
+	VERSION       = "3.4.9"
 	GITHUB        = "https://github.com/sudosammy/knary"
 	GITHUBVERSION = "https://raw.githubusercontent.com/sudosammy/knary/master/VERSION"
 )
@@ -100,7 +100,14 @@ func main() {
 	// load lists, zone file & submit usage
 	libknary.LoadAllowlist()
 	libknary.LoadBlacklist()
-	libknary.LoadZone()
+
+	_, err = libknary.LoadZone()
+	if err != nil {
+		libknary.Printy("Error in zone file entries", 2)
+		libknary.GiveHead(2)
+		log.Fatal(err)
+	}
+
 	go libknary.UsageStats(VERSION)
 
 	if os.Getenv("HTTP") == "true" && os.Getenv("LETS_ENCRYPT") == "" && (os.Getenv("TLS_CRT") == "" || os.Getenv("TLS_KEY") == "") {

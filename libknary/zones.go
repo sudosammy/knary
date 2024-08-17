@@ -3,7 +3,6 @@ package libknary
 import (
 	"bufio"
 	"fmt"
-	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -44,11 +43,8 @@ func LoadZone() (bool, error) {
 	}
 
 	if err := zp.Err(); err != nil {
-		if err != nil {
-			logger("ERROR", err.Error())
-			GiveHead(2)
-			log.Fatal(err)
-		}
+		logger("ERROR", err.Error())
+		return false, err
 	}
 
 	Printy("Monitoring "+strconv.Itoa(zoneCounter)+" items in zone", 1)
@@ -57,6 +53,11 @@ func LoadZone() (bool, error) {
 }
 
 func inZone(needle string, qType uint16) (map[int]dns.RR, bool) {
+	// if last character of needle isn't a period, add it
+	if needle[len(needle)-1] != '.' {
+		needle += "."
+	}
+
 	if val, ok := zoneMap[strings.ToLower(needle)]; ok {
 		// this (sub)domain is present in the zone file
 		// confirm whether one or many match the qType
@@ -102,6 +103,11 @@ func addZone(fqdn string, ttl int, qType string, value string) error {
 }
 
 func remZone(fqdn string) {
+	// if last character of fqdn isn't a period, add it
+	if fqdn[len(fqdn)-1] != '.' {
+		fqdn += "."
+	}
+
 	// this is pretty dodgy.
 	// we're hoping that the last zone added to the map is the one we want to delete
 	lastVal := len(zoneMap[fqdn]) - 1
