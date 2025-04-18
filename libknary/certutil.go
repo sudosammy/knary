@@ -23,6 +23,10 @@ func getDomainsForCert() []string {
 		domainArray = append(domainArray, "*."+cdomain)
 		numDomains++
 
+		// add root domain
+		domainArray = append(domainArray, cdomain)
+		numDomains++
+
 		if os.Getenv("DNS_SUBDOMAIN") != "" {
 			domainArray = append(domainArray, "*."+os.Getenv("DNS_SUBDOMAIN")+"."+cdomain)
 			numDomains++
@@ -32,10 +36,18 @@ func getDomainsForCert() []string {
 	if os.Getenv("BURP_DOMAIN") != "" {
 		domainArray = append(domainArray, "*."+os.Getenv("BURP_DOMAIN"))
 		numDomains++
+
+		// add root domain
+		domainArray = append(domainArray, os.Getenv("BURP_DOMAIN"))
+		numDomains++
 	}
 
 	if os.Getenv("REVERSE_PROXY_DOMAIN") != "" {
 		domainArray = append(domainArray, "*."+os.Getenv("REVERSE_PROXY_DOMAIN"))
+		numDomains++
+
+		// add root domain
+		domainArray = append(domainArray, os.Getenv("REVERSE_PROXY_DOMAIN"))
 		numDomains++
 	}
 
