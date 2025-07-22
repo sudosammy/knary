@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	VERSION       = "3.4.11"
+	VERSION       = "3.4.12"
 	GITHUB        = "https://github.com/sudosammy/knary"
 	GITHUBVERSION = "https://raw.githubusercontent.com/sudosammy/knary/master/VERSION"
 )
@@ -93,7 +93,22 @@ func main() {
 |  |--.-----.---.-.----.--.--.
 |    <|     |  _  |   _|  |  |
 |__|__|__|__|___._|__| |___  |`)
-	green.Printf(` @sudosammy     v` + VERSION + ` `)
+	// Adjust spacing based on version number length
+	digitCount := 0
+	for _, char := range VERSION {
+		if char >= '0' && char <= '9' {
+			digitCount++
+		}
+	}
+
+	var spacing string
+	if digitCount >= 4 {
+		spacing = "    " // 4 spaces for versions with 4+ digits
+	} else {
+		spacing = "     " // 5 spaces for versions with fewer than 4 digits
+	}
+
+	green.Printf(` @sudosammy` + spacing + `v` + VERSION + ` `)
 	red.Println(`|_____|`)
 	fmt.Println()
 
