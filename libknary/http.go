@@ -27,26 +27,38 @@ func Listen80() net.Listener {
 		} else {
 			burpIP = "127.0.0.1"
 		}
-		// start reverse proxy to direct requests appropriately
+		// start custom handler to route requests appropriately
 		go func() {
-			e := http.ListenAndServe(os.Getenv("BIND_ADDR")+":80", &httputil.ReverseProxy{
-				Director: func(r *http.Request) {
-					r.URL.Scheme = "http"
-					// burp config
-					if strings.HasSuffix(r.Host, os.Getenv("BURP_DOMAIN")) {
-						r.URL.Host = burpIP + ":" + os.Getenv("BURP_HTTP_PORT")
-
-						// reverse proxy config
-					} else if strings.HasSuffix(r.Host, os.Getenv("REVERSE_PROXY_DOMAIN")) {
-						r.URL.Host = os.Getenv("REVERSE_PROXY_HTTP")
-
-						// else send it raw to the local knary port
-					} else {
-						r.URL.Host = p80
-						r.Header.Set("X-Forwarded-For", r.RemoteAddr)
+			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				// burp config
+				if os.Getenv("BURP_DOMAIN") != "" && strings.HasSuffix(r.Host, os.Getenv("BURP_DOMAIN")) {
+					proxy := &httputil.ReverseProxy{
+						Director: func(req *http.Request) {
+							req.URL.Scheme = "http"
+							req.URL.Host = burpIP + ":" + os.Getenv("BURP_HTTP_PORT")
+						},
 					}
-				},
+					proxy.ServeHTTP(w, r)
+					return
+				}
+
+				// reverse proxy config
+				if os.Getenv("REVERSE_PROXY_DOMAIN") != "" && strings.HasSuffix(r.Host, os.Getenv("REVERSE_PROXY_DOMAIN")) {
+					proxy := &httputil.ReverseProxy{
+						Director: func(req *http.Request) {
+							req.URL.Scheme = "http"
+							req.URL.Host = os.Getenv("REVERSE_PROXY_HTTP")
+						},
+					}
+					proxy.ServeHTTP(w, r)
+					return
+				}
+
+				// For knary canary requests, respond immediately without proxying
+				r.Header.Set("X-Forwarded-For", r.RemoteAddr)
 			})
+
+			e := http.ListenAndServe(os.Getenv("BIND_ADDR")+":80", handler)
 			if e != nil {
 				Printy(e.Error(), 2)
 			}
@@ -87,28 +99,42 @@ func Listen443() net.Listener {
 			burpIP = "127.0.0.1"
 		}
 		go func() {
-			e := http.ListenAndServeTLS(os.Getenv("BIND_ADDR")+":443", os.Getenv("TLS_CRT"), os.Getenv("TLS_KEY"),
-				&httputil.ReverseProxy{
-					Transport: &http.Transport{
-						TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, //it's localhost, we don't need to verify
-					},
-					Director: func(r *http.Request) {
-						r.URL.Scheme = "https"
-						// burp config
-						if strings.HasSuffix(r.Host, os.Getenv("BURP_DOMAIN")) {
-							r.URL.Host = burpIP + ":" + os.Getenv("BURP_HTTPS_PORT")
+			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				// burp config
+				if os.Getenv("BURP_DOMAIN") != "" && strings.HasSuffix(r.Host, os.Getenv("BURP_DOMAIN")) {
+					proxy := &httputil.ReverseProxy{
+						Transport: &http.Transport{
+							TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, //it's localhost, we don't need to verify
+						},
+						Director: func(req *http.Request) {
+							req.URL.Scheme = "https"
+							req.URL.Host = burpIP + ":" + os.Getenv("BURP_HTTPS_PORT")
+						},
+					}
+					proxy.ServeHTTP(w, r)
+					return
+				}
 
-							// reverse proxy config
-						} else if strings.HasSuffix(r.Host, os.Getenv("REVERSE_PROXY_DOMAIN")) {
-							r.URL.Host = os.Getenv("REVERSE_PROXY_HTTPS")
+				// reverse proxy config
+				if os.Getenv("REVERSE_PROXY_DOMAIN") != "" && strings.HasSuffix(r.Host, os.Getenv("REVERSE_PROXY_DOMAIN")) {
+					proxy := &httputil.ReverseProxy{
+						Transport: &http.Transport{
+							TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, //it's localhost, we don't need to verify
+						},
+						Director: func(req *http.Request) {
+							req.URL.Scheme = "https"
+							req.URL.Host = os.Getenv("REVERSE_PROXY_HTTPS")
+						},
+					}
+					proxy.ServeHTTP(w, r)
+					return
+				}
 
-							// else send it raw to the local knary port
-						} else {
-							r.URL.Host = p443
-							r.Header.Set("X-Forwarded-For", r.RemoteAddr)
-						}
-					},
-				})
+				// For knary canary requests, respond immediately without proxying
+				r.Header.Set("X-Forwarded-For", r.RemoteAddr)
+			})
+
+			e := http.ListenAndServeTLS(os.Getenv("BIND_ADDR")+":443", os.Getenv("TLS_CRT"), os.Getenv("TLS_KEY"), handler)
 			if e != nil {
 				Printy(e.Error(), 2)
 			}
