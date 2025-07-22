@@ -19,11 +19,17 @@ var fqdnCounter = map[string]int{}
 var zoneCounter = 0
 
 func LoadZone() (bool, error) {
-	if _, err := os.Stat(os.Getenv("ZONE_FILE")); os.IsNotExist(err) {
+	// Check if ZONE_FILE environment variable is set
+	zoneFile := os.Getenv("ZONE_FILE")
+	if zoneFile == "" {
+		return true, nil
+	}
+
+	if _, err := os.Stat(zoneFile); os.IsNotExist(err) {
 		return false, err
 	}
 
-	zlist, err := os.Open(os.Getenv("ZONE_FILE"))
+	zlist, err := os.Open(zoneFile)
 	if err != nil {
 		Printy(err.Error()+" - ignoring", 3)
 		return false, err

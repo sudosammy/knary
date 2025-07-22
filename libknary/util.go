@@ -80,7 +80,8 @@ func splitPort(s string) (string, int) {
 
 	if ip == nil {
 		var host string
-		host, port, err := net.SplitHostPort(s)
+		var err error
+		host, port, err = net.SplitHostPort(s)
 		if err != nil {
 			return "", 0
 		}

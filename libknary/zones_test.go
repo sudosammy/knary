@@ -55,6 +55,20 @@ func TestLoadZone_WhenZoneFileDoesNotExist_ReturnsFalseAndError(t *testing.T) {
 	}
 }
 
+func TestLoadZone_WhenZoneFileNotSet_ReturnsTrueAndNoError(t *testing.T) {
+	// Clear the ZONE_FILE environment variable
+	os.Setenv("ZONE_FILE", "")
+
+	result, err := LoadZone()
+
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+	if result != true {
+		t.Error("Expected result to be true when ZONE_FILE is not set")
+	}
+}
+
 func TestAddZone_WhenValidInput_ReturnsNoError(t *testing.T) {
 	err := addZone("example.com", 3600, "A", "192.0.2.1")
 

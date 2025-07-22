@@ -130,7 +130,7 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 		// catch requests to pass through to Collaborator / reverse proxy
 		if os.Getenv("BURP_DOMAIN") != "" || os.Getenv("REVERSE_PROXY_DOMAIN") != "" {
 			// for burp config
-			if strings.HasSuffix(strings.ToLower(q.Name), strings.ToLower(os.Getenv("BURP_DOMAIN"))+".") {
+			if os.Getenv("BURP_DOMAIN") != "" && strings.HasSuffix(strings.ToLower(q.Name), strings.ToLower(os.Getenv("BURP_DOMAIN"))+".") {
 				// to support our container friends - let the player choose the IP Burp is bound to
 				burpIP := ""
 				if os.Getenv("BURP_INT_IP") != "" {
@@ -171,20 +171,28 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 
 			// for reverse proxy config
 			if strings.HasSuffix(strings.ToLower(q.Name), strings.ToLower(os.Getenv("REVERSE_PROXY_DOMAIN"))+".") {
-				c := dns.Client{}
-				newM := dns.Msg{}
-				newM.SetQuestion(q.Name, dns.TypeA)
-				r, _, err := c.Exchange(&newM, os.Getenv("REVERSE_PROXY_DNS"))
+				// only proxy DNS if REVERSE_PROXY_DNS is configured
+				if os.Getenv("REVERSE_PROXY_DNS") != "" {
+					c := dns.Client{}
+					newM := dns.Msg{}
+					newM.SetQuestion(q.Name, dns.TypeA)
+					r, _, err := c.Exchange(&newM, os.Getenv("REVERSE_PROXY_DNS"))
 
-				if err != nil {
-					Printy(err.Error(), 2)
+					if err != nil {
+						Printy(err.Error(), 2)
+						return
+					}
+					m.Answer = r.Answer
+					if os.Getenv("DEBUG") == "true" {
+						Printy("Proxied question "+q.Name+" to: "+os.Getenv("REVERSE_PROXY_DNS"), 3)
+					}
 					return
+				} else {
+					if os.Getenv("DEBUG") == "true" {
+						Printy("REVERSE_PROXY_DNS not set, processing "+q.Name+" as normal knary request", 3)
+					}
+					// fall through to normal DNS processing
 				}
-				m.Answer = r.Answer
-				if os.Getenv("DEBUG") == "true" {
-					Printy("Proxied question "+q.Name+" to: "+os.Getenv("REVERSE_PROXY_DNS"), 3)
-				}
-				return
 			}
 		}
 
@@ -335,7 +343,11 @@ func GuessIP(domain string) (string, error) {
 	// query the tld's nameserver for our knary domain and extract the glue record from additional information
 	kMsg := new(dns.Msg)
 	kMsg.SetQuestion(dns.Fqdn(domain), dns.TypeNS)
-	answ, _, _ := new(dns.Client).Exchange(kMsg, tldDNS+":53")
+	answ, _, err := new(dns.Client).Exchange(kMsg, tldDNS+":53")
+
+	if err != nil || answ == nil {
+		return "", errors.New("DNS exchange failed for domain: " + domain + " with nameserver: " + tldDNS + ". Have you configured a glue record for your domain? Has it propagated? You can set EXT_IP to bypass this but... do you know what you're doing?")
+	}
 
 	if len(answ.Extra) == 0 {
 		return "", errors.New("No 'Additional' section in NS lookup for: " + domain + " with nameserver: " + tldDNS + " Have you configured a glue record for your domain? Has it propagated? You can set EXT_IP to bypass this but... do you know what you're doing?")

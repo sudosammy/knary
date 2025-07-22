@@ -1,5 +1,5 @@
-# We know knary works well in Golang 1.20
-FROM golang:1.20-alpine as builder
+# We know knary works well in Golang 1.24
+FROM golang:1.24-alpine as builder
 RUN apk add --no-cache --upgrade git ca-certificates
 WORKDIR /go/src/app
 COPY . /go/src/app
