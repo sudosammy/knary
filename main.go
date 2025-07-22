@@ -108,7 +108,8 @@ func main() {
 		spacing = "     " // 5 spaces for versions with fewer than 4 digits
 	}
 
-	green.Printf(` @sudosammy` + spacing + `v` + VERSION + ` `)
+	versionLine := fmt.Sprintf(` @sudosammy%sv%s `, spacing, VERSION)
+	green.Printf("%s", versionLine)
 	red.Println(`|_____|`)
 	fmt.Println()
 
