@@ -130,7 +130,7 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 		// catch requests to pass through to Collaborator / reverse proxy
 		if os.Getenv("BURP_DOMAIN") != "" || os.Getenv("REVERSE_PROXY_DOMAIN") != "" {
 			// for burp config
-			if strings.HasSuffix(strings.ToLower(q.Name), strings.ToLower(os.Getenv("BURP_DOMAIN"))+".") {
+			if os.Getenv("BURP_DOMAIN") != "" && strings.HasSuffix(strings.ToLower(q.Name), strings.ToLower(os.Getenv("BURP_DOMAIN"))+".") {
 				// to support our container friends - let the player choose the IP Burp is bound to
 				burpIP := ""
 				if os.Getenv("BURP_INT_IP") != "" {
@@ -171,20 +171,28 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 
 			// for reverse proxy config
 			if strings.HasSuffix(strings.ToLower(q.Name), strings.ToLower(os.Getenv("REVERSE_PROXY_DOMAIN"))+".") {
-				c := dns.Client{}
-				newM := dns.Msg{}
-				newM.SetQuestion(q.Name, dns.TypeA)
-				r, _, err := c.Exchange(&newM, os.Getenv("REVERSE_PROXY_DNS"))
+				// only proxy DNS if REVERSE_PROXY_DNS is configured
+				if os.Getenv("REVERSE_PROXY_DNS") != "" {
+					c := dns.Client{}
+					newM := dns.Msg{}
+					newM.SetQuestion(q.Name, dns.TypeA)
+					r, _, err := c.Exchange(&newM, os.Getenv("REVERSE_PROXY_DNS"))
 
-				if err != nil {
-					Printy(err.Error(), 2)
+					if err != nil {
+						Printy(err.Error(), 2)
+						return
+					}
+					m.Answer = r.Answer
+					if os.Getenv("DEBUG") == "true" {
+						Printy("Proxied question "+q.Name+" to: "+os.Getenv("REVERSE_PROXY_DNS"), 3)
+					}
 					return
+				} else {
+					if os.Getenv("DEBUG") == "true" {
+						Printy("REVERSE_PROXY_DNS not set, processing "+q.Name+" as normal knary request", 3)
+					}
+					// fall through to normal DNS processing
 				}
-				m.Answer = r.Answer
-				if os.Getenv("DEBUG") == "true" {
-					Printy("Proxied question "+q.Name+" to: "+os.Getenv("REVERSE_PROXY_DNS"), 3)
-				}
-				return
 			}
 		}
 
