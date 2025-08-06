@@ -7,7 +7,7 @@ toolchain go1.24.4
 require (
 	github.com/blang/semver/v4 v4.0.0
 	github.com/fatih/color v1.18.0
-	github.com/go-acme/lego/v4 v4.25.1
+	github.com/go-acme/lego/v4 v4.25.2
 	github.com/joho/godotenv v1.5.1
 	github.com/miekg/dns v1.1.67
 	github.com/radovskyb/watcher v1.0.7
