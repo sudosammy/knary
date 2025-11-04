@@ -219,7 +219,23 @@ func HeartBeat(version string, firstrun bool) (bool, error) {
 |  |--.-----.---.-.----.--.--.
 |    <|     |  _  |   _|  |  |
 |__|__|__|__|___._|__| |___  |` + "\n"
-		beatMsg += ` @sudosammy     v` + version + ` `
+
+		// Adjust spacing based on version number length
+		digitCount := 0
+		for _, char := range version {
+			if char >= '0' && char <= '9' {
+				digitCount++
+			}
+		}
+
+		var spacing string
+		if digitCount >= 4 {
+			spacing = "    " // 4 spaces for versions with 4+ digits
+		} else {
+			spacing = "     " // 5 spaces for versions with fewer than 4 digits
+		}
+
+		beatMsg += ` @sudosammy` + spacing + `v` + version + ` `
 		beatMsg += `|_____|`
 		beatMsg += "\n\n"
 	} else {

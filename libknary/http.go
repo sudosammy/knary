@@ -14,48 +14,93 @@ import (
 	"time"
 )
 
+type routerConfig struct {
+	scheme              string // "http" or "https"
+	burpPort            string // env var for burp port
+	reverseProxyHost    string // env var for reverse proxy host
+	knaryListenerURL    string // local knary listener address
+	useTLS              bool   // whether to use TLS for backend connections
+	knaryListenerUseTLS bool   // whether knary listener uses TLS
+}
+
+// createReverseProxyHandler creates a handler that routes requests to burp, reverse proxy, or knary
+func createReverseProxyHandler(cfg routerConfig) http.HandlerFunc {
+	burpIP := os.Getenv("BURP_INT_IP")
+	if burpIP == "" {
+		burpIP = "127.0.0.1"
+	}
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// burp config
+		if os.Getenv("BURP_DOMAIN") != "" && strings.HasSuffix(r.Host, os.Getenv("BURP_DOMAIN")) {
+			proxy := &httputil.ReverseProxy{
+				Director: func(req *http.Request) {
+					req.URL.Scheme = cfg.scheme
+					req.URL.Host = burpIP + ":" + cfg.burpPort
+				},
+			}
+			if cfg.useTLS {
+				proxy.Transport = &http.Transport{
+					TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, //it's localhost, we don't need to verify
+				}
+			}
+			proxy.ServeHTTP(w, r)
+			return
+		}
+
+		// reverse proxy config
+		if os.Getenv("REVERSE_PROXY_DOMAIN") != "" && strings.HasSuffix(r.Host, os.Getenv("REVERSE_PROXY_DOMAIN")) {
+			proxy := &httputil.ReverseProxy{
+				Director: func(req *http.Request) {
+					req.URL.Scheme = cfg.scheme
+					req.URL.Host = cfg.reverseProxyHost
+				},
+			}
+			if cfg.useTLS {
+				proxy.Transport = &http.Transport{
+					TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, //it's localhost, we don't need to verify
+				}
+			}
+			proxy.ServeHTTP(w, r)
+			return
+		}
+
+		// For knary canary requests, proxy to knary listener
+		r.Header.Set("X-Forwarded-For", r.RemoteAddr)
+		proxy := &httputil.ReverseProxy{
+			Director: func(req *http.Request) {
+				if cfg.knaryListenerUseTLS {
+					req.URL.Scheme = "https"
+				} else {
+					req.URL.Scheme = "http"
+				}
+				req.URL.Host = cfg.knaryListenerURL
+			},
+		}
+		if cfg.knaryListenerUseTLS {
+			proxy.Transport = &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, //it's localhost, we don't need to verify
+			}
+		}
+		proxy.ServeHTTP(w, r)
+	})
+}
+
 func Listen80() net.Listener {
 	p80 := os.Getenv("BIND_ADDR") + ":80"
 
 	if os.Getenv("BURP_HTTP_PORT") != "" || os.Getenv("REVERSE_PROXY_HTTP") != "" {
 		p80 = "127.0.0.1:8880" // set local port that knary will listen on as the client of the reverse proxy
 
-		// to support our container friends - let the player choose the IP Burp is bound to
-		burpIP := ""
-		if os.Getenv("BURP_INT_IP") != "" {
-			burpIP = os.Getenv("BURP_INT_IP")
-		} else {
-			burpIP = "127.0.0.1"
-		}
 		// start custom handler to route requests appropriately
 		go func() {
-			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				// burp config
-				if os.Getenv("BURP_DOMAIN") != "" && strings.HasSuffix(r.Host, os.Getenv("BURP_DOMAIN")) {
-					proxy := &httputil.ReverseProxy{
-						Director: func(req *http.Request) {
-							req.URL.Scheme = "http"
-							req.URL.Host = burpIP + ":" + os.Getenv("BURP_HTTP_PORT")
-						},
-					}
-					proxy.ServeHTTP(w, r)
-					return
-				}
-
-				// reverse proxy config
-				if os.Getenv("REVERSE_PROXY_DOMAIN") != "" && strings.HasSuffix(r.Host, os.Getenv("REVERSE_PROXY_DOMAIN")) {
-					proxy := &httputil.ReverseProxy{
-						Director: func(req *http.Request) {
-							req.URL.Scheme = "http"
-							req.URL.Host = os.Getenv("REVERSE_PROXY_HTTP")
-						},
-					}
-					proxy.ServeHTTP(w, r)
-					return
-				}
-
-				// For knary canary requests, respond immediately without proxying
-				r.Header.Set("X-Forwarded-For", r.RemoteAddr)
+			handler := createReverseProxyHandler(routerConfig{
+				scheme:              "http",
+				burpPort:            os.Getenv("BURP_HTTP_PORT"),
+				reverseProxyHost:    os.Getenv("REVERSE_PROXY_HTTP"),
+				knaryListenerURL:    "127.0.0.1:8880",
+				useTLS:              false,
+				knaryListenerUseTLS: false,
 			})
 
 			e := http.ListenAndServe(os.Getenv("BIND_ADDR")+":80", handler)
@@ -91,47 +136,14 @@ func Listen443() net.Listener {
 	if os.Getenv("BURP_HTTPS_PORT") != "" || os.Getenv("REVERSE_PROXY_HTTPS") != "" {
 		p443 = "127.0.0.1:8843" // set local port that knary will listen on as the client of the reverse proxy
 
-		// to support our container friends - let the player choose the IP Burp is bound to
-		burpIP := ""
-		if os.Getenv("BURP_INT_IP") != "" {
-			burpIP = os.Getenv("BURP_INT_IP")
-		} else {
-			burpIP = "127.0.0.1"
-		}
 		go func() {
-			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				// burp config
-				if os.Getenv("BURP_DOMAIN") != "" && strings.HasSuffix(r.Host, os.Getenv("BURP_DOMAIN")) {
-					proxy := &httputil.ReverseProxy{
-						Transport: &http.Transport{
-							TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, //it's localhost, we don't need to verify
-						},
-						Director: func(req *http.Request) {
-							req.URL.Scheme = "https"
-							req.URL.Host = burpIP + ":" + os.Getenv("BURP_HTTPS_PORT")
-						},
-					}
-					proxy.ServeHTTP(w, r)
-					return
-				}
-
-				// reverse proxy config
-				if os.Getenv("REVERSE_PROXY_DOMAIN") != "" && strings.HasSuffix(r.Host, os.Getenv("REVERSE_PROXY_DOMAIN")) {
-					proxy := &httputil.ReverseProxy{
-						Transport: &http.Transport{
-							TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, //it's localhost, we don't need to verify
-						},
-						Director: func(req *http.Request) {
-							req.URL.Scheme = "https"
-							req.URL.Host = os.Getenv("REVERSE_PROXY_HTTPS")
-						},
-					}
-					proxy.ServeHTTP(w, r)
-					return
-				}
-
-				// For knary canary requests, respond immediately without proxying
-				r.Header.Set("X-Forwarded-For", r.RemoteAddr)
+			handler := createReverseProxyHandler(routerConfig{
+				scheme:              "https",
+				burpPort:            os.Getenv("BURP_HTTPS_PORT"),
+				reverseProxyHost:    os.Getenv("REVERSE_PROXY_HTTPS"),
+				knaryListenerURL:    "127.0.0.1:8843",
+				useTLS:              true,
+				knaryListenerUseTLS: true,
 			})
 
 			e := http.ListenAndServeTLS(os.Getenv("BIND_ADDR")+":443", os.Getenv("TLS_CRT"), os.Getenv("TLS_KEY"), handler)
@@ -282,10 +294,16 @@ func handleRequest(conn net.Conn) bool {
 			// these conditionals were bugged in <=3.4.6 whereby subdomains/ips in the allowlist weren't allowed unless the user-agent was ALSO in the allowlist
 			// it should be easier to grok now
 			if inBlacklist(searchUserAgent, searchDomain, conn.RemoteAddr().String(), fwd) { // inBlacklist returns false on empty/unused denylists
+				if os.Getenv("DEBUG") == "true" {
+					Printy("HTTP request blocked by denylist", 3)
+				}
 				return httpRespond(conn)
 			}
 
 			if !inAllowlist(searchUserAgent, searchDomain, conn.RemoteAddr().String(), fwd) { // inAllowlist returns true on empty/unused allowlists
+				if os.Getenv("DEBUG") == "true" {
+					Printy("HTTP request blocked by allowlist", 3)
+				}
 				return httpRespond(conn)
 			}
 
