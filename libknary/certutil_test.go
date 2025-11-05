@@ -10,19 +10,16 @@ func TestGetDomainsForCert(t *testing.T) {
 	// Save original env vars
 	oldCanary := os.Getenv("CANARY_DOMAIN")
 	oldDNSSubdomain := os.Getenv("DNS_SUBDOMAIN")
-	oldBurp := os.Getenv("BURP_DOMAIN")
 	oldProxy := os.Getenv("REVERSE_PROXY_DOMAIN")
 	defer func() {
 		os.Setenv("CANARY_DOMAIN", oldCanary)
 		os.Setenv("DNS_SUBDOMAIN", oldDNSSubdomain)
-		os.Setenv("BURP_DOMAIN", oldBurp)
 		os.Setenv("REVERSE_PROXY_DOMAIN", oldProxy)
 	}()
 
 	// Test 1: Single domain, no extras
 	LoadDomains("example.com")
 	os.Setenv("DNS_SUBDOMAIN", "")
-	os.Setenv("BURP_DOMAIN", "")
 	os.Setenv("REVERSE_PROXY_DOMAIN", "")
 
 	domains := getDomainsForCert()
@@ -79,7 +76,6 @@ func TestGetDomainsForCert(t *testing.T) {
 	// Test 4: Multiple CANARY_DOMAINs
 	LoadDomains("example.com,test.com")
 	os.Setenv("DNS_SUBDOMAIN", "")
-	os.Setenv("BURP_DOMAIN", "")
 	os.Setenv("REVERSE_PROXY_DOMAIN", "")
 	domains = getDomainsForCert()
 
@@ -91,21 +87,18 @@ func TestGetDomainsForCert(t *testing.T) {
 	// Test 5: All options enabled
 	LoadDomains("example.com")
 	os.Setenv("DNS_SUBDOMAIN", "dns")
-	os.Setenv("BURP_DOMAIN", "burp.example.com")
 	os.Setenv("REVERSE_PROXY_DOMAIN", "proxy.example.com")
 	domains = getDomainsForCert()
 
-	// Should have 7 domains total (canary: 2, dns_subdomain: 1, burp: 2, proxy: 2)
-	if len(domains) != 7 {
-		t.Errorf("Expected 7 domains with all options, got %d: %v", len(domains), domains)
+	// Should have 5 domains total (canary: 2, dns_subdomain: 1, proxy: 2)
+	if len(domains) != 5 {
+		t.Errorf("Expected 5 domains with all options, got %d: %v", len(domains), domains)
 	}
 
 	expectedAll := []string{
 		"*.example.com",
 		"example.com",
 		"*.dns.example.com",
-		"*.burp.example.com",
-		"burp.example.com",
 		"*.proxy.example.com",
 		"proxy.example.com",
 	}

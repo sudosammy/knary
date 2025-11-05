@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	VERSION       = "3.4.13"
+	VERSION       = "3.5.0"
 	GITHUB        = "https://github.com/sudosammy/knary"
 	GITHUBVERSION = "https://raw.githubusercontent.com/sudosammy/knary/master/VERSION"
 )
@@ -147,13 +147,17 @@ func main() {
 			}
 		}
 	}
+	// BURP_* configuration removed in v3.5.0 - provide migration guidance
 	if os.Getenv("BURP_DOMAIN") != "" {
-		libknary.IsDeprecated("BURP_*", "REVERSE_PROXY_*", "3.5.0")
-		libknary.Printy("(Deprecated) Working in collaborator compatibility mode on subdomain *."+os.Getenv("BURP_DOMAIN"), 1)
-
-		if os.Getenv("BURP_DNS_PORT") == "" || os.Getenv("BURP_HTTP_PORT") == "" || os.Getenv("BURP_HTTPS_PORT") == "" {
-			libknary.Printy("Not all Burp Collaborator settings are set. This might cause errors.", 2)
-		}
+		libknary.Printy("BURP_* configuration has been removed in v3.5.0. Please migrate to REVERSE_PROXY_*", 2)
+		libknary.Printy("Migration guide:", 2)
+		libknary.Printy("  BURP_DOMAIN → REVERSE_PROXY_DOMAIN", 2)
+		libknary.Printy("  BURP_HTTP_PORT → REVERSE_PROXY_HTTP (e.g., 127.0.0.1:8080)", 2)
+		libknary.Printy("  BURP_HTTPS_PORT → REVERSE_PROXY_HTTPS (e.g., 127.0.0.1:8443)", 2)
+		libknary.Printy("  BURP_DNS_PORT → REVERSE_PROXY_DNS (e.g., 127.0.0.1:8053)", 2)
+		libknary.Printy("  BURP_INT_IP → No longer needed (specify IP:port in REVERSE_PROXY_* variables)", 2)
+		libknary.GiveHead(2)
+		log.Fatal("Please update your configuration and restart knary")
 	}
 	if os.Getenv("REVERSE_PROXY_DOMAIN") != "" {
 		libknary.Printy("Proxying enabled on requests to: *."+os.Getenv("REVERSE_PROXY_DOMAIN"), 1)
@@ -161,9 +165,6 @@ func main() {
 		if os.Getenv("REVERSE_PROXY_HTTP") == "" || os.Getenv("REVERSE_PROXY_HTTPS") == "" || os.Getenv("REVERSE_PROXY_DNS") == "" {
 			libknary.Printy("Not all reverse proxy settings are set. This might cause errors.", 2)
 		}
-	}
-	if os.Getenv("REVERSE_PROXY_DOMAIN") != "" && os.Getenv("BURP_DOMAIN") != "" {
-		libknary.Printy("Configuring both BURP_* and REVERSE_PROXY_* is not supported and may break things!", 2)
 	}
 	if os.Getenv("SLACK_WEBHOOK") != "" {
 		libknary.Printy("Posting to webhook: "+os.Getenv("SLACK_WEBHOOK"), 1)

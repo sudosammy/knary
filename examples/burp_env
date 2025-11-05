@@ -1,4 +1,7 @@
 # RENAME ME TO .env
+# This example shows how to run Burp Collaborator alongside knary using REVERSE_PROXY_* configuration
+# Note: BURP_* configuration was removed in v3.5.0 - use REVERSE_PROXY_* instead
+
 DNS=true
 HTTP=true
 BIND_ADDR=0.0.0.0
@@ -12,14 +15,17 @@ LOG_FILE=knary.log
 #ALLOWLIST_FILE=allowlist.txt
 #DENYLIST_FILE=denylist.txt
 
-# Deprecated in favour of the reverse proxy configuration shown below
-BURP_DOMAIN=<burp.knary.tld>
-BURP_DNS_PORT=8053
-BURP_HTTP_PORT=8080
-BURP_HTTPS_PORT=8433
+# Configuration for Burp Collaborator (or any other reverse proxy)
+# Requests to *.burp.knary.tld will be proxied to Burp Collaborator
+# Configure Burp Collaborator to listen on non-standard ports since knary uses 53, 80, 443
+REVERSE_PROXY_DOMAIN=<burp.knary.tld>
+REVERSE_PROXY_HTTP=127.0.0.1:8080
+REVERSE_PROXY_HTTPS=127.0.0.1:8443
+REVERSE_PROXY_DNS=127.0.0.1:8053
 
-# Recommended configuration
-#REVERSE_PROXY_DOMAIN=<burp.knary.tld>
-#REVERSE_PROXY_HTTP=127.0.0.1:8080
-#REVERSE_PROXY_HTTPS=127.0.0.1:8433
-#REVERSE_PROXY_DNS=127.0.0.1:8053
+# MIGRATION FROM BURP_* (removed in v3.5.0):
+# Old: BURP_DOMAIN=<burp.knary.tld>          → New: REVERSE_PROXY_DOMAIN=<burp.knary.tld>
+# Old: BURP_HTTP_PORT=8080                   → New: REVERSE_PROXY_HTTP=127.0.0.1:8080
+# Old: BURP_HTTPS_PORT=8443                  → New: REVERSE_PROXY_HTTPS=127.0.0.1:8443
+# Old: BURP_DNS_PORT=8053                    → New: REVERSE_PROXY_DNS=127.0.0.1:8053
+# Old: BURP_INT_IP=127.0.0.1                 → (no longer needed - include IP in REVERSE_PROXY_* variables)

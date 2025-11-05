@@ -127,72 +127,29 @@ func parseDNS(m *dns.Msg, ipaddr string, EXT_IP string) {
 			}
 		}
 
-		// catch requests to pass through to Collaborator / reverse proxy
-		if os.Getenv("BURP_DOMAIN") != "" || os.Getenv("REVERSE_PROXY_DOMAIN") != "" {
-			// for burp config
-			if os.Getenv("BURP_DOMAIN") != "" && strings.HasSuffix(strings.ToLower(q.Name), strings.ToLower(os.Getenv("BURP_DOMAIN"))+".") {
-				// to support our container friends - let the player choose the IP Burp is bound to
-				burpIP := ""
-				if os.Getenv("BURP_INT_IP") != "" {
-					burpIP = os.Getenv("BURP_INT_IP")
-				} else {
-					burpIP = "127.0.0.1"
-				}
-
-				// https://github.com/sudosammy/knary/issues/43
-				//ipaddrNoPort, port := splitPort(ipaddr)
-				// c := new(dns.Client)
-				// laddr := net.UDPAddr{
-				// 	IP:   net.ParseIP(ipaddrNoPort),
-				// 	Port: port,
-				// 	Zone: "",
-				// }
-				// c.Dialer = &net.Dialer{
-				// 	//Timeout: 200 * time.Millisecond,
-				// 	LocalAddr: &laddr,
-				// }
-
+		// catch requests to pass through to reverse proxy
+		if os.Getenv("REVERSE_PROXY_DOMAIN") != "" && strings.HasSuffix(strings.ToLower(q.Name), strings.ToLower(os.Getenv("REVERSE_PROXY_DOMAIN"))+".") {
+			// only proxy DNS if REVERSE_PROXY_DNS is configured
+			if os.Getenv("REVERSE_PROXY_DNS") != "" {
 				c := dns.Client{}
 				newM := dns.Msg{}
 				newM.SetQuestion(q.Name, dns.TypeA)
-				r, _, err := c.Exchange(&newM, burpIP+":"+os.Getenv("BURP_DNS_PORT"))
+				r, _, err := c.Exchange(&newM, os.Getenv("REVERSE_PROXY_DNS"))
 
 				if err != nil {
 					Printy(err.Error(), 2)
 					return
 				}
 				m.Answer = r.Answer
-				// don't continue onto any other code paths if it's a collaborator message
 				if os.Getenv("DEBUG") == "true" {
-					Printy("Sent question "+q.Name+" to Collaborator: "+burpIP+":"+os.Getenv("BURP_DNS_PORT"), 3)
+					Printy("Proxied question "+q.Name+" to: "+os.Getenv("REVERSE_PROXY_DNS"), 3)
 				}
 				return
-			}
-
-			// for reverse proxy config
-			if strings.HasSuffix(strings.ToLower(q.Name), strings.ToLower(os.Getenv("REVERSE_PROXY_DOMAIN"))+".") {
-				// only proxy DNS if REVERSE_PROXY_DNS is configured
-				if os.Getenv("REVERSE_PROXY_DNS") != "" {
-					c := dns.Client{}
-					newM := dns.Msg{}
-					newM.SetQuestion(q.Name, dns.TypeA)
-					r, _, err := c.Exchange(&newM, os.Getenv("REVERSE_PROXY_DNS"))
-
-					if err != nil {
-						Printy(err.Error(), 2)
-						return
-					}
-					m.Answer = r.Answer
-					if os.Getenv("DEBUG") == "true" {
-						Printy("Proxied question "+q.Name+" to: "+os.Getenv("REVERSE_PROXY_DNS"), 3)
-					}
-					return
-				} else {
-					if os.Getenv("DEBUG") == "true" {
-						Printy("REVERSE_PROXY_DNS not set, processing "+q.Name+" as normal knary request", 3)
-					}
-					// fall through to normal DNS processing
+			} else {
+				if os.Getenv("DEBUG") == "true" {
+					Printy("REVERSE_PROXY_DNS not set, processing "+q.Name+" as normal knary request", 3)
 				}
+				// fall through to normal DNS processing
 			}
 		}
 

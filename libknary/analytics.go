@@ -27,7 +27,6 @@ type features struct {
 	DNS_SUBDOMAIN     bool `json:"dns_subdomain"` // True/False
 	HTTP              bool `json:"http"`
 	HTTP_FULL         bool `json:"full_http_request"`
-	BURP              bool `json:"burp"`
 	REV_PROXY         bool `json:"reverse_proxy"`
 	ALLOW             int  `json:"allowlist"` // Count of items in
 	ALLOW_STRICT      bool `json:"allowlist_strict"`
@@ -99,11 +98,6 @@ func UsageStats(version string) bool {
 		dnsSubdomain = true
 	}
 
-	burp := false
-	if len(os.Getenv("BURP_DOMAIN")) > 0 {
-		burp = true
-	}
-
 	revProxy := false
 	if len(os.Getenv("REVERSE_PROXY_DOMAIN")) > 0 {
 		revProxy = true
@@ -171,7 +165,6 @@ func UsageStats(version string) bool {
 			dnsSubdomain,
 			httpKnary,
 			fullHttp,
-			burp,
 			revProxy,
 			allowCount,
 			allowStrict,

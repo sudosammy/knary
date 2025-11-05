@@ -16,38 +16,15 @@ import (
 
 type routerConfig struct {
 	scheme              string // "http" or "https"
-	burpPort            string // env var for burp port
 	reverseProxyHost    string // env var for reverse proxy host
 	knaryListenerURL    string // local knary listener address
 	useTLS              bool   // whether to use TLS for backend connections
 	knaryListenerUseTLS bool   // whether knary listener uses TLS
 }
 
-// createReverseProxyHandler creates a handler that routes requests to burp, reverse proxy, or knary
+// createReverseProxyHandler creates a handler that routes requests to reverse proxy or knary
 func createReverseProxyHandler(cfg routerConfig) http.HandlerFunc {
-	burpIP := os.Getenv("BURP_INT_IP")
-	if burpIP == "" {
-		burpIP = "127.0.0.1"
-	}
-
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// burp config
-		if os.Getenv("BURP_DOMAIN") != "" && strings.HasSuffix(r.Host, os.Getenv("BURP_DOMAIN")) {
-			proxy := &httputil.ReverseProxy{
-				Director: func(req *http.Request) {
-					req.URL.Scheme = cfg.scheme
-					req.URL.Host = burpIP + ":" + cfg.burpPort
-				},
-			}
-			if cfg.useTLS {
-				proxy.Transport = &http.Transport{
-					TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, //it's localhost, we don't need to verify
-				}
-			}
-			proxy.ServeHTTP(w, r)
-			return
-		}
-
 		// reverse proxy config
 		if os.Getenv("REVERSE_PROXY_DOMAIN") != "" && strings.HasSuffix(r.Host, os.Getenv("REVERSE_PROXY_DOMAIN")) {
 			proxy := &httputil.ReverseProxy{
@@ -89,14 +66,13 @@ func createReverseProxyHandler(cfg routerConfig) http.HandlerFunc {
 func Listen80() net.Listener {
 	p80 := os.Getenv("BIND_ADDR") + ":80"
 
-	if os.Getenv("BURP_HTTP_PORT") != "" || os.Getenv("REVERSE_PROXY_HTTP") != "" {
+	if os.Getenv("REVERSE_PROXY_HTTP") != "" {
 		p80 = "127.0.0.1:8880" // set local port that knary will listen on as the client of the reverse proxy
 
 		// start custom handler to route requests appropriately
 		go func() {
 			handler := createReverseProxyHandler(routerConfig{
 				scheme:              "http",
-				burpPort:            os.Getenv("BURP_HTTP_PORT"),
 				reverseProxyHost:    os.Getenv("REVERSE_PROXY_HTTP"),
 				knaryListenerURL:    "127.0.0.1:8880",
 				useTLS:              false,
@@ -133,13 +109,12 @@ func Accept80(ln net.Listener) {
 func Listen443() net.Listener {
 	p443 := os.Getenv("BIND_ADDR") + ":443"
 
-	if os.Getenv("BURP_HTTPS_PORT") != "" || os.Getenv("REVERSE_PROXY_HTTPS") != "" {
+	if os.Getenv("REVERSE_PROXY_HTTPS") != "" {
 		p443 = "127.0.0.1:8843" // set local port that knary will listen on as the client of the reverse proxy
 
 		go func() {
 			handler := createReverseProxyHandler(routerConfig{
 				scheme:              "https",
-				burpPort:            os.Getenv("BURP_HTTPS_PORT"),
 				reverseProxyHost:    os.Getenv("REVERSE_PROXY_HTTPS"),
 				knaryListenerURL:    "127.0.0.1:8843",
 				useTLS:              true,
@@ -236,9 +211,7 @@ func handleRequest(conn net.Conn) bool {
 				if stringContains(header, "Host") {
 					host = strings.TrimRight(header, "\r\n") + ":"
 					// using a reverse proxy, set ports back to the actual received ones
-					if os.Getenv("BURP_HTTP_PORT") != "" || os.Getenv("BURP_HTTPS_PORT") != "" ||
-						os.Getenv("REVERSE_PROXY_HTTP") != "" || os.Getenv("REVERSE_PROXY_HTTPS") != "" {
-
+					if os.Getenv("REVERSE_PROXY_HTTP") != "" || os.Getenv("REVERSE_PROXY_HTTPS") != "" {
 						if lPort == 8880 {
 							host = host + "80"
 						} else if lPort == 8843 {

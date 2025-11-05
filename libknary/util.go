@@ -303,9 +303,6 @@ func HeartBeat(version string, firstrun bool) (bool, error) {
 			}
 		}
 	}
-	if os.Getenv("BURP_DOMAIN") != "" {
-		beatMsg += "(Deprecated) Working in collaborator compatibility mode on subdomain *." + os.Getenv("BURP_DOMAIN") + "\n"
-	}
 	if os.Getenv("REVERSE_PROXY_DOMAIN") != "" {
 		beatMsg += "Reverse proxy enabled on requests to: *." + os.Getenv("REVERSE_PROXY_DOMAIN") + "\n"
 	}

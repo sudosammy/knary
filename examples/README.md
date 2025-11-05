@@ -22,14 +22,6 @@
 * `ALLOWLIST_FILE` Location for a file containing case-insensitive subdomains or IP addresses (separated by newlines) that should trigger a notification for knary (unless also included in the denylist). Example input: `allowlist.txt`
 * `DENYLIST_FILE` Location for a file containing case-insensitive subdomains or IP addresses (separated by newlines) that should be ignored by knary and not logged or notified. Example input: `denylist.txt` 
 
-## Burp Collaborator Configuration (Deprecated in favour of REVERSE_PROXY_*)
-If you are running Burp Collaborator on the same server as knary, you will need to configure the following.
-* `BURP_DOMAIN` The FQDN suffix to match Collaborator hits on (e.g. `burp.knary.tld`). This will forward anything `*.burp.knary.tld` to Collaborator.
-* `BURP_DNS_PORT` Local Burp Collaborator DNS port. This can't be `53` because knary listens on that one! Change Collaborator config to be something like `8053`, and set this to `8053`
-* `BURP_HTTP_PORT` Much like the above - set to `8080` (or whatever you set the Burp HTTP port to be)
-* `BURP_HTTPS_PORT` Much like the above - set to `8443` (or whatever you set the Burp HTTPS port to be)
-* `BURP_INT_IP` __Optional__ The internal IP address that Burp Collaborator is bound to. In most cases this will be `127.0.0.1` (which is the default); however, if you run knary in Docker you may need to set this to the Burp Collaborator IP address reachable from within the knary container
-
 ## Reverse Proxy Configuration
 You can specify any FQDN to operate as a HTTP(s) and/or DNS reverse proxy. The proxied system will need to support TLS to proxy HTTPS requests. **Note:** Proxied requests will **not** trigger the knary. This can be used to operate Burp Collaborator alongside knary.
 * `REVERSE_PROXY_DOMAIN` The FQDN suffix to match requests that knary should proxy. Example input `burp.knary.tld` would forward anything `*.burp.knary.tld` to the proxied system
@@ -60,4 +52,6 @@ You can specify any FQDN to operate as a HTTP(s) and/or DNS reverse proxy. The p
 * `CERTBOT_POLLING_INTERVAL` Frequency of attempts to validate a new certbot acme challenge up-to the value of `CERTBOT_PROPAGATION_TIMEOUT`. Default `2` seconds -->
 
 ## Note about editing configuration and Let's Encrypt
-If you have previously been running knary with Let's Encrypt and have now configured Burp Collaborator or `DNS_SUBDOMAIN`, you should delete the files in the `certs/` folder so that knary can re-generate certificates that include these subdomains as a SAN. Otherwise knary may exhibit strange behaviour / failures when attempting to renew the certificate.
+**As of knary v3.5+**, when you add new domains to your configuration (such as `REVERSE_PROXY_DOMAIN` or `DNS_SUBDOMAIN`), knary will automatically detect that the current certificate is missing these domains and request a new certificate from Let's Encrypt on startup. You will be notified via your webhook when this happens.
+
+**For older versions of knary (v3.4 and earlier):** You must manually delete the files in the `certs/` folder when adding new domain configurations so that knary can re-generate certificates that include these subdomains as a SAN.
