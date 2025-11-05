@@ -117,3 +117,47 @@ func needRenewal(days int) (bool, int) {
 	}
 	return true, notAfter
 }
+
+// checkCertificateDomains verifies that the certificate includes all required domains
+func checkCertificateDomains() (bool, []string) {
+	if os.Getenv("TLS_CRT") == "" || os.Getenv("TLS_KEY") == "" {
+		return true, nil // no cert to check
+	}
+
+	certName := strings.TrimSuffix(filepath.Base(os.Getenv("TLS_CRT")), filepath.Ext(os.Getenv("TLS_CRT")))
+	certExt := filepath.Ext(os.Getenv("TLS_CRT"))
+
+	certsStorage := cmd.NewCertificatesStorage()
+	certificates, err := certsStorage.ReadCertificate(certName, certExt)
+	if err != nil {
+		return true, nil // can't read cert, skip check
+	}
+
+	x509Cert := certificates[0]
+	certDomains := make(map[string]bool)
+
+	// Add all domains from cert (CN + SANs)
+	if x509Cert.Subject.CommonName != "" {
+		certDomains[x509Cert.Subject.CommonName] = true
+	}
+	for _, san := range x509Cert.DNSNames {
+		certDomains[san] = true
+	}
+
+	// Get required domains
+	requiredDomains := getDomainsForCert()
+	missingDomains := []string{}
+
+	// Check which domains are missing
+	for _, domain := range requiredDomains {
+		if !certDomains[domain] {
+			missingDomains = append(missingDomains, domain)
+		}
+	}
+
+	if len(missingDomains) > 0 {
+		return false, missingDomains
+	}
+
+	return true, nil
+}

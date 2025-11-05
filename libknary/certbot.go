@@ -172,7 +172,21 @@ func StartLetsEncrypt() {
 		os.Setenv("TLS_CRT", filepath.Join(cmd.GetCertPath(), cmd.SanitizedDomain("*."+firstDomain)+".crt"))
 		os.Setenv("TLS_KEY", filepath.Join(cmd.GetCertPath(), cmd.SanitizedDomain("*."+firstDomain)+".key"))
 
-		return
+		// Check if certificate includes all required domains
+		allDomainsPresent, missingDomains := checkCertificateDomains()
+		if !allDomainsPresent {
+			msg := "Certificate is missing required domains. Requesting new certificate with all domains."
+			Printy(msg, 3)
+			logger("INFO", msg)
+			for _, domain := range missingDomains {
+				Printy("Missing: "+domain, 3)
+				logger("INFO", "Missing domain: "+domain)
+			}
+			go sendMsg(":lock: " + msg)
+			// Continue to request new certificate instead of returning
+		} else {
+			return
+		}
 	}
 
 	if os.Getenv("DEBUG") == "true" {
@@ -264,8 +278,10 @@ func renewLetsEncrypt() {
 		renewError("Certificate bundle starts with a CA certificate")
 	}
 
+	// Use getDomainsForCert() to ensure all current domains are included
+	// This allows adding new domains (like REVERSE_PROXY_DOMAIN) to existing certs
 	query := certificate.ObtainRequest{
-		Domains:    certcrypto.ExtractDomains(x509Cert),
+		Domains:    getDomainsForCert(),
 		Bundle:     true,
 		PrivateKey: privateKey,
 		MustStaple: false,
