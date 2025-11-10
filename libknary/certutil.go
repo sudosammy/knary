@@ -14,6 +14,58 @@ import (
 	cmd "github.com/sudosammy/knary/v3/libknary/lego"
 )
 
+// deduplicateAndRemoveRedundantDomains removes duplicate domains and domains
+// that are redundant with wildcards in the same request.
+// For example, if the list contains "*.domain.test" and "x.domain.test",
+// the "x.domain.test" will be removed because it's covered by "*.domain.test".
+func deduplicateAndRemoveRedundantDomains(domains []string) []string {
+	seen := make(map[string]bool)
+	var unique []string
+	for _, domain := range domains {
+		if !seen[domain] {
+			seen[domain] = true
+			unique = append(unique, domain)
+		}
+	}
+
+	wildcards := make(map[string]bool)
+	var nonWildcards []string
+
+	for _, domain := range unique {
+		if strings.HasPrefix(domain, "*.") {
+			wildcards[domain] = true
+		} else {
+			nonWildcards = append(nonWildcards, domain)
+		}
+	}
+
+	var result []string
+
+	for wildcard := range wildcards {
+		result = append(result, wildcard)
+	}
+
+	for _, domain := range nonWildcards {
+		covered := false
+		// Check if this domain is covered by any wildcard
+		// A wildcard *.parent.test covers child.parent.test but NOT parent.test itself
+		parts := strings.SplitN(domain, ".", 2)
+		if len(parts) == 2 {
+			// Check if there's a wildcard for the parent domain
+			parentWildcard := "*." + parts[1]
+			if wildcards[parentWildcard] {
+				covered = true
+			}
+		}
+
+		if !covered {
+			result = append(result, domain)
+		}
+	}
+
+	return result
+}
+
 // create domain list for certificates
 func getDomainsForCert() []string {
 	var domainArray []string
@@ -41,6 +93,9 @@ func getDomainsForCert() []string {
 		domainArray = append(domainArray, os.Getenv("REVERSE_PROXY_DOMAIN"))
 		numDomains++
 	}
+
+	domainArray = deduplicateAndRemoveRedundantDomains(domainArray)
+	numDomains = len(domainArray)
 
 	if os.Getenv("DEBUG") == "true" {
 		Printy("Domains for SAN certificate: "+strconv.Itoa(numDomains), 3)
