@@ -1,0 +1,355 @@
+name: Dependency Bump and Release
+
+on:
+  schedule:
+    - cron: "0 3 * * 1"
+  workflow_dispatch:
+    inputs:
+      recover_version:
+        description: Existing version to rebuild and publish (for example, 3.5.2)
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dependency-bump-release
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      mode: ${{ steps.state.outputs.mode }}
+      version: ${{ steps.state.outputs.version }}
+      source_sha: ${{ steps.state.outputs.source_sha }}
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: master
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version: "1.25.x"
+          cache: true
+
+      - name: Update dependencies
+        if: inputs.recover_version == ''
+        run: |
+          go get -u ./...
+          go mod tidy
+
+      - name: Determine work to perform
+        id: state
+        shell: bash
+        env:
+          RECOVER_VERSION: ${{ inputs.recover_version }}
+        run: |
+          if [[ -n "$RECOVER_VERSION" ]]; then
+            if [[ ! "$RECOVER_VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+              echo "recover_version must be a semantic version without a v prefix" >&2
+              exit 1
+            fi
+
+            tag="v${RECOVER_VERSION}"
+            git rev-parse --verify "refs/tags/${tag}^{commit}" >/dev/null
+            tag_version="$(git show "${tag}:VERSION" | tr -d '[:space:]')"
+            if [[ "$tag_version" != "$RECOVER_VERSION" ]]; then
+              echo "${tag} contains VERSION=${tag_version}, not ${RECOVER_VERSION}" >&2
+              exit 1
+            fi
+
+            echo "mode=recover" >> "$GITHUB_OUTPUT"
+            echo "version=$RECOVER_VERSION" >> "$GITHUB_OUTPUT"
+            echo "source_sha=$(git rev-parse "refs/tags/${tag}^{commit}")" >> "$GITHUB_OUTPUT"
+          elif git diff --quiet -- go.mod go.sum; then
+            echo "mode=none" >> "$GITHUB_OUTPUT"
+            echo "version=" >> "$GITHUB_OUTPUT"
+            echo "source_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          else
+            echo "mode=new" >> "$GITHUB_OUTPUT"
+            echo "version=" >> "$GITHUB_OUTPUT"
+            echo "source_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Save dependency update
+        if: steps.state.outputs.mode == 'new'
+        run: |
+          git diff --binary -- go.mod go.sum > dependency-update.patch
+          test -s dependency-update.patch
+
+      - name: Upload dependency update
+        if: steps.state.outputs.mode == 'new'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: dependency-update
+          path: dependency-update.patch
+          if-no-files-found: error
+          retention-days: 7
+
+  validate:
+    needs: prepare
+    if: needs.prepare.outputs.mode != 'none'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GOTOOLCHAIN: local
+    strategy:
+      fail-fast: false
+      matrix:
+        go-version: ["1.25.x", "1.26.x"]
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.prepare.outputs.source_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Download dependency update
+        if: needs.prepare.outputs.mode == 'new'
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: dependency-update
+          path: .automation
+
+      - name: Apply dependency update
+        if: needs.prepare.outputs.mode == 'new'
+        run: git apply .automation/dependency-update.patch
+
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version: ${{ matrix.go-version }}
+          cache: true
+
+      - name: Build all packages
+        run: go build ./...
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test ./...
+
+      - name: Build binary and smoke run
+        run: |
+          go build -tags timetzdata -o "$RUNNER_TEMP/knary" .
+          "$RUNNER_TEMP/knary" -version
+
+  package:
+    needs: [prepare, validate]
+    if: needs.prepare.outputs.mode != 'none'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GOTOOLCHAIN: local
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.prepare.outputs.source_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Download dependency update
+        if: needs.prepare.outputs.mode == 'new'
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: dependency-update
+          path: .automation
+
+      - name: Apply dependency update
+        if: needs.prepare.outputs.mode == 'new'
+        run: git apply .automation/dependency-update.patch
+
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version: "1.25.x"
+          cache: true
+
+      - name: Prepare release sources and notes
+        id: release
+        shell: bash
+        env:
+          MODE: ${{ needs.prepare.outputs.mode }}
+          RECOVER_VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          if [[ "$MODE" == "recover" ]]; then
+            version="$RECOVER_VERSION"
+          else
+            current_version="$(tr -d '[:space:]' < VERSION)"
+            if [[ ! "$current_version" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+              echo "VERSION must contain a semantic version (current: $current_version)" >&2
+              exit 1
+            fi
+
+            IFS=. read -r major minor patch <<< "$current_version"
+            version="${major}.${minor}.$((patch + 1))"
+            if git show-ref --verify --quiet "refs/tags/v${version}"; then
+              echo "v${version} already exists; use recover_version if it needs publishing" >&2
+              exit 1
+            fi
+
+            printf '%s\n' "$version" > VERSION
+            sed -Ei 's/^([[:space:]]*VERSION[[:space:]]*=[[:space:]]*)"[^"]+"/\1"'"$version"'"/' main.go
+            grep -Eq '^[[:space:]]*VERSION[[:space:]]*=[[:space:]]*"'"$version"'"[[:space:]]*$' main.go
+          fi
+
+          {
+            echo "# Dependency Bump"
+            echo
+            echo "Automated dependency update for knary v${version}."
+            echo
+            echo '```diff'
+            if [[ "$MODE" == "recover" ]]; then
+              git diff "v${version}^" "v${version}" -- go.mod
+            else
+              git diff -- go.mod
+            fi
+            echo '```'
+          } > release-notes.md
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Build release binaries
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          ./build.sh "$VERSION"
+          "./knary-${VERSION}-linux-amd64" -version
+
+      - name: Assemble release bundle
+        shell: bash
+        env:
+          MODE: ${{ needs.prepare.outputs.mode }}
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          mkdir -p release-bundle/source
+          printf '%s\n' "$MODE" > release-bundle/mode
+          printf '%s\n' "$VERSION" > release-bundle/version
+          printf '%s\n' "${{ needs.prepare.outputs.source_sha }}" > release-bundle/source-sha
+          cp go.mod go.sum VERSION main.go release-bundle/source/
+          cp release-notes.md release-bundle/
+          cp "knary-${VERSION}-darwin-amd64" release-bundle/
+          cp "knary-${VERSION}-darwin-arm64" release-bundle/
+          cp "knary-${VERSION}-linux-amd64" release-bundle/
+          cp "knary-${VERSION}-linux-arm64" release-bundle/
+          cp "knary-${VERSION}-windows-amd64.exe" release-bundle/
+          cp "knary-${VERSION}-windows-arm64.exe" release-bundle/
+
+          if [[ "$MODE" == "new" ]]; then
+            git diff --binary -- go.mod go.sum VERSION main.go > release-bundle/release.patch
+            test -s release-bundle/release.patch
+          fi
+
+      - name: Upload release bundle
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: release-bundle
+          path: release-bundle
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    needs: [prepare, package]
+    if: needs.prepare.outputs.mode != 'none'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: master
+          fetch-depth: 0
+
+      - name: Download release bundle
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: release-bundle
+          path: release-bundle
+
+      - name: Validate release bundle
+        shell: bash
+        env:
+          EXPECTED_MODE: ${{ needs.prepare.outputs.mode }}
+          EXPECTED_SOURCE_SHA: ${{ needs.prepare.outputs.source_sha }}
+          EXPECTED_VERSION: ${{ needs.package.outputs.version }}
+        run: |
+          mode="$(tr -d '[:space:]' < release-bundle/mode)"
+          source_sha="$(tr -d '[:space:]' < release-bundle/source-sha)"
+          version="$(tr -d '[:space:]' < release-bundle/version)"
+          [[ "$mode" == "$EXPECTED_MODE" ]]
+          [[ "$source_sha" == "$EXPECTED_SOURCE_SHA" ]]
+          [[ "$source_sha" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$version" == "$EXPECTED_VERSION" ]]
+          [[ "$version" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
+
+          for file in go.mod go.sum VERSION main.go; do
+            test -s "release-bundle/source/${file}"
+          done
+
+      - name: Commit, tag, and push
+        if: needs.prepare.outputs.mode == 'new'
+        shell: bash
+        env:
+          SOURCE_SHA: ${{ needs.prepare.outputs.source_sha }}
+          VERSION: ${{ needs.package.outputs.version }}
+        run: |
+          tag="v${VERSION}"
+          if git show-ref --verify --quiet "refs/tags/${tag}"; then
+            for file in go.mod go.sum VERSION main.go; do
+              git show "${tag}:${file}" | cmp - "release-bundle/source/${file}"
+            done
+            echo "${tag} is already pushed; continuing release publication"
+            exit 0
+          fi
+
+          if [[ "$(git rev-parse HEAD)" != "$SOURCE_SHA" ]]; then
+            echo "master advanced after packaging; refusing to tag binaries built from ${SOURCE_SHA}" >&2
+            exit 1
+          fi
+
+          git apply --check release-bundle/release.patch
+          git apply --index release-bundle/release.patch
+
+          unexpected_files="$(git diff --cached --name-only | grep -Ev '^(VERSION|go\.mod|go\.sum|main\.go)$' || true)"
+          if [[ -n "$unexpected_files" ]]; then
+            echo "Release patch contains unexpected files:" >&2
+            echo "$unexpected_files" >&2
+            exit 1
+          fi
+
+          for file in go.mod go.sum VERSION main.go; do
+            cmp "$file" "release-bundle/source/${file}"
+          done
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "bump to ${VERSION}"
+          git tag "$tag"
+          git push --atomic origin HEAD:master "refs/tags/${tag}"
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
+        with:
+          tag_name: v${{ needs.package.outputs.version }}
+          name: v${{ needs.package.outputs.version }}
+          body_path: release-bundle/release-notes.md
+          fail_on_unmatched_files: true
+          overwrite_files: true
+          files: |
+            release-bundle/knary-${{ needs.package.outputs.version }}-darwin-amd64
+            release-bundle/knary-${{ needs.package.outputs.version }}-darwin-arm64
+            release-bundle/knary-${{ needs.package.outputs.version }}-linux-amd64
+            release-bundle/knary-${{ needs.package.outputs.version }}-linux-arm64
+            release-bundle/knary-${{ needs.package.outputs.version }}-windows-amd64.exe
+            release-bundle/knary-${{ needs.package.outputs.version }}-windows-arm64.exe
