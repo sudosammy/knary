@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	VERSION       = "3.5.2"
+	VERSION       = "3.5.3"
 	GITHUB        = "https://github.com/sudosammy/knary"
 	GITHUBVERSION = "https://raw.githubusercontent.com/sudosammy/knary/master/VERSION"
 )
