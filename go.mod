@@ -1,6 +1,6 @@
 module github.com/sudosammy/knary/v3
 
-go 1.25.0
+go 1.26.0
 
 require (
 	github.com/blang/semver/v4 v4.0.0
