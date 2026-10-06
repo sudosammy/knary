@@ -1,6 +1,6 @@
 # knary - A simple HTTP(S) and DNS Canary
 
-[![Go CI](https://github.com/sudosammy/knary/actions/workflows/go-ci.yml/badge.svg?branch=master)](https://github.com/sudosammy/knary/actions/workflows/go-ci.yml)  [![Go Report Card](https://goreportcard.com/badge/github.com/sudosammy/knary/v3)](https://goreportcard.com/report/github.com/sudosammy/knary/v3)  [![Coverage Status](https://coveralls.io/repos/github/sudosammy/knary/badge.svg?branch=master)](https://coveralls.io/github/sudosammy/knary?branch=master)
+[![Go CI](https://github.com/sudosammy/knary/actions/workflows/go-ci.yml/badge.svg?branch=master)](https://github.com/sudosammy/knary/actions/workflows/go-ci.yml)  [![Coverage Status](https://coveralls.io/repos/github/sudosammy/knary/badge.svg?branch=master)](https://coveralls.io/github/sudosammy/knary?branch=master)
 
 >Like "Canary" but more hipster, which means better 😎😎😎
 
