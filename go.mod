@@ -9,15 +9,15 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/miekg/dns v1.1.73
 	github.com/radovskyb/watcher v1.0.7
-	golang.org/x/net v0.58.0
+	golang.org/x/net v0.62.0
 )
 
 require (
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
-	github.com/go-jose/go-jose/v4 v4.1.4 // indirect
-	github.com/mattn/go-colorable v0.1.15 // indirect
+	github.com/go-jose/go-jose/v4 v4.1.7 // indirect
+	github.com/mattn/go-colorable v0.1.16 // indirect
 	github.com/mattn/go-isatty v0.0.24 // indirect
-	golang.org/x/crypto v0.55.0 // indirect
-	golang.org/x/sys v0.47.0 // indirect
-	golang.org/x/text v0.41.0 // indirect
+	golang.org/x/crypto v0.58.0 // indirect
+	golang.org/x/sys v0.49.0 // indirect
+	golang.org/x/text v0.43.0 // indirect
 )
